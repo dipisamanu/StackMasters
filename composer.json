@@ -1,0 +1,9 @@
+{
+    "name": "ottaviodipisa/stack-masters",
+    "autoload": {
+        "psr-4": {
+            "Ottaviodipisa\\StackMasters\\": "src/"
+        }
+    },
+    "require": {}
+}
