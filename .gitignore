@@ -7,7 +7,6 @@
 # IMPORTANTISSIMO: Mai caricare le password del DB su GitHub!
 # Epic 14.1 menziona un file di configurazione generato
 config.php
-database.php
 .env
 db_connection.php
 
