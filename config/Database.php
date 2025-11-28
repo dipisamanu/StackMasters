@@ -8,7 +8,7 @@ class Database
 
     public function __construct()
     {
-        $this->pdo = new PDO("mysql:host=localhost;dbname=****(NOME DATABASE=****", "root", "");
+        $this->pdo = new PDO("mysql:host=localhost;dbname=", "root", "");
     }
 
     public static function getInstance()
