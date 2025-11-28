@@ -9,7 +9,6 @@ cognome			        varchar(100)
 ultimo_aggiornamento 	current_timestamp
 
 
-
 Libro
 id_libro				int	pk
 titolo				    varchar(100)
@@ -28,12 +27,10 @@ ultimo_aggiornamento	current_timestamp
 https://www.reddit.com/r/webdev/comments/1cktt26/can_i_trust_google_books_api/
 
 
-
 Libro_Autore
 id_autore	            int 	pk	fk
 id_libro		        int		pk	fk
 ultimo_aggiornamento	current_timestamp
-
 
 
 Lingua
@@ -42,12 +39,10 @@ nome   			        varchar(60)
 ultimo_aggiornamento	current_timestamp
 
 
-
 Genere
 id				        int		pk
 nome				    varchar(60)
 ultimo_aggiornamento	current_timestamp
-
 
 
 Libro_Genere
@@ -56,13 +51,11 @@ id_libro				int	pk	fk
 ultimo_aggiornamento	current_timestamp
 
 
-
 RFID
 id_rfid				    int	pk
 rfid				    varchar(128)	unique  alfanumerico + ON DELETE(‘CASCADE’)
 tipo  				    varchar(20)	ENUM(‘utente’',’libro’)
 ultimo_aggiornamento	current_timestamp
-
 
 
 Inventario
@@ -73,7 +66,6 @@ stato				    varchar(30) ENUM('DISPONIBILE','IN_PRESTITO',’PRENOTATO,’’non
 condizione			    ENUM(‘BUONO’,’DANNEGGIATO','PERSO')
 collocazione			varchar(20) // cod. biblioteca + scaffale/sezione/ripiano + c. autore (3 char)
 ultimo_aggiornamento	current_timestamp
-
 
 
 Prestiti
@@ -87,7 +79,6 @@ ultimo_aggiornamento	current_timestamp
 
 funzione - controllo data_ritorno -> 3+ giorni = creazione multa
 sistema notifiche da implementare
-
 
 
 Utente
@@ -116,7 +107,6 @@ data_creazione 		    current_timestamp
 ultimo_aggiornamento	current_timestamp
 
 
-
 Badge
 id_badge			    int	pk
 nome				    varchar(50) unique
@@ -124,12 +114,10 @@ desc				    text
 icona_url 			    text
 
 
-
 Utente_Badge
 id_utente 			    int	pk fk
 id_badge 			    int	pk fk
 data_conseguimento 		current_timestamp
-
 
 
 Ruolo
@@ -139,7 +127,6 @@ nome				    varchar(15)
 durata_prestito		    tinyint
 limite_prestiti			tinyint
 ultimo_aggiornamento	current_timestamp
-
 
 
 Utente_ruolo
@@ -159,7 +146,6 @@ data_creazione 		    current_timestamp
 data_update 			current_timestamp
 
 
-
 Prenotazioni
 id_prenotazione         int  	pk
 id_utente			    int	fk
@@ -169,7 +155,6 @@ data_richiesta			current_timestamp
 data_disponibilità		current_timestamp
 scadenza_ritiro         timestamp apertura biblioteca + 48h / NULL
 ultimo_aggiornamento	current_timestamp
-
 
 
 Multe
@@ -184,7 +169,6 @@ data_pagamento      	NULL
 ultimo_aggiornamento	current_timestamp
 
 
-
 Log_Audit
 id				        int	pk
 id_utente 			    int	fk
@@ -193,4 +177,3 @@ dettagli       		    text (es. "IP: 192.168.1.1, Modificato ruolo utente X")
 ip_address 			    int unsigned comment 'IPv4 convertito con INET_ATON'
 ipv6 				    varbinary(16) comment 'IPv6 convertito con INET6_ATON',
 timestamp			    current_timestamp
-
