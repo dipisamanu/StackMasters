@@ -1,6 +1,8 @@
 <?php
 
-namespace config;
+namespace Ottaviodipisa\StackMasters\Core;
+use config\PDO;
+
 class Database
 {
     private static $instance = null;

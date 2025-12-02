@@ -8,6 +8,7 @@
 # Epic 14.1 menziona un file di configurazione generato
 config.php
 .env
+database.php
 db_connection.php
 
 # --- File di Sistema e IDE ---
