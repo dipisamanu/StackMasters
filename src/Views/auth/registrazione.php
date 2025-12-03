@@ -3,63 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Registrazione Utente - Biblioteca ITIS Rossi</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            width: 450px;
-            margin: 40px auto;
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        label {
-            font-weight: bold;
-            margin-top: 10px;
-            display: block;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 4px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .error {
-            font-size: 0.9em;
-            color: red;
-            display: none;
-        }
-
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 20px;
-            font-size: 16px;
-            background: #0077cc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover { background: #005fa3; }
-    </style>
+    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <link rel="stylesheet" href="/StackMasters/public/assets/css/auth.css">
 </head>
 
 <body>
@@ -86,6 +31,7 @@
             <option value="">-- Seleziona --</option>
             <option value="M">Maschio</option>
             <option value="F">Femmina</option>
+            <option value="X">Non Binario</option>
         </select>
         <div class="error" id="errSesso">Seleziona il sesso</div>
 
@@ -116,77 +62,7 @@
     </form>
 </div>
 
-<script>
-    const form = document.getElementById("registrationForm");
-
-    form.addEventListener("submit", function (e) {
-        e.preventDefault(); // evita invio se ci sono errori
-
-        let valid = true;
-
-        // VALIDAZIONE NOME
-        if (document.getElementById("nome").value.trim() === "") {
-            document.getElementById("errNome").style.display = "block";
-            valid = false;
-        } else document.getElementById("errNome").style.display = "none";
-
-        // VALIDAZIONE COGNOME
-        if (document.getElementById("cognome").value.trim() === "") {
-            document.getElementById("errCognome").style.display = "block";
-            valid = false;
-        } else document.getElementById("errCognome").style.display = "none";
-
-        // DATA DI NASCITA
-        const data = document.getElementById("dataNascita").value;
-        if (!data) {
-            document.getElementById("errData").style.display = "block";
-            valid = false;
-        } else document.getElementById("errData").style.display = "none";
-
-        // SESSO
-        if (document.getElementById("sesso").value === "") {
-            document.getElementById("errSesso").style.display = "block";
-            valid = false;
-        } else document.getElementById("errSesso").style.display = "none";
-
-        // COMUNE
-        if (document.getElementById("comune").value.trim() === "") {
-            document.getElementById("errComune").style.display = "block";
-            valid = false;
-        } else document.getElementById("errComune").style.display = "none";
-
-        // CODICE FISCALE
-        const cf = document.getElementById("codiceFiscale").value.trim();
-        const regexCF = /^[A-Z0-9]{16}$/i;
-
-        if (cf !== "" && !regexCF.test(cf)) {
-            document.getElementById("errCF").style.display = "block";
-            valid = false;
-        } else document.getElementById("errCF").style.display = "none";
-
-        // EMAIL
-        const email = document.getElementById("email").value;
-        const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (!regexEmail.test(email)) {
-            document.getElementById("errEmail").style.display = "block";
-            valid = false;
-        } else document.getElementById("errEmail").style.display = "none";
-
-        // regex
-        const password = document.getElementById("password").value;
-        const regexPass = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-
-        if (!regexPass.test(password)) {
-            document.getElementById("errPassword").style.display = "block";
-            valid = false;
-        } else document.getElementById("errPassword").style.display = "none";
-
-        if (valid) {
-            alert("Validazione superata");
-        }
-    });
-</script>
+<script src="/StackMasters/public/assets/js/validation.js"></script>
 
 </body>
 </html>
