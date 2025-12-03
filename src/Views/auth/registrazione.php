@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Registrazione Utente - Biblioteca ITIS Rossi</title>
-
+    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
     <link rel="stylesheet" href="/StackMasters/public/assets/css/auth.css">
 </head>
 
