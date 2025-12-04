@@ -1,15 +1,6 @@
 <?php
-
-echo $_POST['nome'];
-echo $_POST['cognome'];
-echo $_POST['dataNascita'];
-echo $_POST['sesso'];
-echo $_POST['comune'];
-echo $_POST['codiceFiscale'];
-echo $_POST['email'];
-echo $_POST['password'];
-
 ?>
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -77,6 +68,11 @@ echo $_POST['password'];
             • 1 numero<br>
             • 1 simbolo
         </div>
+
+        <div>
+            <input type="password" name="" id="">
+        </div>
+
         <button type="submit">Registrati</button>
 
     </form>
