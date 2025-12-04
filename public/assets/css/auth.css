@@ -58,7 +58,7 @@ input, select {
 
 input:focus, select:focus {
     outline: none;
-    border-color: #0077cc;
+    border-color: #d60808;
     box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.1);
 }
 
@@ -75,7 +75,7 @@ button {
     margin-top: 10px;
     font-size: 16px;
     font-weight: bold;
-    background: #0077cc;
+    background: #bf2121;
     color: white;
     border: none;
     border-radius: 6px;
@@ -84,5 +84,5 @@ button {
 }
 
 button:hover {
-    background: #005fa3;
+    background: #931b1b;
 }

@@ -6,8 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Registrazione Utente - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
     <link rel="stylesheet" href="/StackMasters/public/assets/css/auth.css">
+    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
 </head>
 
 <body>
@@ -16,7 +16,7 @@
     <h2>Registrazione Utente</h2>
 
     <form id="registrationForm" action="registrazione" method="POST" novalidate>
-<!--    convalidate serve a gestire autonomamente i required-->
+<!--    convalidate serve a gestire autonomamente i required    -->
         <?php if (isset($error)): ?>
             <div class="error" style="display:block; text-align:center; margin-bottom:15px;">
                 <?= $error ?>
@@ -27,8 +27,8 @@
         <input type="text" id="nome" name="nome" value="<?= $_POST['nome'] ?? '' ?>" required>
         <div class="error" id="errNome">Inserisci il nome</div>
 
-        <!-- facendo post ?? sto facendo un salvataggio della vecchia variabile
-         nel caso in cui aggiorni la pagina ma non in caso di una get. null coalescing operator -->
+        <!-- Facendo post ?? sto facendo un salvataggio della vecchia variabile
+         nel caso in cui aggiorni la pagina ma non in caso di una get. Null coalescing operator -->
 
         <label for="cognome">Cognome *</label>
         <input type="text" id="cognome" name="cognome" value="<?= $_POST['cognome'] ?? '' ?>" required>
@@ -69,8 +69,10 @@
             • 1 simbolo
         </div>
 
-        <div>
-            <input type="password" name="" id="">
+        <label for="confermaPassword">Conferma password *</label>
+        <input type="password" id="confermaPassword" name="confermaPassword" required>
+        <div class="error" id="errConfermaPassword">
+            Le due password non coincidono
         </div>
 
         <button type="submit">Registrati</button>
