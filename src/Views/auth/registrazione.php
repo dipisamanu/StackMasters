@@ -52,7 +52,12 @@
         <div class="error" id="errComune">Inserisci il comune di nascita</div>
 
         <label for="codiceFiscale">Codice Fiscale (opzionale)</label>
-        <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>">
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <div style="flex-grow: 1;">
+                <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>" style="width: 100%; box-sizing: border-box;">
+            </div>
+            <button type="button" id="btnCalcolaCF" style="padding: 10px; white-space: nowrap; height: 42px; margin-top: 5px; cursor: pointer;">Calcola</button>
+        </div>
         <div class="error" id="errCF">Formato Codice Fiscale non valido</div>
 
         <label for="email">Email *</label>
@@ -81,6 +86,7 @@
 </div>
 
 <script src="/StackMasters/public/assets/js/validation.js"></script>
+<script src="/StackMasters/public/assets/js/calc_cf.js"></script>
 
 </body>
 </html>
