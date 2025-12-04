@@ -84,7 +84,7 @@ CREATE TABLE Utente
     email                   VARCHAR(255)       NOT NULL,
     password                VARCHAR(255)       NOT NULL,
     data_nascita            DATETIME,
-    sesso                   ENUM ('M', 'F', 'X'),
+    sesso                   ENUM ('M', 'F'),
     comune_nascita          VARCHAR(100),
     token                   VARCHAR(32),
     email_verificata        BOOLEAN                     DEFAULT FALSE,
