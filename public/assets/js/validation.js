@@ -1,56 +1,93 @@
-document.addEventListener("DOMContentLoaded",()=> {
+document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("registrationForm");
 
-    // Se il form non esiste in questa pagina, esce senza errori
     if (!form) return;
+    const getById = (id) => document.getElementById(id);
+
+    const password = getById("password");
+    const confermaPass = getById("confermaPassword");
+    const toggleBtn = getById("togglePassword");
+
+    function checkPasswordRules(pw) {
+        return {
+            len: pw.length >= 8,
+            upper: /[A-Z]/.test(pw),
+            digit: /[0-9]/.test(pw),
+            special: /[\W_]/.test(pw)
+        };
+    }
+
+    function updatePwUi(pw) {
+        const rules = checkPasswordRules(pw);
+        const rulesMap = {
+            pwLen: rules.len,
+            pwUpper: rules.upper,
+            pwDigit: rules.digit,
+            pwSpecial: rules.special
+        };
+
+        Object.keys(rulesMap).forEach((id) => {
+            const element = getById(id);
+            element.classList.toggle("valid", rulesMap[id]);
+            element.classList.toggle("invalid", !rulesMap[id]);
+        });
+    }
+
+    // Live check while typing
+    if (password) {
+        password.addEventListener("input", () => {
+            updatePwUi(password.value);
+            const errPassword = getById("errPassword");
+            if (errPassword) errPassword.style.display = "none";
+            if (confermaPass && confermaPass.value !== "") {
+                const errConf = getById("errConfermaPassword");
+                if (errConf) errConf.style.display = (password.value !== confermaPass.value) ? "block" : "none";
+            }
+        });
+    }
+
+    // Check conferma password live
+    if (confermaPass) {
+        confermaPass.addEventListener("input", () => {
+            const errConf = getById("errConfermaPassword");
+            if (errConf && password) errConf.style.display = (password.value !== confermaPass.value) ? "block" : "none";
+        });
+    }
+
+    // Toggle visibilità password
+    if (toggleBtn && password) {
+        toggleBtn.addEventListener("click", () => {
+            const type = password.type === "password" ? "text" : "password";
+            password.type = type;
+            toggleBtn.textContent = (type === "text") ? "Nascondi" : "Mostra";
+        });
+    }
+
+    // Funzione generica di validazione campi obbligatori
+    function validateField(id, errorId) {
+        const field = document.getElementById(id);
+        const error = document.getElementById(errorId);
+
+        if (field && field.value.trim() === "") {
+            if (error) error.style.display = "block";
+            return false;
+        } else {
+            if (error) error.style.display = "none";
+            return true;
+        }
+    }
 
     form.addEventListener("submit", function (e) {
-        // NON mettiamo e.preventDefault() qui, altrimenti il form non parte mai verso PHP!
-
         let valid = true;
 
-        // VALIDAZIONE NOME
-        if (document.getElementById("nome").value.trim() === "") {
-            document.getElementById("errNome").style.display = "block";
-            valid = false;
-        } else {
-            document.getElementById("errNome").style.display = "none";
-        }
+        // Validazione campi obbligatori
+        valid &= validateField("nome", "errNome");
+        valid &= validateField("cognome", "errCognome");
+        valid &= validateField("dataNascita", "errData");
+        valid &= validateField("sesso", "errSesso");
+        valid &= validateField("comune", "errComune");
 
-        // VALIDAZIONE COGNOME
-        if (document.getElementById("cognome").value.trim() === "") {
-            document.getElementById("errCognome").style.display = "block";
-            valid = false;
-        } else {
-            document.getElementById("errCognome").style.display = "none";
-        }
-
-        // DATA DI NASCITA
-        const data = document.getElementById("dataNascita").value;
-        if (!data) {
-            document.getElementById("errData").style.display = "block";
-            valid = false;
-        } else {
-            document.getElementById("errData").style.display = "none";
-        }
-
-        // SESSO
-        if (document.getElementById("sesso").value === "") {
-            document.getElementById("errSesso").style.display = "block";
-            valid = false;
-        } else {
-            document.getElementById("errSesso").style.display = "none";
-        }
-
-        // COMUNE
-        if (document.getElementById("comune").value.trim() === "") {
-            document.getElementById("errComune").style.display = "block";
-            valid = false;
-        } else {
-            document.getElementById("errComune").style.display = "none";
-        }
-
-        // CODICE FISCALE
+        // Validazione Codice Fiscale
         const cf = document.getElementById("codiceFiscale").value.trim();
         const regexCF = /^[A-Z0-9]{16}$/i;
 
@@ -61,7 +98,7 @@ document.addEventListener("DOMContentLoaded",()=> {
             document.getElementById("errCF").style.display = "none";
         }
 
-        // EMAIL
+        // Validazione Email
         const email = document.getElementById("email").value;
         const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -72,20 +109,34 @@ document.addEventListener("DOMContentLoaded",()=> {
             document.getElementById("errEmail").style.display = "none";
         }
 
-        // PASSWORD
-        const password = document.getElementById("password").value;
-        const regexPass = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+        // Validazione Password
+        const pw = password ? password.value : "";
+        const confermaPw = confermaPass ? confermaPass.value : "";
 
-        if (!regexPass.test(password)) {
-            document.getElementById("errPassword").style.display = "block";
+        const rules = checkPasswordRules(pw);
+        if (!(rules.len && rules.upper && rules.digit && rules.special)) {
+            const err = getById("errPassword");
+            if (err) err.style.display = "block";
             valid = false;
         } else {
-            document.getElementById("errPassword").style.display = "none";
+            const err = getById("errPassword");
+            if (err) err.style.display = "none";
         }
 
-        if (!valid) {
-            e.preventDefault(); // Blocca l'invio SOLO se ci sono errori
+        if (pw !== confermaPw) {
+            const err = getById("errConfermaPassword");
+            if (err) err.style.display = "block";
+            valid = false;
+        } else {
+            const err = getById("errConfermaPassword");
+            if (err) err.style.display = "none";
         }
-        // Se valid è true, lo script finisce e il browser invia il form a PHP normalmente
+
+        // Blocco invio se non valido
+        if (!valid) {
+            e.preventDefault();
+        }
     });
+
+    if (password) updatePwUi(password.value);
 });

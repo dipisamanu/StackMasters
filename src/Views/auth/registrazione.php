@@ -2,59 +2,105 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Registrazione Utente - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <title> Registrazione Utente - Biblioteca ITIS Rossi </title>
     <link rel="stylesheet" href="/StackMasters/public/assets/css/auth.css">
+    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
 </head>
 
 <body>
 
 <div class="container">
-    <h2>Registrazione Utente</h2>
+    <h2> Registrazione Utente </h2>
 
-    <form id="registrationForm" novalidate>
+    <form id="registrationForm" action="registrazione" method="POST" novalidate>
 
-        <label>Nome *</label>
-        <input type="text" id="nome" required>
-        <div class="error" id="errNome">Inserisci il nome</div>
+        <?php if (isset($error)): ?>
+            <div class="error" style="display:block; text-align:center; margin-bottom:15px;">
+                <?= $error ?>
+            </div>
+        <?php endif; ?>
 
-        <label>Cognome *</label>
-        <input type="text" id="cognome" required>
-        <div class="error" id="errCognome">Inserisci il cognome</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nome">Nome *</label>
+                <input type="text" id="nome" name="nome" value="<?= $_POST['nome'] ?? '' ?>" required>
+                <div class="error" id="errNome">Inserisci il nome</div>
+            </div>
 
-        <label>Data di nascita *</label>
-        <input type="date" id="dataNascita" required>
-        <div class="error" id="errData">Inserisci una data valida</div>
+            <div class="form-group">
+                <label for="cognome">Cognome *</label>
+                <input type="text" id="cognome" name="cognome" value="<?= $_POST['cognome'] ?? '' ?>" required>
+                <div class="error" id="errCognome">Inserisci il cognome</div>
+            </div>
+        </div>
 
-        <label>Sesso *</label>
-        <select id="sesso" required>
-            <option value="">-- Seleziona --</option>
-            <option value="M">Maschio</option>
-            <option value="F">Femmina</option>
-            <option value="X">Non Binario</option>
-        </select>
-        <div class="error" id="errSesso">Seleziona il sesso</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="dataNascita">Data di nascita *</label>
+                <input type="date" id="dataNascita" name="dataNascita" min="1997-01-01" max="2030-12-31" value="<?= $_POST['dataNascita'] ?? '' ?>" required>
+                <div class="error" id="errData">Inserisci una data valida</div>
+            </div>
 
-        <label>Comune di nascita *</label>
-        <input type="text" id="comune" required>
-        <div class="error" id="errComune">Inserisci il comune di nascita</div>
+            <div class="form-group">
+                <label for="sesso">Sesso *</label>
+                <select id="sesso" name="sesso" required>
+                    <option value=""> -- Seleziona -- </option>
+                    <option value="M" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'M') ? 'selected' : '' ?>> Maschio </option>
+                    <option value="F" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'F') ? 'selected' : '' ?>> Femmina </option>
+                </select>
+                <div class="error" id="errSesso">Seleziona il sesso</div>
+            </div>
+        </div>
 
-        <label>Codice Fiscale (opzionale)</label>
-        <input type="text" id="codiceFiscale" maxlength="16">
-        <div class="error" id="errCF">Formato Codice Fiscale non valido</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="comune">Comune di nascita *</label>
+                <input type="text" id="comune" name="comune" value="<?= $_POST['comune'] ?? '' ?>" required>
+                <div class="error" id="errComune">Inserisci il comune di nascita</div>
+            </div>
 
-        <label>Email *</label>
-        <input type="email" id="email" required>
-        <div class="error" id="errEmail">Inserisci una email valida</div>
+            <div class="form-group">
+                <label for="codiceFiscale">Codice Fiscale (opzionale)</label>
+                <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>">
+                <div class="error" id="errCF">Formato Codice Fiscale non valido</div>
+            </div>
+        </div>
 
-        <label>Password *</label>
-        <input type="password" id="password" required>
-        <div class="error" id="errPassword">
-            La password deve contenere almeno:
-            <br>• 8 caratteri
-            <br>• 1 maiuscola
-            <br>• 1 numero
-            <br>• 1 simbolo
+        <div class="form-row">
+            <div class="form-group full">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" value="<?= $_POST['email'] ?? '' ?>" required>
+                <div class="error" id="errEmail">Inserisci una email valida</div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" required>
+                    <button type="button" class="toggle-pass" id="togglePassword">Mostra</button>
+                </div>
+
+                <div class="pw-requirements" id="pwHelp">
+                    <div class="pw-item invalid" id="pwLen">8 caratteri minimi</div>
+                    <div class="pw-item invalid" id="pwUpper">1 lettera maiuscola</div>
+                    <div class="pw-item invalid" id="pwDigit">1 numero</div>
+                    <div class="pw-item invalid" id="pwSpecial">1 simbolo</div>
+                </div>
+
+                <div class="error" id="errPassword">
+                    La password non soddisfa i requisiti
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confermaPassword">Conferma password *</label>
+                <input type="password" id="confermaPassword" name="confermaPassword" required>
+                <div class="error" id="errConfermaPassword">
+                    Le due password non coincidono
+                </div>
+            </div>
         </div>
 
         <button type="submit">Registrati</button>
