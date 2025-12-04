@@ -15,7 +15,7 @@
     <form id="registrationForm" action="registrazione" method="POST" novalidate>
 
         <?php if (isset($error)): ?>
-            <div class="error" style="display:block; text-align:center; margin-bottom:15px;">
+            <div class="error">
                 <?= $error ?>
             </div>
         <?php endif; ?>
@@ -37,7 +37,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="dataNascita">Data di nascita *</label>
-                <input type="date" id="dataNascita" name="dataNascita" min="1997-01-01" max="2030-12-31" value="<?= $_POST['dataNascita'] ?? '' ?>" required>
+                <input type="date" id="dataNascita" name="dataNascita" min="1900-01-01" max="2025-12-31" value="<?= $_POST['dataNascita'] ?? '' ?>" required>
                 <div class="error" id="errData">Inserisci una data valida</div>
             </div>
 
@@ -61,8 +61,8 @@
 
             <div class="form-group">
                 <label for="codiceFiscale">Codice Fiscale (opzionale)</label>
-                <div style="display: flex; gap: 10px; align-items: flex-start;">
-                    <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>" style="flex-grow: 1;">
+                <div id="calcolaCFdiv">
+                    <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>">
                     <button type="button" id="btnCalcolaCF">Calcola</button>
                 </div>
                 <div class="error" id="errCF">Formato Codice Fiscale non valido</div>
