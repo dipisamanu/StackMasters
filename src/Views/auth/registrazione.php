@@ -44,10 +44,9 @@
             <div class="form-group">
                 <label for="sesso">Sesso *</label>
                 <select id="sesso" name="sesso" required>
-                    <option value=""> -- Seleziona -- </option>
-                    <option value="M" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'M') ? 'selected' : '' ?>> Maschio </option>
-                    <option value="F" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'F') ? 'selected' : '' ?>> Femmina </option>
-                    <option value="X" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'X') ? 'selected' : '' ?>> Non Binario </option>
+                    <option value=""> -- Seleziona --</option>
+                    <option value="M" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'M') ? 'selected' : '' ?>>Maschio</option>
+                    <option value="F" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'F') ? 'selected' : '' ?>>Femmina</option>
                 </select>
                 <div class="error" id="errSesso">Seleziona il sesso</div>
             </div>
@@ -64,7 +63,7 @@
                 <label for="codiceFiscale">Codice Fiscale (opzionale)</label>
                 <div style="display: flex; gap: 10px; align-items: flex-start;">
                     <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>" style="flex-grow: 1;">
-                    <button type="button" id="btnCalcolaCF" style="padding: 10px; white-space: nowrap; height: 42px; cursor: pointer; margin-top: 0;">Calcola</button>
+                    <button type="button" id="btnCalcolaCF">Calcola</button>
                 </div>
                 <div class="error" id="errCF">Formato Codice Fiscale non valido</div>
             </div>
