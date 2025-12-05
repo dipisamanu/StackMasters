@@ -28,10 +28,10 @@ document.addEventListener("DOMContentLoaded", () => {
     function setStatus(isValid) {
         ui.input.classList.toggle('is-valid', isValid);
         ui.input.classList.toggle('is-invalid', !isValid);
-        if (isValid) ui.btn.disabled = true;
     }
 
     function resetUI() {
+        // Resetta lo stato visivo (toglie verde/rosso)
         ui.input.classList.remove('is-valid', 'is-invalid');
         toggleError(ui.errCF, "");
         toggleError(ui.errComune, "");
@@ -39,11 +39,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const len = ui.input.value.length;
         if (ui.counter) ui.counter.textContent = `${len}/${CF_LEN}`;
 
-        ui.btn.textContent = len === 0 ? "Calcola" : "Verifica";
-        ui.btn.disabled = len > 0 && len !== CF_LEN;
+        // Gestione stato bottone
+        if (len === 0) {
+            ui.btn.textContent = "Calcola";
+            ui.btn.disabled = false;
+        } else {
+            ui.btn.textContent = "Verifica";
+            ui.btn.disabled = len !== CF_LEN;
+            // Abilita solo se 16 caratteri
+        }
     }
 
-    // Logica Principale
     function processaCF() {
         const dati = {};
         let formValido = true;
@@ -56,12 +62,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (!formValido) {
-            toggleError(ui.errCF, "Compila tutti i dati anagrafici.");
+            toggleError(ui.errCF, "Compila tutti i dati anagrafici (Nome, Cognome, Data, Sesso, Comune).");
             ui.input.classList.add('is-invalid');
             return;
         }
 
+        // Calcolo del CF atteso in base ai dati inseriti
         const cfGenerato = generaCodiceFiscale(dati, ui.errComune);
+
         if (!cfGenerato) {
             ui.input.classList.add('is-invalid');
             return;
@@ -70,38 +78,48 @@ document.addEventListener("DOMContentLoaded", () => {
         const cfInput = ui.input.value;
 
         if (cfInput.length === 0) {
-            // Caso: CALCOLO
+            // Caso 1: calcolo
             ui.input.value = cfGenerato;
             setStatus(true);
-            toggleError(ui.errCF, ""); // Assicuriamoci di pulire eventuali errori precedenti
-            if (ui.counter) ui.counter.textContent = `${CF_LEN}/${CF_LEN}`;
+            toggleError(ui.errCF, "");
+            // Aggiorniamo contatore e bottone dopo il riempimento
+            resetUI();
+            ui.input.classList.add('is-valid'); // Forziamo valid perché resetUI lo pulisce
         } else {
-            // Caso: VERIFICA
-            const match = cfInput === cfGenerato;
-            setStatus(match);
-
-            if (match) {
-                toggleError(ui.errCF, ""); // Pulisce l'errore se verificato correttamente
+            // Caso 2: verifica
+            if (cfInput === cfGenerato) {
+                setStatus(true);
+                toggleError(ui.errCF, "");
             } else {
-                toggleError(ui.errCF, "Il CF inserito non corrisponde ai dati.");
+                setStatus(false);
+                const msgErrore = analizzaIncongruenzaCF(cfInput, cfGenerato);
+                toggleError(ui.errCF, msgErrore);
             }
         }
     }
 
-    // Listener Input CF
+    // 1. Input sul campo CF
     if (ui.input) {
         ui.input.addEventListener("input", () => {
             ui.input.value = ui.input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
             resetUI();
         });
-        resetUI();
     }
 
+    // Se modifico nome, cognome ecc..., resetto lo stato di validazione del CF
+    // così l'utente può premere nuovamente "Verifica" o "Calcola".
+    Object.values(ui.fields).forEach(field => {
+        if (field) {
+            field.addEventListener("input", resetUI);
+            field.addEventListener("change", resetUI);
+        }
+    });
+
+    // 3. Bottone e Caricamento dati
     if (ui.btn) {
         ui.btn.disabled = true;
         ui.btn.textContent = "Caricamento...";
 
-        // Caricamento comuni
         fetch('/StackMasters/public/assets/data/comuni.json')
             .then(r => r.ok ? r.json() : Promise.reject("Err 404"))
             .then(data => {
@@ -111,24 +129,48 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch(e => {
                 console.error(e);
-                ui.btn.textContent = "Errore";
+                ui.btn.textContent = "Errore DB";
                 toggleError(ui.errCF, "Errore caricamento database comuni.");
             });
 
         ui.btn.addEventListener("click", () => processaCF());
     }
+
+    resetUI();
 });
 
-// --- ALGORITMI calcolo CF ---
+function analizzaIncongruenzaCF(inserito, atteso) {
+    if (inserito.length !== 16) {
+        return `Lunghezza errata: inseriti ${inserito.length} caratteri invece di 16.`;
+    }
+
+    const segCognome = inserito.substring(0, 3);
+    const segNome = inserito.substring(3, 6);
+    const segDataSesso = inserito.substring(6, 11);
+    const segComune = inserito.substring(11, 15);
+
+    const attComune = atteso.substring(11, 15);
+    const attDataSesso = atteso.substring(6, 11);
+    const attCognome = atteso.substring(0, 3);
+    const attNome = atteso.substring(3, 6);
+
+    if (segComune !== attComune) return "Il comune di nascita non corrisponde al Codice Fiscale inserito.";
+    if (segDataSesso !== attDataSesso) return "La data di nascita o il sesso non corrispondono al CF.";
+    if (segCognome !== attCognome) return "Il cognome non corrisponde al CF.";
+    if (segNome !== attNome) return "Il nome non corrisponde al CF.";
+
+    return "Il carattere di controllo (ultima lettera) non è valido.";
+}
 
 function generaCodiceFiscale(dati, errEl) {
     if (errEl) errEl.style.display = "none";
 
-    const codCatastale = elencoComuni.find(c => c.nome.toUpperCase() === dati.comune)?.codiceCatastale;
+    const comuneTrovato = elencoComuni.find(c => c.nome.toUpperCase() === dati.comune);
+    const codCatastale = comuneTrovato ? comuneTrovato.codiceCatastale : null;
 
     if (!codCatastale) {
         if (errEl) {
-            errEl.textContent = `Comune "${dati.comune}" non trovato.`;
+            errEl.textContent = `Comune "${dati.comune}" non trovato nel database.`;
             errEl.style.display = "block";
         }
         return null;
@@ -165,7 +207,9 @@ function getDataSesso(iso, sesso) {
 function calcolaCin(cf) {
     const values = {
         0:1, 1:0, 2:5, 3:7, 4:9, 5:13, 6:15, 7:17, 8:19, 9:21,
-        A:1, B:0, C:5, D:7, E:9, F:13, G:15, H:17, I:19, J:21, K:2, L:4, M:18, N:20, O:11, P:3, Q:6, R:8, S:12, T:14, U:16, V:10, W:22, X:25, Y:24, Z:23
+        A:1, B:0, C:5, D:7, E:9, F:13, G:15, H:17, I:19, J:21,
+        K:2, L:4, M:18, N:20, O:11, P:3, Q:6, R:8, S:12, T:14,
+        U:16, V:10, W:22, X:25, Y:24, Z:23
     };
     let sum = 0;
     for (let i = 0; i < 15; i++) {
