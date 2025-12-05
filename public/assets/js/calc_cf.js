@@ -1,167 +1,177 @@
 let elencoComuni = [];
+const CF_LEN = 16;
 
 document.addEventListener("DOMContentLoaded", () => {
-    const btnCalcola = document.getElementById("btnCalcolaCF");
+    // Caching degli elementi DOM
+    const ui = {
+        btn: document.getElementById("btnCalcolaCF"),
+        input: document.getElementById("codiceFiscale"),
+        counter: document.getElementById("cfCounter"),
+        errCF: document.getElementById("errCF"),
+        errComune: document.getElementById("errComune"),
+        fields: {
+            nome: document.getElementById("nome"),
+            cognome: document.getElementById("cognome"),
+            nascita: document.getElementById("dataNascita"),
+            sesso: document.getElementById("sesso"),
+            comune: document.getElementById("comune")
+        }
+    };
 
-    //https://github.com/matteocontrini/comuni-json
-    // 1. Carica il database JSON
-    fetch('/StackMasters/assets/data/comuni.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Impossibile caricare il file comuni.json");
+    // Helpers UI
+    function toggleError(el, msg = "") {
+        if (!el) return;
+        el.style.display = msg ? "block" : "none";
+        el.textContent = msg;
+    }
+
+    function setStatus(isValid) {
+        ui.input.classList.toggle('is-valid', isValid);
+        ui.input.classList.toggle('is-invalid', !isValid);
+        if (isValid) ui.btn.disabled = true;
+    }
+
+    function resetUI() {
+        ui.input.classList.remove('is-valid', 'is-invalid');
+        toggleError(ui.errCF, "");
+        toggleError(ui.errComune, "");
+
+        const len = ui.input.value.length;
+        if (ui.counter) ui.counter.textContent = `${len}/${CF_LEN}`;
+
+        ui.btn.textContent = len === 0 ? "Calcola" : "Verifica";
+        ui.btn.disabled = len > 0 && len !== CF_LEN;
+    }
+
+    // Logica Principale
+    function processaCF() {
+        const dati = {};
+        let formValido = true;
+
+        // Raccolta dati
+        for (let key in ui.fields) {
+            const val = ui.fields[key].value.toUpperCase().trim();
+            dati[key] = val;
+            if (!val) formValido = false;
+        }
+
+        if (!formValido) {
+            toggleError(ui.errCF, "Compila tutti i dati anagrafici.");
+            ui.input.classList.add('is-invalid');
+            return;
+        }
+
+        const cfGenerato = generaCodiceFiscale(dati, ui.errComune);
+        if (!cfGenerato) {
+            ui.input.classList.add('is-invalid');
+            return;
+        }
+
+        const cfInput = ui.input.value;
+
+        if (cfInput.length === 0) {
+            // Caso: CALCOLO
+            ui.input.value = cfGenerato;
+            setStatus(true);
+            toggleError(ui.errCF, ""); // Assicuriamoci di pulire eventuali errori precedenti
+            if (ui.counter) ui.counter.textContent = `${CF_LEN}/${CF_LEN}`;
+        } else {
+            // Caso: VERIFICA
+            const match = cfInput === cfGenerato;
+            setStatus(match);
+
+            if (match) {
+                toggleError(ui.errCF, ""); // Pulisce l'errore se verificato correttamente
+            } else {
+                toggleError(ui.errCF, "Il CF inserito non corrisponde ai dati.");
             }
-            return response.json();
-        })
-        .then(data => {
-            elencoComuni = data;
-            // Verifica in console che stia leggendo il campo giusto (opzionale, per debug)
-            if (elencoComuni.length > 0) {
-                console.log(`Database caricato: ${elencoComuni.length} comuni.`);
-                console.log(`Test lettura primo comune: ${elencoComuni[0].nome} -> Catastale: ${elencoComuni[0].codiceCatastale}`);
-            }
-        })
-        .catch(error => {
-            console.error("Errore nel caricamento dei comuni:", error);
+        }
+    }
+
+    // Listener Input CF
+    if (ui.input) {
+        ui.input.addEventListener("input", () => {
+            ui.input.value = ui.input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            resetUI();
         });
+        resetUI();
+    }
 
-    if (btnCalcola) {
-        btnCalcola.addEventListener("click", calcolaCodiceFiscale);
+    if (ui.btn) {
+        ui.btn.disabled = true;
+        ui.btn.textContent = "Caricamento...";
+
+        // Caricamento comuni
+        fetch('/StackMasters/public/assets/data/comuni.json')
+            .then(r => r.ok ? r.json() : Promise.reject("Err 404"))
+            .then(data => {
+                elencoComuni = data;
+                console.log(`Caricati ${data.length} comuni.`);
+                resetUI();
+            })
+            .catch(e => {
+                console.error(e);
+                ui.btn.textContent = "Errore";
+                toggleError(ui.errCF, "Errore caricamento database comuni.");
+            });
+
+        ui.btn.addEventListener("click", () => processaCF());
     }
 });
 
-function calcolaCodiceFiscale() {
-    const nome = document.getElementById("nome").value.toUpperCase().trim();
-    const cognome = document.getElementById("cognome").value.toUpperCase().trim();
-    const dataNascita = document.getElementById("dataNascita").value; // YYYY-MM-DD
-    const sesso = document.getElementById("sesso").value; // M o F
-    const comuneInput = document.getElementById("comune").value.toUpperCase().trim();
-    const inputCF = document.getElementById("codiceFiscale");
+// --- ALGORITMI calcolo CF ---
 
-    // Validazione base
-    if (!nome || !cognome || !dataNascita || !sesso || !comuneInput) {
-        alert("Compila tutti i dati anagrafici prima di calcolare.");
-        return;
-    }
+function generaCodiceFiscale(dati, errEl) {
+    if (errEl) errEl.style.display = "none";
 
-    if (elencoComuni.length === 0) {
-        alert("Attendi il caricamento della lista comuni o ricarica la pagina.");
-        return;
-    }
+    const codCatastale = elencoComuni.find(c => c.nome.toUpperCase() === dati.comune)?.codiceCatastale;
 
-    try {
-        let cf = "";
-
-        // --- A. COGNOME ---
-        cf += calcolaCognome(cognome);
-
-        // --- B. NOME ---
-        cf += calcolaNome(nome);
-
-        // --- C. DATA E SESSO ---
-        cf += calcolaDataSesso(dataNascita, sesso);
-
-        // --- D. COMUNE (Modificato per usare codiceCatastale) ---
-        const codiceBelfiore = getCodiceBelfiore(comuneInput);
-
-        if (!codiceBelfiore) {
-            alert(`Comune "${comuneInput}" non trovato. Controlla di averlo scritto esattamente come appare nei documenti ufficiali.`);
-            return;
+    if (!codCatastale) {
+        if (errEl) {
+            errEl.textContent = `Comune "${dati.comune}" non trovato.`;
+            errEl.style.display = "block";
         }
-        cf += codiceBelfiore;
-
-        // --- E. CARATTERE DI CONTROLLO ---
-        cf += calcolaCin(cf);
-
-        // Output
-        inputCF.value = cf;
-
-        // Pulizia errori visuali
-        inputCF.classList.remove('is-invalid');
-        const errDiv = document.getElementById('errCF');
-        if(errDiv) errDiv.style.display = 'none';
-
-    } catch (e) {
-        console.error(e);
-        alert("Errore durante il calcolo.");
-    }
-}
-
-/* --- FUNZIONI DI SUPPORTO --- */
-
-function getCodiceBelfiore(nomeInserito) {
-    // Cerchiamo nell'array caricato dal JSON.
-    // Il JSON ha la proprietà "nome" (es: "Torino") e "codiceCatastale" (es: "L219").
-
-    // Usiamo .find() confrontando i nomi in maiuscolo per evitare errori di case-sensitivity
-    const comuneTrovato = elencoComuni.find(c => c.nome.toUpperCase() === nomeInserito);
-
-    // Se trovato, restituiamo codiceCatastale. Altrimenti null.
-    return comuneTrovato ? comuneTrovato.codiceCatastale : null;
-}
-
-function getConsonanti(str) {
-    return str.replace(/[^B-DF-HJ-NP-TV-Z]/g, "");
-}
-
-function getVocali(str) {
-    return str.replace(/[^AEIOU]/g, "");
-}
-
-function calcolaCognome(cognome) {
-    const cons = getConsonanti(cognome);
-    const voc = getVocali(cognome);
-    const text = cons + voc + "XXX";
-    return text.substring(0, 3);
-}
-
-function calcolaNome(nome) {
-    const cons = getConsonanti(nome);
-    const voc = getVocali(nome);
-
-    if (cons.length >= 4) {
-        return cons[0] + cons[2] + cons[3];
-    } else {
-        const text = cons + voc + "XXX";
-        return text.substring(0, 3);
-    }
-}
-
-function calcolaDataSesso(dataIso, sesso) {
-    const anno = dataIso.substr(2, 2);
-    const mese = parseInt(dataIso.substr(5, 2));
-    let giorno = parseInt(dataIso.substr(8, 2));
-
-    const codiciMese = ['A', 'B', 'C', 'D', 'E', 'H', 'L', 'M', 'P', 'R', 'S', 'T'];
-
-    if (sesso === 'F') {
-        giorno += 40;
+        return null;
     }
 
-    const giornoStr = giorno < 10 ? "0" + giorno : giorno.toString();
-    return anno + codiciMese[mese - 1] + giornoStr;
+    let cf = getCodice(dati.cognome, false) +
+        getCodice(dati.nome, true) +
+        getDataSesso(dati.nascita, dati.sesso) +
+        codCatastale;
+
+    return cf + calcolaCin(cf);
 }
 
-function calcolaCin(parziale) {
-    const dispari = {
-        '0': 1, '1': 0, '2': 5, '3': 7, '4': 9, '5': 13, '6': 15, '7': 17, '8': 19, '9': 21,
-        'A': 1, 'B': 0, 'C': 5, 'D': 7, 'E': 9, 'F': 13, 'G': 15, 'H': 17, 'I': 19, 'J': 21,
-        'K': 2, 'L': 4, 'M': 18, 'N': 20, 'O': 11, 'P': 3, 'Q': 6, 'R': 8, 'S': 12, 'T': 14,
-        'U': 16, 'V': 10, 'W': 22, 'X': 25, 'Y': 24, 'Z': 23
+function getVocCons(str) {
+    return {
+        v: str.replace(/[^AEIOU]/g, ''),
+        c: str.replace(/[^B-DF-HJ-NP-TV-Z]/g, '')
     };
+}
 
-    let somma = 0;
+function getCodice(str, isNome) {
+    const { v, c } = getVocCons(str);
+    if (isNome && c.length >= 4) return c[0] + c[2] + c[3];
+    return (c + v + "XXX").substring(0, 3);
+}
+
+function getDataSesso(iso, sesso) {
+    const [anno, mese, giorno] = iso.split('-');
+    const codMesi = "ABCDEHLMPRST";
+    const gg = parseInt(giorno) + (sesso === 'F' ? 40 : 0);
+    return anno.substr(2) + codMesi[parseInt(mese) - 1] + (gg < 10 ? '0' + gg : gg);
+}
+
+function calcolaCin(cf) {
+    const values = {
+        0:1, 1:0, 2:5, 3:7, 4:9, 5:13, 6:15, 7:17, 8:19, 9:21,
+        A:1, B:0, C:5, D:7, E:9, F:13, G:15, H:17, I:19, J:21, K:2, L:4, M:18, N:20, O:11, P:3, Q:6, R:8, S:12, T:14, U:16, V:10, W:22, X:25, Y:24, Z:23
+    };
+    let sum = 0;
     for (let i = 0; i < 15; i++) {
-        const char = parziale[i];
-        if ((i + 1) % 2 !== 0) {
-            somma += dispari[char];
-        } else {
-            if (char >= '0' && char <= '9') {
-                somma += parseInt(char);
-            } else {
-                somma += char.charCodeAt(0) - 'A'.charCodeAt(0);
-            }
-        }
+        const c = cf[i];
+        if (i % 2 === 0) sum += values[c];
+        else sum += (c >= '0' && c <= '9') ? parseInt(c) : c.charCodeAt(0) - 65;
     }
-    const resto = somma % 26;
-    return String.fromCharCode(resto + 'A'.charCodeAt(0));
+    return String.fromCharCode((sum % 26) + 65);
 }
