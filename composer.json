@@ -1,9 +1,15 @@
 {
-    "name": "ottaviodipisa/stack-masters",
-    "autoload": {
-        "psr-4": {
-            "Ottaviodipisa\\StackMasters\\": "src/"
-        }
-    },
-    "require": {}
+  "name": "mattia/stack-masters",
+  "autoload": {
+    "psr-4": {
+      "Ottaviodipisa\\StackMasters\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Mattia",
+      "email": "10934032@itisorssi.vi.it"
+    }
+  ],
+  "require": {}
 }
