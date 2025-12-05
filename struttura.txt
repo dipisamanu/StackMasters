@@ -1,118 +1,129 @@
 StackMasters/
-├── .env.example                # Epic 0.2 - Variabili d'ambiente template (DB credenziali, API Key)
-├── .gitignore                  # Epic 0.1 - Esclusione vendor, .env, node_modules
-├── composer.json               # Epic 0.6 - Gestione dipendenze (PHPMailer, FPDF, etc.)
-├── README.md                   # Documentazione generale
+├── .env                       # Credenziali (DB, Mail)
+├── .env.example               # (Rinomina .env-example) Template
+├── .gitignore                 # File da ignorare
+├── composer.json              # Gestione dipendenze
+├── composer.lock              # Lock file dipendenze
+├── README.md                  # Documentazione
 │
-├── bin/                        # Script da riga di comando (Cron Jobs)
-│   ├── backup_db.php           # Epic 14.3 - Dump database giornaliero
-│   ├── calc_multe.php          # Epic 9.1 - Calcolo multe notturno
-│   ├── check_reservations.php  # Epic 6.8 - Gestione scadenze prenotazioni
-│   └── send_reminders.php      # Epic 8.2 - Preavviso scadenze prestiti
+├── bin/                       # SCRIPT CLI (Spostati dalla root)
+│   ├── backup_db.php          # (Epic 14.3)
+│   ├── calc_multe.php         # (Epic 9.1)
+│   ├── check_reservations.php # (Epic 6.8)
+│   ├── send_reminders.php     # (Epic 8.2)
+│   └── testConnessione.php    # (Utility di test)
 │
-├── config/                     # Configurazione generale
-│   ├── app.php                 # Costanti globali (URL sito, timezone, debug mode)
-│   ├── database.php            # Epic 0.5 - Parametri connessione DB
-│   ├── mail.php                # Epic 1.5 - Configurazione SMTP PHPMailer
-│   └── security.php            # Epic 13.3 - Configurazione CSP e Rate Limiting
+├── config/                    # CONFIGURAZIONI
+│   ├── app.php                # Costanti globali
+│   ├── database.php           # Config DB
+│   ├── mail.php               # Config SMTP
+│   └── security.php           # Config Sicurezza
 │
-├── db/                         # Gestione Database
-│   ├── install.sql             # Epic 0.4 - Script DDL creazione tabelle
-│   ├── seed_data.php           # Epic 3.14 - Seeder dati di prova
-│   └── backups/                # Epic 14.3 - Cartella destinazione dump SQL
+├── db/                        # DATABASE
+│   ├── install.sql            # (Epic 0.4) Query creazione DB
+│   ├── seed_data.php          # (Epic 3.14) Spostato dalla root
+│   └── backups/               # Cartella vuota per i dump (Epic 14.3)
 │
-├── docs/                       # Epic 14.10 - Documentazione
-│   ├── database/               # Epic 0.3 - Schema ER e dizionario dati
-│   ├── diagrams/               # UML, Casi d'uso, Sequence Diagram
-│   └── requirements/           # Specifica requisiti ed Epic
+├── docs/                      # DOCUMENTAZIONE
+│   ├── requirements/
+│   │   ├── consegna.txt
+│   │   └── struttura.txt
+│   ├── database/
+│   │   └── schema.txt
+│   └── diagrams/
+│       ├── diagrammaLogico.png
+│       ├── schemaRelazionale.png
+│       ├── uml-casiduso.png
+│       ├── wireframe.png
+│       └── wireframe.mmd
 │
-├── public/                     # Document Root (Accessibile via Web)
-│   ├── .htaccess               # Epic 13.8 - Rewrite URL e force HTTPS
-│   ├── index.php               # Entry Point (Router)
-│   ├── install.php             # Epic 14.1 - Wizard installazione guidata
+├── public/                    # WEB ROOT (Unica accessibile da browser)
+│   ├── .htaccess              # Regole di reindirizzamento
+│   ├── index.php              # Entry Point (Router)
+│   ├── install.php            # (Epic 14.1) Wizard installazione
 │   │
-│   └── assets/
-│       ├── css/
-│       │   ├── auth.css        # Stili Login/Register
-│       │   ├── dashboard.css   # Stili pannello admin
-│       │   └── style.css       # Epic 0.6 - Stile base (Bootstrap/Custom)
+│   └── assets/                # RISORSE STATICHE
+│       ├── css/               # (Spostati dalla cartella css/)
+│       │   ├── auth.css
+│       │   ├── dashboard.css
+│       │   └── style.css
 │       │
-│       ├── img/
-│       │   ├── covers/         # Epic 3.9 - Copertine libri
-│       │   └── badges/         # Epic 11.1 - Icone badge gamification
+│       ├── js/                # (Spostati dalla cartella js/)
+│       │   ├── calc_cf.js
+│       │   ├── charts.js
+│       │   ├── hardware.js
+│       │   ├── search.js
+│       │   └── validation.js
 │       │
-│       └── js/
-│           ├── calc_cf.js      # Epic 1.2/1.4 - Calcolo e verifica CF (lato client)
-│           ├── charts.js       # Epic 10.2 - Configurazione Chart.js
-│           ├── hardware.js     # Epic 7.1 - Listener Barcode scanner/RFID
-│           ├── search.js       # Epic 4.2 - Autocomplete AJAX
-│           └── validation.js   # Epic 1.1 - Validazione form frontend
+│       ├── img/               # (Spostati dalla cartella img/)
+│       │   ├── itisrossi.png
+│       │   ├── prova.jpeg
+│       │   ├── Screenshot...png
+│       │   ├── badges/        # Cartella immagini badge
+│       │   └── covers/        # Cartella immagini copertine
+│       │
+│       └── data/              # (Spostato dalla root 'data')
+│           └── comuni.json    # JSON per autocompletamento/validazione
 │
-├── src/                        # Logica Applicativa (Backend)
-│   ├── Core/                   # Nucleo del Framework custom
-│   │   ├── Controller.php      # Classe base controller
-│   │   ├── Database.php        # Epic 0.5 - Singleton PDO Wrapper
-│   │   ├── Model.php           # Classe base model (CRUD generico)
-│   │   ├── Router.php          # Gestione Routing URL
-│   │   ├── Security.php        # Epic 13 - CSRF, XSS Sanitizer, Rate Limiter
-│   │   └── Session.php         # Epic 2.1 - Wrapper gestione sessioni
+├── src/                       # CODICE SORGENTE (Backend)
+│   ├── Core/                  # Framework Base
+│   │   ├── Controller.php
+│   │   ├── Database.php
+│   │   ├── Model.php
+│   │   ├── Router.php
+│   │   ├── Security.php
+│   │   └── Session.php
 │   │
-│   ├── Controllers/            # Gestori delle richieste
-│   │   ├── AdminController.php # Epic 5/9 - Dashboard bibliotecario
-│   │   ├── ApiController.php   # Epic 3.6/10.1 - Endpoint AJAX interni
-│   │   ├── AuthController.php  # Epic 1/2 - Login, Register, Logout, Reset PW
-│   │   ├── BookController.php  # Epic 3 - Catalogo, dettagli libro
-│   │   ├── LoanController.php  # Epic 5 - Prestiti e Restituzioni
-│   │   └── UserController.php  # Epic 1.8 - Profilo utente, storico
+│   ├── Controllers/           # Logica di controllo
+│   │   ├── AdminController.php
+│   │   ├── ApiController.php
+│   │   ├── AuthController.php
+│   │   ├── BookController.php
+│   │   ├── LoanController.php
+│   │   └── UserController.php
 │   │
-│   ├── Helpers/                # Funzioni di supporto
-│   │   ├── BarcodeGen.php      # Epic 3.7 - Generatore Barcode
-│   │   ├── ISBNHelper.php      # Epic 3.3 - Validazione checksum ISBN
-│   │   └── PDFGenerator.php    # Epic 1.7/5.7 - Wrapper FPDF/TCPDF
+│   ├── Models/                # Interazione DB
+│   │   ├── Badge.php
+│   │   ├── Book.php
+│   │   ├── Fine.php
+│   │   ├── Loan.php
+│   │   ├── Reservation.php
+│   │   └── User.php
 │   │
-│   ├── Middleware/             # Filtri intermedi
-│   │   ├── AuthMiddleware.php  # Epic 2.6 - Controllo accesso (isAdmin, isLibrarian)
-│   │   └── CheckBan.php        # Epic 9.3 - Blocco debitori insolvenza
+│   ├── Helpers/               # Utility
+│   │   ├── BarcodeGen.php
+│   │   ├── ISBNHelper.php
+│   │   └── PDFGenerator.php
 │   │
-│   ├── Models/                 # Interazione con le tabelle DB
-│   │   ├── Badge.php           # Epic 11 - Logica gamification
-│   │   ├── Book.php            # Epic 3 - Gestione Libri e Copie
-│   │   ├── Fine.php            # Epic 9 - Gestione Multe
-│   │   ├── Loan.php            # Epic 5 - Gestione Prestiti
-│   │   ├── Reservation.php     # Epic 6 - Code FIFO
-│   │   └── User.php            # Epic 1 - Utenti e Ruoli
+│   ├── Middleware/            # Controlli intermedi
+│   │   ├── AuthMiddleware.php
+│   │   └── CheckBan.php
 │   │
-│   ├── Services/               # Logica di business complessa e integrazioni
-│   │   ├── BookApiService.php  # Epic 3.4/3.5 - Google Books & Open Library
-│   │   ├── MailerService.php   # Epic 1.5 - Wrapper PHPMailer (Template engine)
-│   │   └── Recommender.php     # Epic 12 - Motore raccomandazioni (Jaccard)
+│   ├── Services/              # Servizi Complessi
+│   │   ├── BookApiService.php
+│   │   ├── MailerService.php
+│   │   └── Recommender.php
 │   │
-│   └── Views/                  # Template HTML (Pagine)
+│   └── Views/                 # Template HTML (Pagine)
 │       ├── admin/
-│       │   ├── dashboard.php   # Epic 10 - Analytics e KPI
-│       │   ├── loans.php       # Epic 5.1 - Interfaccia prestiti/restituzioni
-│       │   └── users.php       # Gestione utenti e multe
-│       │
+│       │   ├── dashboard.php
+│       │   ├── loans.php
+│       │   ├── returns.php
+│       │   └── users.php
 │       ├── auth/
-│       │   ├── activate.php    # Epic 1.6 - Esito attivazione
-│       │   ├── login.php       # Epic 2.1 - Form Login
-│       │   └── register.php    # Epic 1.1 - Form Registrazione
-│       │
+│       │   ├── activate.php
+│       │   ├── login.php
+│       │   └── register.php
 │       ├── catalog/
-│       │   ├── detail.php      # Epic 3.12 - Scheda libro
-│       │   └── list.php        # Epic 3.10 - Griglia e filtri ricerca
-│       │
-│       ├── emails/             # Epic 8.1 - Template Email HTML
+│       │   ├── detail.php
+│       │   └── list.php
+│       ├── emails/
 │       │   ├── activation.php
-│       │   ├── reminder.php
-│       │   └── overdue.php
-│       │
-│       ├── layouts/            # Layout condivisi
-│       │   ├── header.php      # Menu, notifiche
-│       │   └── footer.php
-│       │
+│       │   ├── overdue.php
+│       │   └── reminder.php
+│       ├── layouts/
+│       │   ├── footer.php
+│       │   └── header.php
 │       └── user/
-│           ├── profile.php     # Epic 1.8 - Dati personali
-│           └── history.php     # Epic 11 - Storico e Badge
-│
-└── vendor/                     # Librerie esterne (Composer)
+│           ├── history.php
+│           └── profile.php
