@@ -1,12 +1,55 @@
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("registrationForm");
-
     if (!form) return;
-    const getById = (id) => document.getElementById(id);
 
-    const password = getById("password");
-    const confermaPass = getById("confermaPassword");
-    const toggleBtn = getById("togglePassword");
+    // Elementi frequenti
+    const ui = {
+        pass: document.getElementById("password"),
+        conf: document.getElementById("confermaPassword"),
+        toggle: document.getElementById("togglePassword"),
+        errPass: document.getElementById("errPassword"),
+        errConf: document.getElementById("errConfermaPassword")
+    };
+
+    // 2. Configurazione Campi e Validazioni
+    const fieldsConfig = [
+        { id: "nome", err: "errNome" },
+        { id: "cognome", err: "errCognome" },
+        { id: "sesso", err: "errSesso" },
+        { id: "comune", err: "errComune" },
+        {
+            id: "dataNascita",
+            err: "errData",
+            check: function(val) {
+                // Controlla non vuoto E range valido (opzionale, ma consigliato)
+                if (!val) return false;
+                const d = new Date(val);
+                const min = new Date("1900-01-01");
+                const max = new Date("2025-12-31");
+                return d >= min && d <= max;
+            }
+        },
+        {
+            id: "codiceFiscale",
+            err: "errCF",
+            check: function(val) {
+                // Opzionale: valido se vuoto O se regex corrisponde
+                return val === "" || /^[A-Z0-9]{16}$/i.test(val);
+            }
+        },
+        {
+            id: "email",
+            err: "errEmail",
+            check: function(val) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); }
+        }
+    ];
+
+    // --- HELPER FUNCTIONS ---
+
+    function toggleError(id, show) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = show ? "block" : "none";
+    }
 
     function checkPasswordRules(pw) {
         return {
@@ -17,126 +60,100 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    function updatePwUi(pw) {
-        const rules = checkPasswordRules(pw);
-        const rulesMap = {
+    function updatePasswordUI() {
+        if (!ui.pass) return;
+        const val = ui.pass.value;
+        const rules = checkPasswordRules(val);
+
+        const map = {
             pwLen: rules.len,
             pwUpper: rules.upper,
             pwDigit: rules.digit,
             pwSpecial: rules.special
         };
 
-        Object.keys(rulesMap).forEach((id) => {
-            const element = getById(id);
-            element.classList.toggle("valid", rulesMap[id]);
-            element.classList.toggle("invalid", !rulesMap[id]);
-        });
+        for (let id in map) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle("valid", map[id]);
+                el.classList.toggle("invalid", !map[id]);
+            }
+        }
+
+        // Nascondi errore generale mentre si digita
+        toggleError("errPassword", false);
+
+        // Verifica match in tempo reale
+        if (ui.conf && ui.conf.value !== "") {
+            toggleError("errConfermaPassword", val !== ui.conf.value);
+        }
     }
 
-    // Live check while typing
-    if (password) {
-        password.addEventListener("input", () => {
-            updatePwUi(password.value);
-            const errPassword = getById("errPassword");
-            if (errPassword) errPassword.style.display = "none";
-            if (confermaPass && confermaPass.value !== "") {
-                const errConf = getById("errConfermaPassword");
-                if (errConf) errConf.style.display = (password.value !== confermaPass.value) ? "block" : "none";
+    function validateForm(e) {
+        let isValid = true;
+
+        // 1. Validazione campi standard
+        fieldsConfig.forEach(field => {
+            const el = document.getElementById(field.id);
+            const val = el ? el.value.trim() : "";
+            let fieldOk = true;
+
+            if (field.check) {
+                fieldOk = field.check(val);
+                // Fix: Email è required nel form HTML, quindi non può essere vuota anche se la regex passerebbe stringa vuota
+                if (field.id === "email" && val === "") fieldOk = false;
+            } else {
+                fieldOk = val !== "";
+            }
+
+            if (!fieldOk) {
+                toggleError(field.err, true);
+                isValid = false;
+            } else {
+                toggleError(field.err, false);
             }
         });
+
+        // 2. Validazione Password solo se i campi esistono
+        if (ui.pass && ui.conf) {
+            const pwRules = checkPasswordRules(ui.pass.value);
+            const isPwSecure = Object.values(pwRules).every(Boolean);
+
+            if (!isPwSecure) {
+                toggleError("errPassword", true);
+                isValid = false;
+            }
+
+            if (ui.pass.value !== ui.conf.value) {
+                toggleError("errConfermaPassword", true);
+                isValid = false;
+            }
+        }
+
+        if (!isValid) e.preventDefault();
     }
 
-    // Check conferma password live
-    if (confermaPass) {
-        confermaPass.addEventListener("input", () => {
-            const errConf = getById("errConfermaPassword");
-            if (errConf && password) errConf.style.display = (password.value !== confermaPass.value) ? "block" : "none";
+    // --- EVENT LISTENERS ---
+
+    if (ui.pass) {
+        ui.pass.addEventListener("input", () => updatePasswordUI());
+        // Init stato iniziale (importante per il PHP reload)
+        updatePasswordUI();
+    }
+
+    if (ui.conf) {
+        ui.conf.addEventListener("input", () => {
+            toggleError("errConfermaPassword", ui.pass.value !== ui.conf.value);
         });
     }
 
-    // Toggle visibilità password
-    if (toggleBtn && password) {
-        toggleBtn.addEventListener("click", () => {
-            const type = password.type === "password" ? "text" : "password";
-            password.type = type;
-            toggleBtn.textContent = (type === "text") ? "Nascondi" : "Mostra";
+    if (ui.toggle && ui.pass) {
+        ui.toggle.addEventListener("click", () => {
+            const isPass = ui.pass.type === "password";
+            ui.pass.type = isPass ? "text" : "password";
+            ui.toggle.textContent = isPass ? "Mostra" : "Nascondi"; // Logica inversa corretta
         });
     }
 
-    // Funzione generica di validazione campi obbligatori
-    function validateField(id, errorId) {
-        const field = document.getElementById(id);
-        const error = document.getElementById(errorId);
-
-        if (field && field.value.trim() === "") {
-            if (error) error.style.display = "block";
-            return false;
-        } else {
-            if (error) error.style.display = "none";
-            return true;
-        }
-    }
-
-    form.addEventListener("submit", function (e) {
-        let valid = true;
-
-        // Validazione campi obbligatori
-        valid &= validateField("nome", "errNome");
-        valid &= validateField("cognome", "errCognome");
-        valid &= validateField("dataNascita", "errData");
-        valid &= validateField("sesso", "errSesso");
-        valid &= validateField("comune", "errComune");
-
-        // Validazione Codice Fiscale
-        const cf = document.getElementById("codiceFiscale").value.trim();
-        const regexCF = /^[A-Z0-9]{16}$/i;
-
-        if (cf !== "" && !regexCF.test(cf)) {
-            document.getElementById("errCF").style.display = "block";
-            valid = false;
-        } else {
-            document.getElementById("errCF").style.display = "none";
-        }
-
-        // Validazione Email
-        const email = document.getElementById("email").value;
-        const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (!regexEmail.test(email)) {
-            document.getElementById("errEmail").style.display = "block";
-            valid = false;
-        } else {
-            document.getElementById("errEmail").style.display = "none";
-        }
-
-        // Validazione Password
-        const pw = password ? password.value : "";
-        const confermaPw = confermaPass ? confermaPass.value : "";
-
-        const rules = checkPasswordRules(pw);
-        if (!(rules.len && rules.upper && rules.digit && rules.special)) {
-            const err = getById("errPassword");
-            if (err) err.style.display = "block";
-            valid = false;
-        } else {
-            const err = getById("errPassword");
-            if (err) err.style.display = "none";
-        }
-
-        if (pw !== confermaPw) {
-            const err = getById("errConfermaPassword");
-            if (err) err.style.display = "block";
-            valid = false;
-        } else {
-            const err = getById("errConfermaPassword");
-            if (err) err.style.display = "none";
-        }
-
-        // Blocco invio se non valido
-        if (!valid) {
-            e.preventDefault();
-        }
-    });
-
-    if (password) updatePwUi(password.value);
+    form.addEventListener("submit", (e) => validateForm(e));
 });

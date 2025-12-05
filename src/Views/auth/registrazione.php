@@ -63,6 +63,7 @@
                 <label for="codiceFiscale">Codice Fiscale (opzionale)</label>
                 <div id="calcolaCFdiv">
                     <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>">
+                    <span id="cfCounter" class="cf-counter">0/16</span>
                     <button type="button" id="btnCalcolaCF">Calcola</button>
                 </div>
                 <div class="error" id="errCF">Formato Codice Fiscale non valido</div>
@@ -82,7 +83,7 @@
                 <label for="password">Password *</label>
                 <div class="password-wrapper">
                     <input type="password" id="password" name="password" required>
-                    <button type="button" class="toggle-pass" id="togglePassword">Mostra</button>
+                    <button type="button" class="toggle-pass" id="togglePassword" tabindex = -1>Mostra</button>
                 </div>
 
                 <div class="pw-requirements" id="pwHelp">

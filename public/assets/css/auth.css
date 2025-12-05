@@ -11,7 +11,7 @@ body {
 
 .container {
     width: 100%;
-    max-width: 800px;
+    max-width: 1000px;
     background: white;
     padding: 30px;
     border-radius: 12px;
@@ -69,6 +69,24 @@ input:focus, select:focus {
     box-shadow: 0 0 0 3px rgba(191, 33, 33, 0.1);
 }
 
+input.is-valid {
+    border-color: #28a745;
+}
+
+input.is-valid:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+}
+
+input.is-invalid {
+    border-color: #dc3545;
+}
+
+input.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+
 button {
     font-family: inherit;
     cursor: pointer;
@@ -95,6 +113,23 @@ button[type="submit"]:active {
     transform: scale(0.98);
 }
 
+#calcolaCFdiv {
+    display: flex;
+    align-items: center; /* Allinea verticalmente gli elementi */
+    gap: 8px;
+}
+
+#calcolaCFdiv input {
+    flex: 1; /* L'input occupa lo spazio rimanente */
+}
+
+.cf-counter {
+    font-size: 0.8rem;
+    color: #666;
+    white-space: nowrap;
+    padding: 0 5px;
+}
+
 #btnCalcolaCF {
     padding: 10px 16px;
     background-color: #f0f0f0;
@@ -108,6 +143,13 @@ button[type="submit"]:active {
 #btnCalcolaCF:hover {
     background-color: #e0e0e0;
     border-color: #bbb;
+}
+
+#btnCalcolaCF:disabled {
+    background-color: #f5f5f5;
+    color: #aaa;
+    cursor: not-allowed;
+    border-color: #ddd;
 }
 
 .password-wrapper {
@@ -143,13 +185,12 @@ button[type="submit"]:active {
     margin-top: 10px;
     display: flex;
     flex-wrap: nowrap;
-    gap: 4px;
-    justify-content: space-between;
+    gap: 8px;
 }
 
 .pw-item {
     font-size: 0.7rem;
-    padding: 4px 6px;
+    padding: 4px 10px;
     border-radius: 12px;
     border: 1px solid #ddd;
     background-color: #f8f9fa;
@@ -157,7 +198,6 @@ button[type="submit"]:active {
     transition: all 0.3s ease;
     white-space: nowrap;
     text-align: center;
-    flex: 1;
 }
 
 .pw-item.invalid {
@@ -178,10 +218,4 @@ button[type="submit"]:active {
     margin-top: 5px;
     display: none;
     font-weight: 500;
-}
-
-#calcolaCFdiv{
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
 }
