@@ -1,11 +1,9 @@
-<!-- FILE: views/admin/dashboard.php (Epic 10 - Analytics) -->
 <?php
 $kpi = $data['kpi'] ?? [];
-$graficoPrestiti = $data['graficoPrestiti'] ?? [];
+// Dati trend formattati per Chart.js (labels e data)
+$trendData = $data['trendData'] ?? ['labels' => [], 'data' => []];
 $topLibri = $data['topLibri'] ?? [];
 $message = $data['message'] ?? '';
-
-// La logica di generazione del grafico in PHP è complessa, qui usiamo un segnaposto
 ?>
 
 <!DOCTYPE html>
@@ -20,7 +18,10 @@ $message = $data['message'] ?? '';
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
     </style>
-    <!-- In un progetto reale, qui includeresti charts.js o un'altra libreria -->
+
+    <!-- 🛑 INCLUSIONE DI CHART.JS TRAMITE CDN (NECESSARIA PER IL GRAFICO) 🛑 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 </head>
 <body class="p-4 sm:p-8">
 
@@ -71,12 +72,10 @@ $message = $data['message'] ?? '';
 
         <!-- Grafico 1: Trend Prestiti -->
         <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-            <h2 class="text-xl font-semibold mb-4">Trend Prestiti Mensili</h2>
-            <div class="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
-                <!-- QUI verrebbe renderizzato il grafico Chart.js -->
-                <i class="fas fa-chart-bar fa-3x text-gray-300"></i>
-                <p class="text-gray-500 mt-2">Area Grafico (Richiede charts.js)</p>
-                <p class="text-xs text-gray-400 mt-1">Dati: <?php echo json_encode($graficoPrestiti); ?></p>
+            <h2 class="text-xl font-semibold mb-4">Trend Prestiti Ultimi 12 Mesi</h2>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <!-- CANVAS PER CHART.JS -->
+                <canvas id="loanTrendChart" height="150"></canvas>
             </div>
         </div>
 
@@ -100,5 +99,66 @@ $message = $data['message'] ?? '';
         </div>
     </div>
 </div>
+
+<!-- SCRIPT DI INIZIALIZZAZIONE CHART.JS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Recupero i dati PHP passati dal Controller, li converto in JavaScript
+        const trendData = <?php echo json_encode($trendData); ?>;
+
+        if (trendData.labels && trendData.labels.length > 0) {
+            const ctx = document.getElementById('loanTrendChart');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: trendData.labels,
+                    datasets: [{
+                        label: 'Numero Prestiti',
+                        data: trendData.data,
+                        borderColor: '#4f46e5', // Colore Viola Indigo-600
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4, // Curva morbida
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Prestiti'
+                            },
+                            ticks: {
+                                // Assicura che i conteggi siano numeri interi
+                                stepSize: 1,
+                                callback: function(value) {
+                                    if (value % 1 === 0) return value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    }
+                }
+            });
+        } else {
+            // Messaggio di fallback se non ci sono dati
+            const chartArea = document.getElementById('loanTrendChart').parentElement;
+            chartArea.innerHTML = '<p class="text-center text-gray-500 py-4">Nessun dato prestito disponibile per l\'ultimo anno.</p>';
+            chartArea.classList.remove('bg-gray-50'); // Rimuove il colore di sfondo se necessario
+        }
+    });
+</script>
 </body>
 </html>
