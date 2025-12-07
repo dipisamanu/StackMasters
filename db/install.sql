@@ -32,8 +32,8 @@ CREATE TABLE Ruoli
     id_ruolo             INT AUTO_INCREMENT PRIMARY KEY,
     priorita             TINYINT UNSIGNED NOT NULL UNIQUE COMMENT '0=Admin, 1=Bibliotecario, 2=Docente, 3=Studente',
     nome                 VARCHAR(15)      NOT NULL, -- Es. 'Admin', 'Studente'
-    durata_prestito      TINYINT          NOT NULL COMMENT 'Giorni',
-    limite_prestiti      TINYINT          NOT NULL,
+    durata_prestito      TINYINT          NULL COMMENT 'Giorni',
+    limite_prestiti      TINYINT          NULL,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -78,7 +78,6 @@ CREATE TABLE Utenti
 (
     id_utente               INT AUTO_INCREMENT PRIMARY KEY,
     cf                      CHAR(16) UNIQUE    NOT NULL,
-    username                VARCHAR(50) UNIQUE NOT NULL,
     nome                    VARCHAR(100)       NOT NULL,
     cognome                 VARCHAR(100)       NOT NULL,
     email                   VARCHAR(255)       NOT NULL,

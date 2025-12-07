@@ -1,6 +1,6 @@
 <?php
 
-namespace Ottaviodipisa\StackMasters\Models;
+namespace Ottaviodipisa\StackMasters\models;
 
 // Riferimento al Singleton per la connessione al DB
 use Ottaviodipisa\StackMasters\Core\Database;
