@@ -115,12 +115,12 @@ button[type="submit"]:active {
 
 #calcolaCFdiv {
     display: flex;
-    align-items: center; /* Allinea verticalmente gli elementi */
+    align-items: center;
     gap: 8px;
 }
 
 #calcolaCFdiv input {
-    flex: 1; /* L'input occupa lo spazio rimanente */
+    flex: 1;
 }
 
 .cf-counter {

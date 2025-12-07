@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         errConf: document.getElementById("errConfermaPassword")
     };
 
-    // 2. Configurazione Campi e Validazioni
+    // Configurazione Campi e Validazioni
     const fieldsConfig = [
         { id: "nome", err: "errNome" },
         { id: "cognome", err: "errCognome" },
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
             id: "dataNascita",
             err: "errData",
-            check: function(val) {
+            check: (val) => {
                 // Controlla non vuoto E range valido (opzionale, ma consigliato)
                 if (!val) return false;
                 const d = new Date(val);
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
             id: "codiceFiscale",
             err: "errCF",
-            check: function(val) {
+            check: (val) => {
                 // Opzionale: valido se vuoto O se regex corrisponde
                 return val === "" || /^[A-Z0-9]{16}$/i.test(val);
             }
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
             id: "email",
             err: "errEmail",
-            check: function(val) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); }
+            check: (val) => { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); }
         }
     ];
 
@@ -100,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (field.check) {
                 fieldOk = field.check(val);
-                // Fix: Email è required nel form HTML, quindi non può essere vuota anche se la regex passerebbe stringa vuota
+                // Email è required nel form HTML, quindi non può essere vuota anche se la regex passerebbe stringa vuota
                 if (field.id === "email" && val === "") fieldOk = false;
             } else {
                 fieldOk = val !== "";
@@ -137,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (ui.pass) {
         ui.pass.addEventListener("input", () => updatePasswordUI());
-        // Init stato iniziale (importante per il PHP reload)
+        // importante per il PHP reload
         updatePasswordUI();
     }
 
@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.toggle.addEventListener("click", () => {
             const isPass = ui.pass.type === "password";
             ui.pass.type = isPass ? "text" : "password";
-            ui.toggle.textContent = isPass ? "Mostra" : "Nascondi"; // Logica inversa corretta
+            ui.toggle.textContent = isPass ? "Mostra" : "Nascondi";
         });
     }
 
