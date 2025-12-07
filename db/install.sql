@@ -217,3 +217,27 @@ CREATE TABLE Logs_Audit
     timestamp  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente) ON DELETE SET NULL
 );
+
+-- AGGIUNTA TABELLA STORICO NOTIFICHE --
+
+-- TABELLA NOTIFICHE_WEB
+CREATE TABLE Notifiche_Web
+(
+    id_notifica      INT AUTO_INCREMENT PRIMARY KEY,
+    id_utente        INT NOT NULL,
+    tipo             ENUM ('INFO', 'WARNING', 'DANGER', 'SUCCESS') NOT NULL,
+    titolo           VARCHAR(100) NOT NULL,
+    messaggio        TEXT NOT NULL,
+    link_azione      VARCHAR(255), -- Rimane per creare link diretti nella pagina Archivio e nell'email
+
+    -- Gestione Archivio Web
+    letto            BOOLEAN DEFAULT FALSE,
+
+    -- Gestione Email
+    stato_email      ENUM ('NON_RICHIESTA', 'DA_INVIARE', 'INVIATA', 'FALLITA') DEFAULT 'DA_INVIARE',
+
+    data_creazione   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_invio_email TIMESTAMP NULL,
+
+    FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente) ON DELETE CASCADE
+);
