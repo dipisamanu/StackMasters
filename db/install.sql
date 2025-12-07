@@ -1,9 +1,6 @@
--- 0. INIZIALIZZAZIONE
 DROP DATABASE IF EXISTS biblioteca_db;
 CREATE DATABASE biblioteca_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE biblioteca_db;
-
--- 1. TABELLE DI LOOKUP E CONFIGURAZIONE
 
 CREATE TABLE Autori
 (
@@ -50,17 +47,15 @@ CREATE TABLE RFID
     id_rfid              INT AUTO_INCREMENT PRIMARY KEY,
     rfid                 VARCHAR(128) UNIQUE      NOT NULL,
     tipo                 ENUM ('UTENTE', 'LIBRO') NOT NULL,
-    ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-
--- 2. TABELLE PRINCIPALI (LIBRI E UTENTI)
 
 CREATE TABLE Libri
 (
     id_libro             INT AUTO_INCREMENT PRIMARY KEY,
     titolo               VARCHAR(100) NOT NULL,
     descrizione          TEXT,
-    isbn                 VARCHAR(17) UNIQUE, -- Supporta trattini e ISBN-10/13
+    isbn                 VARCHAR(17) UNIQUE,
     anno_uscita          DATETIME,
     editore              VARCHAR(100),
     lingua_id            INT,
@@ -101,8 +96,6 @@ CREATE TABLE Utenti
     ultimo_aggiornamento    TIMESTAMP                   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_rfid) REFERENCES RFID (id_rfid) ON DELETE SET NULL
 );
-
--- 3. RELAZIONI MOLTI A MOLTI
 
 CREATE TABLE Libri_Autori
 (
@@ -145,9 +138,7 @@ CREATE TABLE Utenti_Badge
     FOREIGN KEY (id_badge) REFERENCES Badge (id_badge) ON DELETE CASCADE
 );
 
--- 4. INVENTARIO E OPERAZIONI
-
-CREATE TABLE Inventari -- Opzionale: Inventario è collettivo, ma Inventari è il plurale tecnico
+CREATE TABLE Inventari
 (
     id_inventario        INT AUTO_INCREMENT PRIMARY KEY,
     id_libro             INT NOT NULL,
