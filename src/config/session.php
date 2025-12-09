@@ -1,0 +1,229 @@
+<?php
+/**
+ * Gestione Sessioni Sicure
+ * File: src/config/session.php
+ */
+
+// Configurazione sessione sicura
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_secure', 0); // Metti 1 se usi HTTPS
+ini_set('session.cookie_samesite', 'Strict');
+
+// Nome sessione personalizzato
+session_name('BIBLIOTECA_SESSION');
+
+// Durata sessione: 2 ore di inattività
+ini_set('session.gc_maxlifetime', 7200);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Rigenera ID sessione per prevenire session fixation
+if (!isset($_SESSION['created'])) {
+    $_SESSION['created'] = time();
+} elseif (time() - $_SESSION['created'] > 1800) {
+    session_regenerate_id(true);
+    $_SESSION['created'] = time();
+}
+
+/**
+ * Classe per gestire le sessioni utente
+ */
+class Session {
+
+    /**
+     * Login utente
+     */
+    public static function login($userId, $username, $email, $ruoli) {
+        session_regenerate_id(true);
+
+        $_SESSION['user_id'] = $userId;
+        $_SESSION['username'] = $username;
+        $_SESSION['email'] = $email;
+        $_SESSION['ruoli'] = $ruoli; // Array di ruoli
+        $_SESSION['logged_in'] = true;
+        $_SESSION['last_activity'] = time();
+        $_SESSION['ip'] = $_SERVER['REMOTE_ADDR'];
+
+        // Determina il ruolo principale (priorità più bassa = più importante)
+        usort($ruoli, function($a, $b) {
+            return $a['priorita'] <=> $b['priorita'];
+        });
+        $_SESSION['ruolo_principale'] = $ruoli[0];
+    }
+
+    /**
+     * Logout utente
+     */
+    public static function logout() {
+        $_SESSION = [];
+
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time() - 3600, '/');
+        }
+
+        session_destroy();
+    }
+
+    /**
+     * Verifica se utente è loggato
+     */
+    public static function isLoggedIn() {
+        if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
+            return false;
+        }
+
+        // Verifica timeout
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 7200)) {
+            self::logout();
+            return false;
+        }
+
+        // Verifica IP (protezione contro session hijacking)
+        if (isset($_SESSION['ip']) && $_SESSION['ip'] !== $_SERVER['REMOTE_ADDR']) {
+            self::logout();
+            return false;
+        }
+
+        $_SESSION['last_activity'] = time();
+        return true;
+    }
+
+    /**
+     * Ottieni ID utente corrente
+     */
+    public static function getUserId() {
+        return $_SESSION['user_id'] ?? null;
+    }
+
+    /**
+     * Ottieni username
+     */
+    public static function getUsername() {
+        return $_SESSION['username'] ?? null;
+    }
+
+    /**
+     * Verifica se utente ha un ruolo specifico
+     */
+    public static function hasRole($nomeRuolo) {
+        if (!isset($_SESSION['ruoli'])) return false;
+
+        foreach ($_SESSION['ruoli'] as $ruolo) {
+            if ($ruolo['nome'] === $nomeRuolo) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifica se utente è admin
+     */
+    public static function isAdmin() {
+        return self::hasRole('Admin');
+    }
+
+    /**
+     * Verifica se utente è bibliotecario
+     */
+    public static function isLibrarian() {
+        return self::hasRole('Bibliotecario') || self::isAdmin();
+    }
+
+    /**
+     * Ottieni ruolo principale
+     */
+    public static function getMainRole() {
+        return $_SESSION['ruolo_principale']['nome'] ?? 'Studente';
+    }
+
+    /**
+     * Reindirizza alla dashboard appropriata
+     */
+    public static function redirectToDashboard() {
+        $role = self::getMainRole();
+
+        switch ($role) {
+            case 'Admin':
+                header('Location: /StackMasters/dashboard/admin/index.php');
+                break;
+            case 'Bibliotecario':
+                header('Location: /StackMasters/dashboard/librarian/index.php');
+                break;
+            case 'Docente':
+            case 'Studente':
+            default:
+                header('Location: /StackMasters/dashboard/student/index.php');
+                break;
+        }
+        exit;
+    }
+
+    /**
+     * Richiedi autenticazione (o reindirizza a login)
+     */
+    public static function requireLogin() {
+        if (!self::isLoggedIn()) {
+            $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
+            header('Location: /StackMasters/public/login.php');
+            exit;
+        }
+    }
+
+    /**
+     * Richiedi ruolo specifico
+     */
+    public static function requireRole($nomeRuolo) {
+        self::requireLogin();
+
+        if (!self::hasRole($nomeRuolo)) {
+            http_response_code(403);
+            die("Accesso negato. Permessi insufficienti.");
+        }
+    }
+
+    /**
+     * Messaggi flash (es. "Registrazione completata!")
+     */
+    public static function setFlash($type, $message) {
+        $_SESSION['flash'] = [
+            'type' => $type, // 'success', 'error', 'warning', 'info'
+            'message' => $message
+        ];
+    }
+
+    public static function getFlash() {
+        if (isset($_SESSION['flash'])) {
+            $flash = $_SESSION['flash'];
+            unset($_SESSION['flash']);
+            return $flash;
+        }
+        return null;
+    }
+
+    public static function hasFlash() {
+        return isset($_SESSION['flash']);
+    }
+}
+
+/**
+ * Helper function per CSRF token
+ * IMPORTANTE: Queste funzioni DEVONO essere FUORI dalla classe
+ */
+if (!function_exists('generateCSRFToken')) {
+    function generateCSRFToken() {
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+}
+
+if (!function_exists('verifyCSRFToken')) {
+    function verifyCSRFToken($token) {
+        return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    }
+}
