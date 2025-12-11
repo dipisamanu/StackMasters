@@ -31,7 +31,7 @@ class LoanController extends Controller
     public function nuovoPrestitoForm()
     {
         $data = ['message' => '', 'message_type' => '', 'scanned_user' => ''];
-        $this->view('admin/nuovo_prestito', $data);
+        $this->view('Views/admin/loans.php', $data);
     }
 
     /**
@@ -90,7 +90,7 @@ class LoanController extends Controller
     public function restituzioneForm()
     {
         $data = ['message' => '', 'message_type' => '', 'condizione' => 'BUONO'];
-        $this->view('admin/registra_restituzione', $data);
+        $this->view('Views/admin/returns.php', $data);
     }
 
     /**

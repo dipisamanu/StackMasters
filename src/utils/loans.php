@@ -30,8 +30,8 @@ $scanned_user = $data['scanned_user'] ?? '';
         <div id="alert-message"
              class="p-4 mb-8 rounded-lg font-medium text-sm
              <?= $message_type === 'success'
-                 ? 'bg-green-100 text-green-700 border border-green-300'
-                 : 'bg-red-100 text-red-700 border border-red-300' ?>">
+                     ? 'bg-green-100 text-green-700 border border-green-300'
+                     : 'bg-red-100 text-red-700 border border-red-300' ?>">
             <?= $message ?>
         </div>
     <?php endif; ?>
@@ -76,7 +76,7 @@ $scanned_user = $data['scanned_user'] ?? '';
         return /^[A-Za-z0-9]{16}$/.test(code);
     }
 
-    // Libro = EAN-13 = 13 cifre
+    // VERIFICA CORRETTEZZA BAR CODE --> CI SRAA DA INDIVIDUARE TIPI DIVERSI TASK 7.2
     function isBookBarcode(code) {
         return /^\d{13}$/.test(code);
     }
