@@ -1,0 +1,347 @@
+
+SISTEMA GESTIONALE BIBLIOTECA SCOLASTICA
+SCENARIO PROGETTO - SISTEMA GESTIONALE BIBLIOTECA SCOLASTICA
+Contesto e Situazione Attuale
+
+La biblioteca del nostro istituto scolastico serve una comunità di oltre 1300 studenti, 150 docenti e personale scolastico. Attualmente la gestione è completamente cartacea: i prestiti vengono registrati manualmente su un registro, la catalogazione avviene tramite schedario fisico, e non esiste alcun sistema di prenotazione o monitoraggio automatico. Questa situazione genera inefficienze significative, con tempi medi di 10-15 minuti per singolo prestito, frequenti errori nella registrazione, libri che risultano “fantasma” perché mai restituiti o registrati male, e un’esperienza utente complessivamente frustrante per studenti e docenti.
+
+I bibliotecari passano la maggior parte del tempo in operazioni ripetitive e manuali invece di poter dedicarsi all’assistenza personalizzata agli studenti o alla valorizzazione del patrimonio librario. Non esistono statistiche affidabili sull’utilizzo della biblioteca, rendendo impossibile prendere decisioni informate sugli acquisti di nuovi volumi. Gli studenti lamentano code interminabili, l’impossibilità di sapere se un libro è disponibile senza recarsi fisicamente in biblioteca, e la frustrazione di trovare sempre occupati i titoli più richiesti senza poter fare nulla se non sperare e riprovare giorni dopo.
+Obbiettivo del Sistema
+
+L’obiettivo è trasformare completamente questo scenario attraverso lo sviluppo di un sistema informativo moderno e integrato che digitalizzi l’intera gestione della biblioteca. Il sistema dovrà essere accessibile 24 ore su 24 via web, permettendo agli utenti di consultare il catalogo completo da casa, verificare disponibilità in tempo reale, prenotare libri non disponibili, e gestire autonomamente il proprio profilo e lo storico prestiti.
+
+La soluzione dovrà supportare tre livelli di utenza con permessi differenziati:
+
+    Gli utenti base (studenti e docenti) potranno navigare il catalogo, effettuare ricerche avanzate, prenotare libri, consultare i propri prestiti attivi e lo storico, ricevere notifiche automatiche per scadenze e disponibilità.
+    I bibliotecari avranno accesso a funzionalità gestionali per registrare prestiti e restituzioni in modo rapido tramite scansione di codici a barre, catalogare nuovi volumi, gestire multe, e accedere a statistiche operative.
+    Gli amministratori disporranno di una vista completa con analytics avanzati, gestione utenti e ruoli, configurazioni di sistema, e strumenti per il monitoraggio della salute complessiva della biblioteca.
+
+Registrazione e Gestione Utenti
+
+La registrazione al sistema rappresenta il primo punto di contatto degli utenti con la piattaforma e deve essere al contempo semplice e sicura. Gli utenti si registreranno fornendo i propri dati anagrafici completi: nome, cognome, data di nascita, sesso, comune di nascita, email e password. Una funzionalità particolarmente importante è il calcolo automatico del codice fiscale italiano a partire da questi dati anagrafici. Il sistema implementerà l’algoritmo ufficiale di generazione del codice fiscale utilizzando una tabella dei comuni italiani per determinare il codice catastale.
+
+Gli utenti potranno anche inserire manualmente il proprio codice fiscale se già lo conoscono, ma in questo caso il sistema effettuerà una validazione incrociata verificando che corrisponda ai dati anagrafici forniti. Se viene rilevata un’incongruenza, l’utente riceverà un alert che lo invita a controllare i dati inseriti. Questo doppio meccanismo assicura sia la comodità per chi non conosce il proprio codice fiscale, sia la possibilità per chi vuole inserirlo direttamente di farlo con garanzia di correttezza.
+
+Dopo la registrazione, ogni utente riceverà via email un link di verifica per confermare il proprio indirizzo di posta elettronica. Una volta verificato, l’account sarà attivo e l’utente potrà effettuare il login. Il sistema genererà automaticamente una tessera biblioteca virtuale contenente il codice a barre del proprio codice fiscale, che potrà essere scaricata in formato PDF. Questa tessera digitale servirà sia per l’identificazione fisica in biblioteca tramite scansione, sia come promemoria dei propri dati di accesso.
+Sistema di Autenticazione e Ruoli
+
+L’accesso al sistema avviene tramite credenziali email e password. Le password devono rispettare requisiti di sicurezza minimi: almeno 8 caratteri, presenza di almeno una lettera maiuscola, un numero e un simbolo speciale. Vengono memorizzate nel database utilizzando algoritmi di hashing sicuri. Il sistema implementa protezioni contro attacchi brute force bloccando temporaneamente l’account dopo cinque tentativi di login falliti consecutivi.
+
+Una volta autenticato, l’utente viene reindirizzato automaticamente alla dashboard appropriata in base al proprio ruolo.
+
+È importante notare che un utente può avere ruoli multipli simultaneamente. Ad esempio, un docente potrebbe essere anche bibliotecario, mantenendo quindi sia i privilegi di utente normale per i propri prestiti personali, sia quelli di bibliotecario per gestire il servizio.
+Catalogo e Gestione Libri
+
+Il cuore del sistema è il catalogo digitale completo di tutti i volumi posseduti dalla biblioteca. Ogni libro è caratterizzato da informazioni bibliografiche complete: titolo, autore o autori multipli, editore, anno di pubblicazione, ISBN, codice EAN, categoria o genere letterario, descrizione o trama, immagine della copertina, e collocazione fisica negli scaffali. Un aspetto cruciale è la distinzione tra il concetto di “libro” come entità bibliografica e “copia” come esemplare fisico. Un libro può avere multiple copie fisiche, ognuna identificata univocamente da un proprio codice a barre e caratterizzata da una propria condizione fisica (nuovo, buono, usurato, danneggiato).
+
+L’inserimento di nuovi libri nel catalogo è stato progettato per essere il più rapido possibile, sfruttando la tecnologia dei codici a barre e l’integrazione con API esterne. Quando il bibliotecario deve catalogare un nuovo volume, può utilizzare un lettore di codici a barre USB per scansionare il codice EAN presente sul libro. Il sistema riconosce automaticamente il codice e avvia una ricerca su API di libri come Google Books API o Open Library. Se il libro viene trovato, tutti i metadati (titolo, autore, editore, anno, descrizione, immagine copertina) vengono importati automaticamente e popolano il form di inserimento. Il bibliotecario deve solo verificare la correttezza delle informazioni, eventualmente integrarle o correggerle, e confermare l’inserimento.
+
+In caso il libro non venga trovato nelle API esterne, o se il bibliotecario preferisce, è sempre possibile inserire manualmente tutti i dati attraverso un form completo. (Il sistema effettua validazioni su campi critici come l’ISBN, verificando la correttezza del checksum secondo gli standard internazionali). Per ogni copia fisica inserita, viene generato automaticamente un codice a barre univoco che può essere stampato su etichetta adesiva da applicare sul volume. Queste etichette contengono sia il codice a barre leggibile dai lettori, sia informazioni testuali come titolo abbreviato e collocazione scaffale.
+
+Il catalogo è consultabile da tutti gli utenti, anche non autenticati, attraverso un’interfaccia moderna e intuitiva. I libri vengono presentati in una griglia di card contenenti copertina, titolo, autore e un badge colorato che indica immediatamente la disponibilità: verde per “disponibile immediatamente”, arancione per “disponibile per prenotazione” (tutte le copie in prestito), rosso per “non disponibile” (smarrito o fuori catalogo). Cliccando su un libro si accede alla scheda dettagliata con tutte le informazioni, recensioni degli utenti, e libri correlati suggeriti.
+Ricerca e Scoperta
+
+Gli utenti hanno a disposizione potenti strumenti di ricerca e scoperta dei contenuti. La barra di ricerca principale, sempre visibile nell’header, effettua una ricerca full-text su titolo, autore, ISBN, editore e categorie. Durante la digitazione viene attivato un sistema di autocomplete che suggerisce titoli, autori e categorie corrispondenti, velocizzando notevolmente l’individuazione di ciò che si cerca. La ricerca implementa un fuzzy matching che tollera piccoli errori di digitazione, e se non vengono trovati risultati, propone suggerimenti alternativi del tipo “Forse cercavi…”.
+
+Per ricerche più complesse, è disponibile una funzionalità di ricerca avanzata che permette di combinare multipli criteri: ricerca per titolo E autore E categoria, con possibilità di applicare filtri aggiuntivi come anno di pubblicazione (tramite range slider), disponibilità immediata, condizione fisica delle copie, e rating minimo degli utenti. I risultati possono essere ordinati per rilevanza, alfabetico, data pubblicazione, popolarità (numero di prestiti), o rating medio.
+
+Oltre alla ricerca attiva, il sistema implementa funzionalità di scoperta passiva. La homepage presenta sezioni come “Novità in catalogo”, “I più prestati questo mese”, “Consigliati per te” (basati sullo storico personale), e “Trending” (libri che stanno guadagnando popolarità rapidamente). Nella scheda di ogni libro, una sezione “Chi ha letto questo ha letto anche…” suggerisce titoli correlati basandosi sui pattern di prestito degli altri utenti. Questo sistema di raccomandazioni utilizza algoritmi di collaborative filtering che identificano utenti con gusti simili e suggeriscono libri apprezzati da questi utenti affini.
+Gestione Prestiti
+
+Il bibliotecario accede a “Nuovo Prestito” e scansiona il badge utente, ottenendo subito il profilo con prestiti attivi e, se presenti, prenotazioni già effettuate online. Il sistema esegue automaticamente tutti i controlli preliminari (multe, sospensioni, limiti di prestito differenziati per ruolo: studenti 3, docenti 5, staff 10).
+
+Se l’utente aveva prenotato online una copia, questa risulta già associata nel sistema: il bibliotecario scansiona la copia prenotata e procede direttamente alla consegna, senza ulteriori verifiche manuali.
+
+Per ogni nuovo prestito, il sistema controlla disponibilità, calcola la data di scadenza in base al ruolo (studenti 14 giorni, docenti 30, staff 45) e registra tutto in un’unica transazione atomica (creazione del prestito, aggiornamento stato copia, decremento copie disponibili, eventuale notifica al successivo utente in coda). Al termine vengono forniti conferma visiva/sonora, ricevuta stampata e email con dettagli e QR code.
+
+La restituzione funziona in modo analogo: il bibliotecario scansiona il libro, il sistema trova il prestito attivo, calcola eventuali ritardi e relative multe (es. 0,50€/giorno), permette di registrare lo stato del libro (nuovo/buono/usurato/danneggiato) e applica eventuali costi di riparazione. Se esistono prenotazioni, il primo utente viene notificato subito e la copia gli viene riservata per 48 ore.
+
+Gli utenti hanno una dashboard con tutti i prestiti attivi, countdown dei giorni rimanenti, evidenziazione dei prestiti in scadenza e un pulsante “Rinnova” (se consentito: max un rinnovo, nessuna prenotazione, prestito non scaduto).
+Sistema Prenotazioni e Code
+
+Quando un utente vuole un libro le cui copie sono tutte in prestito, può prenotarlo tramite il pulsante “Prenota”. Il sistema lo inserisce in una coda FIFO e gli mostra subito la sua posizione e una stima del tempo di attesa, calcolata sulla durata media dei prestiti precedenti. Ogni utente può avere fino a 5 prenotazioni attive.
+
+Quando una copia del libro rientra, viene assegnata al primo utente in coda. L’utente riceve una notifica via email e una notifica in-app; la copia viene riservata per 48 ore, con un countdown visibile sul profilo (“Ritira entro…”).
+
+Se l’utente non ritira il libro entro il limite, la prenotazione viene annullata e il libro passa automaticamente al successivo in lista. Un promemoria viene inviato 12 ore prima della scadenza per evitare dimenticanze.
+Integrazione Hardware: Barcode e RFID
+
+Un elemento chiave del progetto è l’integrazione con dispositivi hardware che automatizzano e velocizzano tutte le operazioni bibliotecarie. I lettori di codici a barre USB, economici e plug-and-play, funzionano come dispositivi di input HID: quando scansionano un codice, lo immettono nel sistema come se fosse digitato da tastiera. L’interfaccia prevede campi con focus automatico, così il bibliotecario deve solo puntare il lettore e scansionare; il codice viene riconosciuto all’istante. Il sistema distingue automaticamente la tipologia: un EAN-13 identifica un libro da catalogare, mentre un Code-128 può rappresentare una tessera utente o il codice di una specifica copia.
+
+A questo si affianca l’uso di tag NFC/RFID, applicati a ogni libro. Ogni tag contiene un piccolo chip con antenna in grado di trasmettere i dati in modalità wireless a brevissima distanza. Grazie a questa integrazione, le operazioni diventano ancora più rapide:
+
+    Identificazione immediata del libro senza allineare il codice ottico.
+    Lettura multipla di più volumi appoggiati sul banco (ad esempio per una restituzione in blocco).
+    Riduzione degli errori dovuti a codici rovinati o difficili da inquadrare.
+
+In questo modo prestiti, restituzioni e verifiche di inventario risultano più veloci, più affidabili e più ergonomiche, sfruttando una combinazione efficace di lettori barcode tradizionali e tecnologia NFC/RFID.Sistema
+Notifiche Automatiche
+
+Il sistema utilizza un motore di notifiche automatiche che invia comunicazioni in base a eventi e scadenze. Le notifiche variano per urgenza e vengono inviate tramite email e notifiche in-app.
+
+Dopo ogni prestito, l’utente riceve un’email di conferma con copertina del libro, dettagli del prestito, countdown per la restituzione e link per la dashboard dove fare il rinnovo.
+
+Tre giorni prima della scadenza viene inviato un promemoria amichevole, con possibilità per l’utente di disattivare questi avvisi. Se il libro risulta in ritardo, parte un’escalation:
+
+    1–3 giorni di ritardo: email gentile che ricorda la scadenza e informa che i nuovi prestiti sono temporaneamente bloccati finché il libro non viene restituito.
+    4–7 giorni di ritardo: email + notifica in-app che segnalano l’inizio dell’accumulo della multa (0,50 €/giorno).
+    8–14 giorni di ritardo: email + notifica in-app e segnalazione al bibliotecario per eventuale follow-up
+    Oltre 14 giorni di ritardo: invio di una comunicazione formale in PDF e mantenimento del blocco prestiti finché il materiale non viene restituito e la multa saldata.
+
+Le notifiche più urgenti riguardano le prenotazioni: quando un libro prenotato diventa disponibile, l’utente riceve subito un’email e una notifica in-app con il tempo limite di 48 ore per il ritiro.
+
+Dal profilo personale, ogni utente può gestire le preferenze di notifica e impostare fasce orarie silenziose (quiet hours). Tutte le email includono il link per annullare l’iscrizione, in conformità al GDPR.
+Multe e Gestione Finanziaria
+
+Il sistema di multe è completamente automatizzato e trasparente. Ogni prestito ha una tolleranza di 3 giorni oltre la scadenza; dal 4º giorno di ritardo inizia a maturare una multa di 0,50 € al giorno, calcolata automaticamente al momento della restituzione. Gli utenti particolarmente affidabili (es. più di 20 prestiti senza ritardi) possono ottenere uno sconto del 10% sulle multe.
+
+Fin dal primo giorno di ritardo, il sistema blocca automaticamente la possibilità di effettuare nuovi prestiti. Il blocco viene rimosso non appena l’utente restituisce il libro e salda l’eventuale multa maturata.
+
+Durante la restituzione, il bibliotecario verifica lo stato del volume: se il libro presenta danni aggiuntivi rispetto alla condizione iniziale, viene applicata una penale per riparazione o, nei casi gravi, il costo di sostituzione pari al prezzo di copertina.
+
+Gli utenti possono consultare dal proprio profilo tutte le multe attive e storiche, con importo, causale e stato del pagamento. Il bibliotecario gestisce i pagamenti tramite un’apposita interfaccia: selezione delle multe, registrazione dell’incasso e generazione automatica di una ricevuta PDF. Tutte le transazioni vengono archiviate per fini amministrativi e di audit.
+
+Periodicamente il sistema produce un report amministrativo sulle multe incassate e quelle pendenti, utile per monitorare comportamenti critici o libri soggetti a danneggiamenti frequenti.
+Analytics e Reportistica
+
+Il sistema raccoglie continuamente dati sull’utilizzo della biblioteca, che vengono aggregati e presentati attraverso dashboard interattive. La dashboard amministrativa mostra in tempo reale i KPI (Key Performance Indicators) principali: numero totale di libri in catalogo, numero di copie fisiche, prestiti attualmente attivi, prestiti scaduti (evidenziato in rosso se superiore a una soglia), multe totali non pagate, utenti registrati, nuove registrazioni nell’ultimo mese. Questi numeri vengono aggiornati automaticamente ogni 60 secondi tramite chiamate AJAX. Sotto i KPI, una serie di grafici visualizzano i trend. (Esempi: Un grafico a linee mostra l’andamento dei prestiti, grafico a barre presenta la top 10 dei libri più prestati, grafico a torta illustra la distribuzione dei prestiti per categoria letteraria, area chart mostra il trend delle registrazioni di nuovi utenti nel tempo.)
+
+Tabelle interattive mostrano dati operativi in tempo reale: gli ultimi 10 prestiti effettuati (utile per verificare che tutto funzioni), i prestiti in scadenza oggi o domani (per follow-up proattivo), i top 10 utenti più attivi per numero di prestiti. Tutti questi dati possono essere esportati in formato Excel o PDF per inclusione in report ufficiali.
+
+Ogni mese, un job schedulato genera automaticamente un report mensile in PDF che include un riepilogo generale, analisi sui prestiti, categorie più richieste, utenti attivi, situazione delle multe e dei ritardi, oltre a indicazioni utili per gli acquisti basate sui dati raccolti. Il report viene inviato all’amministratore e archiviato sul server con un nome standardizzato.
+
+Gli utenti hanno una sezione “Le Mie Statistiche”, dove possono consultare i propri dati di lettura: numero totale di libri letti, media mensile, preferenze, storico degli ultimi mesi e andamento rispetto a un eventuale obiettivo annuale di lettura. Questi elementi introducono una componente di gamification che incoraggia l’uso attivo del servizio.
+Gamification e Sistema Obiettivi/Badge
+
+Il sistema integra una componente di gamification pensata per incentivare l’utilizzo della biblioteca e rendere la lettura più coinvolgente. Gli obiettivi sono configurabili e permettono di introdurre badge, progressi e classifiche adattabili alle esigenze della scuola.
+
+Gli utenti possono ottenere badge al completamento di determinate azioni o traguardi, ad esempio:
+
+    “Pagina Uno” – Primo libro letto.
+    “Esploratore” – 10 libri letti.
+    “Maratoneta” – 100 libri letti.
+    Badge di genere – Es. “Detective del Giallo”, “Custode del Fantasy”, “Viaggiatore della Storia” dopo un certo numero di letture in una categoria.
+    Velocità di restituzione – Es. “Riconsegna Lampo” per chi restituisce costantemente in anticipo.
+    Costanza – Es. “12 mesi di lettura” per chi prende almeno un libro al mese.
+
+Ogni badge ha nome, icona e descrizione personalizzabili.
+
+Gli utenti possono anche sbloccare obiettivi a lungo termine, visibili come una serie di traguardi a percentuale (es. “Leggi 20 libri quest’anno”, “Leggi in 5 generi diversi”, “Completa 3 recensioni”). Un indicatore di avanzamento mostra quanto manca al completamento e stimola la continuità.
+
+Il sistema può generare una classifica basata sulla percentuale di obiettivi raggiunti rispetto agli obiettivi disponibili, permettendo confronti equi indipendentemente dal numero dei badge esistenti. Possono essere previste diverse classifiche, ad esempio: top lettori per progressi sugli obiettivi, utenti con più badge rari, classifica mensile per attività complessiva.
+
+Tutti i badge, gli obiettivi e le logiche di progressione sono progettati per essere estensibili: l’amministratore può aggiungere nuove sfide, modificare requisiti o introdurre badge temporanei legati a eventi (es. “Maratona di Halloween”, “Estate di Letture”).
+Sistema di Raccomandazione
+
+Per aiutare gli utenti a scoprire nuovi libri affini ai propri gusti, il sistema implementa algoritmi di raccomandazione personalizzata. L’approccio principale è il collaborative filtering: analizzando lo storico di prestiti dell’utente (ultimi 12 mesi), il sistema identifica le categorie preferite, estrae pattern di lettura, e poi cerca altri utenti con overlap significativo nei libri letti (somiglianza >60%). Questi “utenti simili” fungono da proxy per i gusti: libri che loro hanno apprezzato e che l’utente target non ha ancora letto vengono suggeriti.
+
+Il punteggio di raccomandazione combina diversi fattori: la similarity score con gli utenti simili (calcolata con metriche come Jaccard similarity o cosine similarity), il match con le categorie preferite dell’utente, la popolarità generale del libro (per evitare di suggerire libri troppo di nicchia), e un bonus per novità recenti. La formula potrebbe essere: score = (similarity × 0.4) + (match_categoria × 0.3) + (popolarità × 0.2) + (novità × 0.1).
+
+Sulla homepage dell’utente autenticato appare un widget “Consigliati per te” con 6 libri raccomandati. Per ogni suggerimento viene fornita una spiegazione trasparente: “Perché questo libro: utenti con gusti simili ai tuoi l’hanno apprezzato molto” oppure “Perché questo libro: ami il genere Fantasy e questo è uno dei più apprezzati”. Gli utenti possono dare feedback thumbs-up/thumbs-down su ogni raccomandazione, e questo feedback viene utilizzato per affinare l’algoritmo nel tempo.
+
+Per utenti nuovi senza storico sufficiente, il sistema applica una strategia di fallback mostrando i libri più popolari in generale o nella fascia di età dell’utente. Man mano che l’utente inizia a prendere prestiti, le raccomandazioni diventano progressivamente più personalizzate.
+
+Oltre alle raccomandazioni personalizzate, nella scheda di ogni libro appare una sezione “Chi ha letto questo ha letto anche…” che utilizza un algoritmo di co-occurrence: trova tutti gli utenti che hanno preso in prestito quel libro, conta quali altri libri hanno preso, e suggerisce i più frequenti (escludendo libri dello stesso autore per evitare ovvietà). Ogni suggerimento mostra la percentuale: “78% degli utenti ha letto anche questo”, dando un’idea della forza della correlazione.
+
+Una terza forma di scoperta sono i “libri trending”: quelli che stanno guadagnando popolarità rapidamente. L’algoritmo calcola un trend score che pesa i prestiti recenti di più di quelli vecchi (time decay), valorizza particolarmente le prenotazioni (segnale forte di interesse), considera il rating medio degli utenti, e normalizza per il numero di copie disponibili (per non favorire libri con molte copie). La formula potrebbe essere: trend_score = (prestiti × time_decay) + (prenotazioni × 2) + (rating_medio × 10) + (turnover_rate × 5). I top 20 libri per trend score vengono mostrati in una pagina dedicata “Trending”
+Sicurezza e Protezione Dati
+
+La sicurezza è un aspetto critico dato che il sistema gestisce dati personali sensibili. Tutte le password vengono hashate con bcrypt o argon2 prima di essere memorizzate nel database, rendendo impossibile il loro recupero anche in caso di data breach. Non esistono funzionalità per “visualizzare” una password: solo reset tramite link temporaneo inviato via email.
+
+Ogni input utente viene rigorosamente validato e sanitizzato lato server. Non ci si fida mai dei dati provenienti dal client. Vengono utilizzati prepared statements per tutte le query SQL, eliminando completamente il rischio di SQL injection. L’output HTML viene sempre escaped con funzioni come htmlspecialchars() per prevenire attacchi XSS (Cross-Site Scripting). Ogni form include token CSRF (Cross-Site Request Forgery) che vengono verificati lato server per garantire che la richiesta provenga effettivamente dal sito legittimo e non da un sito malevolo.
+
+Il sistema implementa rate limiting: un singolo indirizzo IP non può effettuare più di 100 richieste in 15 minuti. Superata questa soglia, le richieste vengono temporaneamente bloccate. Questo previene attacchi di tipo denial-of-service e tentativi di brute force sulle password. I form includono honeypot fields invisibili: campi nascosti che un utente vero non compila ma un bot automatico sì, permettendo di identificare e bloccare spam bot.
+
+Tutti i tentativi di accesso falliti, le modifiche a dati sensibili, e gli eventi di sicurezza vengono registrati in log dedicati con timestamp, indirizzo IP, e dettagli dell’evento. Questi log vengono monitorati per identificare pattern sospetti come multipli tentativi di login falliti dallo stesso IP (possibile attacco) o accessi da località geografiche anomale.
+
+Il sistema è configurato per funzionare esclusivamente su HTTPS, crittografando tutte le comunicazioni tra browser e server. Vengono impostati header di sicurezza come Content-Security-Policy, X-Frame-Options (per prevenire clickjacking), e HSTS (HTTP Strict Transport Security) che forza sempre l’uso di HTTPS.
+
+La conformità al GDPR viene garantita implementando: consenso esplicito per l’uso dei dati (accettazione privacy policy in registrazione), possibilità per l’utente di esportare tutti i propri dati in formato machine-readable (JSON), diritto all’oblio con possibilità di cancellazione completa dell’account e di tutti i dati associati (con eccezione di log finanziari che devono essere conservati per legge), informativa chiara su quali dati vengono raccolti e per quali finalità.
+Deployment e Manutenzione
+
+Il sistema può essere deployato su un server web standard con stack LAMP o equivalenti. È disponibile uno script di installazione che automatizza la creazione del database, la configurazione iniziale e i controlli dei prerequisiti.
+
+I backup del database vengono eseguiti automaticamente tramite cron ogni notte, con retention locale breve e copia su storage remoto con retention più lunga. Periodicamente viene effettuato un test di ripristino per garantire l’affidabilità dei backup.
+
+La gestione dei log è suddivisa in file distinti per attività applicative, errori, sicurezza e audit, ciascuno con politiche di retention adeguate alla propria natura.
+
+Un sistema di monitoring esterno controlla la raggiungibilità del servizio e invia notifiche email agli amministratori in caso di downtime. Internamente, errori critici generano alert automatici.
+
+L’architettura è modulare e prevede aggiornamenti semplici tramite l’aggiunta di nuovi moduli indipendenti. La documentazione tecnica include schemi dell’architettura, UML, schema del database e procedure operative per la manutenzione.
+STRUMENTI CONSIGLIATI PER GESTIONE CASI D’USO E MODELLAZIONE
+Diagrammi UML e Casi d’Uso
+
+1. Visual Paradigm Online (Consigliato - https://online.visual-paradigm.com)
+
+    Interfaccia web, nessuna installazione richiesta
+    Versione gratuita sufficiente per progetti didattici
+    Supporta tutti i diagrammi UML standard: use case, classi, sequenza, attività, stato
+    Collaborazione real-time
+    Export in PNG, PDF, SVG
+    Template pronti per casi d’uso
+    Generazione automatica codice da diagrammi classi (bonus)
+
+Come usare per casi d’uso:
+
+1. Crea nuovo progetto "Biblioteca"
+2. Seleziona "Use Case Diagram"
+3. Aggiungi attori: Studente, Bibliotecario, Admin, Sistema
+4. Aggiungi casi d'uso: "Ricerca Libro", "Prenota Libro", "Gestisce Prestito"
+5. Collega attori a casi d'uso con linee
+6. Usa relazioni: <<include>> (obbligatorio), <<extend>> (opzionale)
+7. Gruppa in package/sistemi
+8. Export PNG per documentazione
+
+2. PlantUML (Per sviluppatori che amano codice - https://plantuml.com)
+
+    Diagrammi UML da codice testuale
+    Versioning friendly (file di testo in Git)
+    Integrazione con VS Code, IntelliJ, Eclipse
+    Rendering automatico
+    Sintassi semplice e leggibile
+
+Esempio Use Case Diagram in PlantUML:
+
+@startuml Biblioteca_UseCases
+left to right direction
+skinparam packageStyle rectangle
+
+actor Studente
+actor Docente
+actor Bibliotecario
+actor Amministratore
+actor "Sistema Esterno" as API
+
+rectangle "Sistema Biblioteca" {
+
+  package "Gestione Utenti" {
+    usecase (Registrazione) as UC1
+    usecase (Login) as UC2
+    usecase (Gestisci Profilo) as UC3
+    usecase (Calcola CF) as UC4
+  }
+
+  package "Consultazione" {
+    usecase (Cerca Libro) as UC5
+    usecase (Visualizza Dettaglio) as UC6
+    usecase (Ricerca Avanzata) as UC7
+  }
+
+  package "Prestiti" {
+    usecase (Prenota Libro) as UC8
+    usecase (Visualizza Prestiti) as UC9
+    usecase (Rinnova Prestito) as UC10
+    usecase (Gestisce Prestito) as UC11
+    usecase (Gestisce Restituzione) as UC12
+    usecase (Calcola Multa) as UC13
+    usecase (Scansiona Barcode) as UC14
+  }
+
+  package "Catalogazione" {
+    usecase (Inserisci Libro) as UC15
+    usecase (Importa da API) as UC16
+    usecase (Genera Barcode) as UC17
+    usecase (Inventario RFID) as UC18
+  }
+
+  package "Analytics" {
+    usecase (Visualizza Dashboard) as UC19
+    usecase (Genera Report) as UC20
+    usecase (Statistiche Personali) as UC21
+  }
+}
+
+' Relazioni Attori-Use Cases
+Studente --> UC1
+Studente --> UC2
+Studente --> UC3
+Studente --> UC5
+Studente --> UC6
+Studente --> UC8
+Studente --> UC9
+Studente --> UC10
+Studente --> UC21
+
+Docente --|> Studente
+
+Bibliotecario --> UC11
+Bibliotecario --> UC12
+Bibliotecario --> UC15
+Bibliotecario --> UC18
+
+Amministratore --> UC19
+Amministratore --> UC20
+
+' Relazioni Include/Extend
+UC1 ..> UC4 : <<include>>
+UC11 ..> UC14 : <<include>>
+UC12 ..> UC14 : <<include>>
+UC12 ..> UC13 : <<include>>
+UC15 ..> UC16 : <<extend>>
+UC15 ..> UC17 : <<include>>
+
+API --> UC16
+
+@enduml
+
+Output: Genera automaticamente diagramma vettoriale con tutti gli elementi
+
+3. Lucidchart (https://www.lucidchart.com)
+
+    Interfaccia drag & drop intuitiva
+    Collaborazione real-time (tipo Google Docs)
+    Template UML professionali
+    Versione gratuita con 3 documenti
+    Integrazione Google Drive
+    Commenti e revisioni
+    Presentazione diretta dei diagrammi
+
+Ideale per: Team che preferiscono interfacce grafiche intuitive
+
+4. Draw.io / diagrams.net (https://app.diagrams.net)
+
+    Completamente gratuito e open source
+    Nessuna registrazione necessaria
+    Salvataggio su Google Drive, OneDrive, locale
+    Librerie UML complete
+    Molto leggero e veloce
+    Desktop app disponibile
+
+Ideale per: Progetti personali, velocità, zero costi
+Workflow Consigliato
+
+1. ANALISI REQUISITI
+   ├─ Brainstorming funzionalità (team meeting)
+   ├─ Identificazione attori (chi usa il sistema?)
+   └─ Lista casi d'uso macro (cosa può fare ogni attore?)
+
+2. MODELLAZIONE UML
+   ├─ Use Case Diagram (Visual Paradigm / PlantUML)
+   │  ├─ Attori posizionati ai lati
+   │  ├─ Casi d'uso nel centro
+   │  ├─ Relazioni <<include>> / <<extend>>
+   │  └─ Grouping in package logici
+   └─ Export PNG per documentazione
+
+3. DOCUMENTAZIONE TESTUALE
+   ├─ Template caso d'uso per ognuno (Notion / Google Docs)
+   ├─ Flusso principale dettagliato
+   ├─ Flussi alternativi ed eccezioni
+   └─ Review tra pari (peer review)
+
+4. VALIDAZIONE
+   ├─ Walkthrough con Product Owner (docente)
+   ├─ Verifica completezza (tutti scenari coperti?)
+   ├─ Approvazione formale
+   └─ Baseline (versione approvata)
+
+5. TRACCIABILITÀ
+   ├─ Ogni User Story linkato a caso d'uso originario
+   ├─ Ogni test case derivato da flussi caso d'uso
+   └─ Matrice tracciabilità (optional per progetti grandi)
+
+6. MANUTENZIONE
+   ├─ Aggiornamento diagrammi quando cambiano requisiti
+   ├─ Versioning dei documenti
+   └─ Sincronizzazione continua codice ↔ documentazione
+
