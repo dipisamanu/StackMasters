@@ -1,6 +1,5 @@
 <!-- FILE: views/bibliotecario/nuovo_prestito.php -->
 <?php
-// I dati sono passati dal Controller tramite l'array $data
 $message = $data['message'] ?? '';
 $message_type = $data['message_type'] ?? '';
 $scanned_user = $data['scanned_user'] ?? '';
@@ -70,27 +69,65 @@ $scanned_user = $data['scanned_user'] ?? '';
     </form>
 </div>
 
-<!-- Script per Focus Automatico -->
+<!-- Script Validazioni + Focus -->
 <script>
+    // Regole: modifica se servono
+    function isUserBarcode(code) {
+        return /^\d{6,12}$/.test(code);  // Tessera utente = numerico 6-12 cifre
+    }
+
+    function isBookBarcode(code) {
+        return /^[A-Za-z0-9]{4,30}$/.test(code); // Libro = più generico alfanumerico
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const userBarcodeInput = document.getElementById('user_barcode');
         const bookBarcodeInput = document.getElementById('book_barcode');
 
-        // Focus automatico sul campo utente al caricamento se vuoto
-        if (userBarcodeInput && !userBarcodeInput.value) {
+        // Focus iniziale
+        if (!userBarcodeInput.value) {
             userBarcodeInput.focus();
-        } else if (bookBarcodeInput) {
-            // Se l'utente è già scansionato (dopo un errore, ad esempio), passa al libro
+        } else {
             bookBarcodeInput.focus();
         }
 
-        // Sposta il focus da Utente a Libro dopo il primo input (simula la scansione)
+        // Quando scansiono UTENTE
         userBarcodeInput.addEventListener('change', function() {
-            if (this.value.length > 0) {
-                bookBarcodeInput.focus();
+            const code = this.value.trim();
+
+            if (!isUserBarcode(code)) {
+                alert("Errore: nel campo UTENTE è stato scansionato un codice libro.");
+                this.value = "";
+                this.focus();
+                return;
+            }
+
+            bookBarcodeInput.focus();
+        });
+
+        // Quando scansiono LIBRO
+        bookBarcodeInput.addEventListener('change', function() {
+            const bookCode = this.value.trim();
+            const userCode = userBarcodeInput.value.trim();
+
+            // Non possono essere uguali
+            if (bookCode === userCode) {
+                alert("Errore: il codice del libro non può essere uguale al codice dell'utente.");
+                this.value = "";
+                this.focus();
+                return;
+            }
+
+            // Non può essere un codice utente
+            if (isUserBarcode(bookCode)) {
+                alert("Errore: nel campo LIBRO è stato scansionato un codice utente.");
+                this.value = "";
+                this.focus();
+                return;
             }
         });
     });
 </script>
+
 </body>
 </html>
