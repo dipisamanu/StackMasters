@@ -16,7 +16,11 @@ $message_type = $data['message_type'] ?? '';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8">
@@ -77,7 +81,8 @@ $message_type = $data['message_type'] ?? '';
                             Autore: <?php echo htmlspecialchars($prestito['autore']); ?>
                         </p>
                         <p class="text-xs text-gray-500 mt-1">
-                            ID Prestito: #<?php echo $prestito['id_prestito']; ?> | Rinnovi: <?php echo $prestito['rinnovi']; ?>/1
+                            ID Prestito: #<?php echo $prestito['id_prestito']; ?> |
+                            Rinnovi: <?php echo $prestito['rinnovi']; ?>/1
                         </p>
                     </div>
 
@@ -92,7 +97,8 @@ $message_type = $data['message_type'] ?? '';
 
                         <!-- Pulsante Rinnova (Sub-issue 5.12) -->
                         <?php if ($can_renew): ?>
-                            <form method="POST" action="/utente/rinnova" class="inline-block" onsubmit="return confirm('Sei sicuro di voler rinnovare questo prestito? Verrà consumato l\'unico rinnovo disponibile.');">
+                            <form method="POST" action="/utente/rinnova" class="inline-block"
+                                  onsubmit="return confirm('Sei sicuro di voler rinnovare questo prestito? Verrà consumato l\'unico rinnovo disponibile.');">
                                 <input type="hidden" name="prestito_id" value="<?php echo $prestito['id_prestito']; ?>">
                                 <button type="submit"
                                         class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
@@ -100,7 +106,8 @@ $message_type = $data['message_type'] ?? '';
                                 </button>
                             </form>
                         <?php else: ?>
-                            <button disabled class="bg-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg cursor-not-allowed shadow-inner">
+                            <button disabled
+                                    class="bg-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg cursor-not-allowed shadow-inner">
                                 <?php echo $already_renewed ? 'Già Rinnovato' : 'Non Disponibile'; ?>
                             </button>
                         <?php endif; ?>

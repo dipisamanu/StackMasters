@@ -16,7 +16,11 @@ $message = $data['message'] ?? '';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
     </style>
 
     <!-- 🛑 INCLUSIONE DI CHART.JS TRAMITE CDN (NECESSARIA PER IL GRAFICO) 🛑 -->
@@ -102,7 +106,7 @@ $message = $data['message'] ?? '';
 
 <!-- SCRIPT DI INIZIALIZZAZIONE CHART.JS -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // 1. Recupero i dati PHP passati dal Controller, li converto in JavaScript
         const trendData = <?php echo json_encode($trendData); ?>;
 
@@ -135,7 +139,7 @@ $message = $data['message'] ?? '';
                             ticks: {
                                 // Assicura che i conteggi siano numeri interi
                                 stepSize: 1,
-                                callback: function(value) {
+                                callback: function (value) {
                                     if (value % 1 === 0) return value;
                                 }
                             }

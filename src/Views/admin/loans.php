@@ -15,7 +15,11 @@ $scanned_user = $data['scanned_user'] ?? '';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8">
@@ -85,7 +89,7 @@ $scanned_user = $data['scanned_user'] ?? '';
         }
 
         // Sposta il focus da Utente a Libro dopo il primo input (simula la scansione)
-        userBarcodeInput.addEventListener('change', function() {
+        userBarcodeInput.addEventListener('change', function () {
             if (this.value.length > 0) {
                 bookBarcodeInput.focus();
             }

@@ -14,15 +14,22 @@ $message_type = $data['message_type'] ?? '';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+
         /* Modal Style */
         .modal {
             transition: opacity 0.3s ease, visibility 0.3s ease;
         }
+
         .modal.hidden {
             opacity: 0;
             visibility: hidden;
         }
+
         .modal.flex {
             opacity: 1;
             visibility: visible;
@@ -80,7 +87,8 @@ $message_type = $data['message_type'] ?? '';
 <div id="evaluation-modal" class="modal fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
         <h2 class="text-xl font-bold mb-4 text-gray-800">Valutazione Stato Libro</h2>
-        <p class="mb-4 text-gray-600">Seleziona la condizione del volume restituito per il calcolo di eventuali penali:</p>
+        <p class="mb-4 text-gray-600">Seleziona la condizione del volume restituito per il calcolo di eventuali
+            penali:</p>
 
         <div class="space-y-3 mb-4">
             <label class="flex items-center space-x-3 bg-green-50 p-3 rounded-lg border border-green-200 cursor-pointer">

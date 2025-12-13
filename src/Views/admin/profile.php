@@ -22,7 +22,11 @@ $active_section = $data['active_section'] ?? 'profile'; // 'profile' o 'loans'
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8">
@@ -182,7 +186,7 @@ $active_section = $data['active_section'] ?? 'profile'; // 'profile' o 'loans'
                                     <span class="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 font-semibold rounded-lg border border-indigo-200">
                                         <?php
                                         // Icone diverse per ruolo
-                                        $icon = match($ruolo['nome']) {
+                                        $icon = match ($ruolo['nome']) {
                                             'Admin' => 'fa-crown',
                                             'Bibliotecario' => 'fa-user-tie',
                                             'Docente' => 'fa-chalkboard-teacher',
@@ -225,14 +229,15 @@ $active_section = $data['active_section'] ?? 'profile'; // 'profile' o 'loans'
                             </h2>
                             <p class="text-gray-600">
                                 <i class="fas fa-calendar-alt text-indigo-600 mr-2"></i>
-                                Membro dal: <span class="font-semibold"><?php echo date('d/m/Y', strtotime($utente['data_creazione'])); ?></span>
+                                Membro dal: <span
+                                        class="font-semibold"><?php echo date('d/m/Y', strtotime($utente['data_creazione'])); ?></span>
                             </p>
                         </div>
                     <?php endif; ?>
 
                 <?php endif; ?>
 
-            <!-- SEZIONE PRESTITI ATTIVI -->
+                <!-- SEZIONE PRESTITI ATTIVI -->
             <?php elseif ($active_section === 'loans'): ?>
                 <h1 class="text-3xl font-bold text-gray-800 mb-8 flex items-center">
                     <i class="fas fa-book-open text-indigo-600 mr-3"></i>
@@ -244,7 +249,8 @@ $active_section = $data['active_section'] ?? 'profile'; // 'profile' o 'loans'
                         <i class="fas fa-book-open fa-4x mb-4 text-gray-300"></i>
                         <p class="text-lg text-gray-700 font-medium">Non hai prestiti attivi al momento.</p>
                         <p class="text-sm text-gray-500 mt-2">Visita il catalogo per scoprire nuovi libri!</p>
-                        <a href="/catalogo" class="mt-4 inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition duration-150 ease-in-out">
+                        <a href="/catalogo"
+                           class="mt-4 inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition duration-150 ease-in-out">
                             <i class="fas fa-search mr-2"></i>Vai al Catalogo
                         </a>
                     </div>
@@ -281,7 +287,8 @@ $active_section = $data['active_section'] ?? 'profile'; // 'profile' o 'loans'
                                     </p>
                                     <p class="text-xs text-gray-500">
                                         <i class="fas fa-calendar mr-1"></i>
-                                        Data Prestito: <?php echo date('d/m/Y', strtotime($prestito['data_prestito'])); ?>
+                                        Data
+                                        Prestito: <?php echo date('d/m/Y', strtotime($prestito['data_prestito'])); ?>
                                     </p>
                                 </div>
 

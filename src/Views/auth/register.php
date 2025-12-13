@@ -37,7 +37,8 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="dataNascita">Data di nascita *</label>
-                <input type="date" id="dataNascita" name="dataNascita" min="1900-01-01" max="2025-12-31" value="<?= $_POST['dataNascita'] ?? '' ?>" required>
+                <input type="date" id="dataNascita" name="dataNascita" min="1900-01-01" max="2025-12-31"
+                       value="<?= $_POST['dataNascita'] ?? '' ?>" required>
                 <div class="error" id="errData">Inserisci una data valida</div>
             </div>
 
@@ -45,8 +46,12 @@
                 <label for="sesso">Sesso *</label>
                 <select id="sesso" name="sesso" required>
                     <option value=""> -- Seleziona --</option>
-                    <option value="M" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'M') ? 'selected' : '' ?>>Maschio</option>
-                    <option value="F" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'F') ? 'selected' : '' ?>>Femmina</option>
+                    <option value="M" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'M') ? 'selected' : '' ?>>
+                        Maschio
+                    </option>
+                    <option value="F" <?= (isset($_POST['sesso']) && $_POST['sesso'] === 'F') ? 'selected' : '' ?>>
+                        Femmina
+                    </option>
                 </select>
                 <div class="error" id="errSesso">Seleziona il sesso</div>
             </div>
@@ -62,7 +67,8 @@
             <div class="form-group">
                 <label for="codiceFiscale">Codice Fiscale (opzionale)</label>
                 <div id="calcolaCFdiv">
-                    <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= $_POST['codiceFiscale'] ?? '' ?>">
+                    <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16"
+                           value="<?= $_POST['codiceFiscale'] ?? '' ?>">
                     <span id="cfCounter" class="cf-counter">0/16</span>
                     <button type="button" id="btnCalcolaCF">Calcola</button>
                 </div>
@@ -83,7 +89,7 @@
                 <label for="password">Password *</label>
                 <div class="password-wrapper">
                     <input type="password" id="password" name="password" required>
-                    <button type="button" class="toggle-pass" id="togglePassword" tabindex = -1>Mostra</button>
+                    <button type="button" class="toggle-pass" id="togglePassword" tabindex=-1>Mostra</button>
                 </div>
 
                 <div class="pw-requirements" id="pwHelp">
