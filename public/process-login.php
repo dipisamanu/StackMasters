@@ -1,8 +1,14 @@
 <?php
 /**
- * Backend Login
+ * Backend Login - VERSIONE CORRETTA E SICURA
  * File: public/process-login.php
  */
+
+// ABILITA ERRORI PER DEBUG (commentare in produzione)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/login_errors.log');
 
 require_once '../src/config/database.php';
 require_once '../src/config/session.php';
@@ -15,7 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // Verifica CSRF
 if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-    die("Token CSRF non valido");
+    Session::setFlash('error', 'Token CSRF non valido. Riprova.');
+    header('Location: login.php');
+    exit;
 }
 
 $db = getDB();
@@ -35,7 +43,8 @@ try {
     $stmt = $db->prepare("
         SELECT 
             id_utente, 
-            username, 
+            nome,      
+            cognome,
             email, 
             password, 
             email_verificata,
@@ -46,7 +55,7 @@ try {
         LIMIT 1
     ");
     $stmt->execute([$email]);
-    $user = $stmt->fetch();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // 2. Verifica esistenza utente
     if (!$user) {
@@ -59,7 +68,7 @@ try {
     // 3. Verifica blocco account
     if ($user['blocco_account_fino_al'] && strtotime($user['blocco_account_fino_al']) > time()) {
         $minutiRimasti = ceil((strtotime($user['blocco_account_fino_al']) - time()) / 60);
-        Session::setFlash('error', "Account temporaneamente bloccato per troppi tentativi falliti. Riprova tra $minutiRimasti minuti.");
+        Session::setFlash('error', "Account temporaneamente bloccato. Riprova tra $minutiRimasti minuti.");
         header('Location: login.php');
         exit;
     }
@@ -87,28 +96,33 @@ try {
         exit;
     }
 
-    // 6. Tutto OK - Recupera ruoli utente
+    // 6. Recupera ruoli utente
     $stmtRuoli = $db->prepare("
         SELECT r.id_ruolo, r.nome, r.priorita, r.durata_prestito, r.limite_prestiti
         FROM Ruoli r
         INNER JOIN Utenti_Ruoli ur ON r.id_ruolo = ur.id_ruolo
         WHERE ur.id_utente = ?
+        ORDER BY r.priorita ASC
     ");
     $stmtRuoli->execute([$user['id_utente']]);
-    $ruoli = $stmtRuoli->fetchAll();
+    $ruoli = $stmtRuoli->fetchAll(PDO::FETCH_ASSOC);
 
+    // 6b. Se non ha ruoli, assegna "Studente" di default
     if (empty($ruoli)) {
-        // Assegna ruolo studente di default se non ha ruoli
         $stmtDefaultRole = $db->prepare("SELECT id_ruolo FROM Ruoli WHERE nome = 'Studente' LIMIT 1");
         $stmtDefaultRole->execute();
-        $defaultRole = $stmtDefaultRole->fetch();
+        $defaultRole = $stmtDefaultRole->fetch(PDO::FETCH_ASSOC);
 
         if ($defaultRole) {
             $db->prepare("INSERT INTO Utenti_Ruoli (id_utente, id_ruolo) VALUES (?, ?)")
                 ->execute([$user['id_utente'], $defaultRole['id_ruolo']]);
 
             $stmtRuoli->execute([$user['id_utente']]);
-            $ruoli = $stmtRuoli->fetchAll();
+            $ruoli = $stmtRuoli->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            Session::setFlash('error', 'Errore configurazione ruoli. Contatta l\'amministratore.');
+            header('Location: login.php');
+            exit;
         }
     }
 
@@ -127,24 +141,22 @@ try {
     ]);
 
     // 9. Crea sessione
+    $nomeCompleto = trim($user['nome'] . ' ' . $user['cognome']);
+
     Session::login(
         $user['id_utente'],
-        $user['username'],
+        $nomeCompleto,
         $user['email'],
         $ruoli
     );
 
-    // 10. Remember me (cookie persistente)
+    // 10. Remember me (opzionale)
     if ($remember) {
         $rememberToken = bin2hex(random_bytes(32));
-        $hashedToken = password_hash($rememberToken, PASSWORD_BCRYPT);
-
-        // Salva token nel DB (dovresti creare una tabella Remember_Tokens)
-        // Per ora usiamo solo il cookie
         setcookie('remember_token', $rememberToken, time() + (86400 * 30), '/', '', false, true);
     }
 
-    // 11. Reindirizza
+    // 11. Reindirizza alla dashboard
     if (isset($_SESSION['redirect_after_login'])) {
         $redirect = $_SESSION['redirect_after_login'];
         unset($_SESSION['redirect_after_login']);
@@ -153,8 +165,18 @@ try {
         Session::redirectToDashboard();
     }
 
+} catch (PDOException $e) {
+    error_log("ERRORE PDO LOGIN: " . $e->getMessage());
+    error_log("Query: " . ($stmt->queryString ?? 'N/A'));
+    error_log("Parametri: email=" . $email);
+
+    Session::setFlash('error', 'Errore del database. Riprova più tardi.');
+    header('Location: login.php');
+    exit;
+
 } catch (Exception $e) {
-    error_log("Errore login: " . $e->getMessage());
+    error_log("ERRORE GENERICO LOGIN: " . $e->getMessage());
+
     Session::setFlash('error', 'Errore durante il login. Riprova più tardi.');
     header('Location: login.php');
     exit;

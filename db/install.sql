@@ -241,111 +241,140 @@ CREATE TABLE Notifiche_Web
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente) ON DELETE CASCADE
 );
 
--- =========================
--- DATI DI ESEMPIO ESTESI (CORRETTI)
--- =========================
+-- ===========================
+-- DATI DI ESEMPIO (SEED DATA)
+-- ===========================
 
 -- LINGUE
 INSERT INTO Lingue (nome) VALUES
-                              ('Italiano'), ('Inglese'), ('Francese'), ('Spagnolo'), ('Tedesco');
+('Italiano'),
+('Inglese'),
+('Francese'),
+('Spagnolo'),
+('Tedesco');
 
 -- GENERI
 INSERT INTO Generi (nome) VALUES
-                              ('Narrativa'), ('Fantascienza'), ('Saggio'), ('Storico'), ('Fantasy');
+('Narrativa'),
+('Fantascienza'),
+('Saggio'),
+('Storico'),
+('Fantasy'),
+('Giallo'),
+('Poesia'),
+('Autobiografia');
 
 -- AUTORI
 INSERT INTO Autori (nome, cognome) VALUES
-                                       ('George', 'Orwell'), ('Italo', 'Calvino'), ('J.R.R.', 'Tolkien'), ('Umberto', 'Eco'), ('Isaac', 'Asimov');
+('George', 'Orwell'),
+('Italo', 'Calvino'),
+('J.R.R.', 'Tolkien'),
+('Umberto', 'Eco'),
+('Isaac', 'Asimov'),
+('Donna', 'Tartt'),
+('Stephen', 'King');
 
 -- RUOLI
 INSERT INTO Ruoli (priorita, nome, durata_prestito, limite_prestiti) VALUES
-                                                                         (0, 'Admin', NULL, NULL),
-                                                                         (1, 'Bibliotecario', 30, 10),
-                                                                         (2, 'Docente', 30, 5),
-                                                                         (3, 'Studente', 15, 3);
+(0, 'Admin', NULL, NULL),
+(1, 'Bibliotecario', 30, 10),
+(2, 'Docente', 30, 5),
+(3, 'Studente', 15, 3);
 
 -- BADGE
 INSERT INTO Badge (nome, descrizione, icona_url) VALUES
-                                                     ('Lettore Accanito', 'Oltre 10 libri letti', 'reader.png'),
-                                                     ('Puntuale', 'Mai in ritardo', 'time.png'),
-                                                     ('Maratoneta', '5 libri in un mese', 'marathon.png');
+('Lettore Accanito', 'Oltre 10 libri letti', 'reader.png'),
+('Puntuale', 'Mai in ritardo', 'time.png'),
+('Maratoneta', '5 libri in un mese', 'marathon.png'),
+('Collezionista', '50 libri letti', 'collection.png');
 
 -- RFID
 INSERT INTO RFID (rfid, tipo) VALUES
-                                  ('RFID-UTENTE-001', 'UTENTE'), ('RFID-UTENTE-002', 'UTENTE'), ('RFID-UTENTE-003', 'UTENTE'),
-                                  ('RFID-LIBRO-001', 'LIBRO'), ('RFID-LIBRO-002', 'LIBRO'), ('RFID-LIBRO-003', 'LIBRO'),
-                                  ('RFID-LIBRO-004', 'LIBRO'), ('RFID-LIBRO-005', 'LIBRO');
+('RFID-UTENTE-001', 'UTENTE'),
+('RFID-UTENTE-002', 'UTENTE'),
+('RFID-UTENTE-003', 'UTENTE'),
+('RFID-LIBRO-001', 'LIBRO'),
+('RFID-LIBRO-002', 'LIBRO'),
+('RFID-LIBRO-003', 'LIBRO'),
+('RFID-LIBRO-004', 'LIBRO'),
+('RFID-LIBRO-005', 'LIBRO');
 
 -- UTENTI
-INSERT INTO Utenti (cf, nome, cognome, email, password, data_nascita, sesso, consenso_privacy, id_rfid) VALUES
-                                                                                                            ('RSSMRA01A01H501Z', 'Mario', 'Rossi', 'mario@demo.it', 'hash1', '2004-03-12', 'M', 1, 1),
-                                                                                                            ('VRDLGI02B22F205X', 'Giulia', 'Verdi', 'giulia@demo.it', 'hash2', '2003-07-25', 'F', 1, 2),
-                                                                                                            ('BNCLNZ03C10L219W', 'Lorenzo', 'Bianchi', 'lorenzo@demo.it', 'hash3', '2005-11-03', 'M', 1, 3);
+INSERT INTO Utenti (cf, nome, cognome, email, password, data_nascita, sesso, comune_nascita, email_verificata, consenso_privacy, id_rfid) VALUES
+('RSSMRA01A01H501Z', 'Mario', 'Rossi', 'mario@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2004-03-12', 'M', 'Milano', 1, 1, 1),
+('VRDLGI02B22F205X', 'Giulia', 'Verdi', 'giulia@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2003-07-25', 'F', 'Roma', 1, 1, 2),
+('BNCLNZ03C10L219W', 'Lorenzo', 'Bianchi', 'lorenzo@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2005-11-03', 'M', 'Torino', 1, 1, 3);
 
 -- UTENTI ↔ RUOLI
 INSERT INTO Utenti_Ruoli (id_utente, id_ruolo, prestiti_tot, streak_restituzioni) VALUES
-                                                                                      (1, 3, 5, 2), (2, 3, 8, 4), (3, 2, 12, 6);
+(1, 3, 5, 2),
+(2, 3, 8, 4),
+(3, 1, 12, 6);
 
 -- UTENTI ↔ BADGE
 INSERT INTO Utenti_Badge (id_utente, id_badge) VALUES
-                                                   (1, 1), (2, 1), (2, 2), (3, 3);
+(1, 1),
+(2, 1),
+(2, 2),
+(3, 3);
 
 -- LIBRI
 INSERT INTO Libri (titolo, descrizione, isbn, anno_uscita, editore, lingua_id, lingua_originale_id, numero_pagine, valore_copertina, rating) VALUES
-                                                                                                                                                 ('1984', 'Distopia politica', '9780451524935', '1949-01-01', 'Secker & Warburg', 2, 2, 328, 12.90, 4.8),
-                                                                                                                                                 ('Il barone rampante', 'Romanzo filosofico', '9788807900123', '1957-01-01', 'Einaudi', 1, 1, 256, 10.50, 4.6),
-                                                                                                                                                 ('Il Signore degli Anelli', 'Fantasy epico', '9780261102385', '1954-01-01', 'Allen & Unwin', 2, 2, 1200, 35.00, 4.9),
-                                                                                                                                                 ('Il nome della rosa', 'Giallo storico', '9788845245660', '1980-01-01', 'Bompiani', 1, 1, 512, 14.90, 4.7),
-                                                                                                                                                 ('Fondazione', 'Fantascienza classica', '9788804618236', '1951-01-01', 'Gnome Press', 2, 2, 255, 11.90, 4.5);
+('1984', 'Distopia politica affascinante', '9780451524935', '1949-06-08', 'Secker & Warburg', 2, 2, 328, 12.90, 4.8),
+('Il barone rampante', 'Romanzo filosofico di grande profondità', '9788807900123', '1957-01-01', 'Einaudi', 1, 1, 256, 10.50, 4.6),
+('Il Signore degli Anelli', 'Fantasy epico masterpiece', '9780261102385', '1954-01-01', 'Allen & Unwin', 2, 2, 1200, 35.00, 4.9),
+('Il nome della rosa', 'Giallo storico complesso', '9788845245660', '1980-01-01', 'Bompiani', 1, 1, 512, 14.90, 4.7),
+('Fondazione', 'Fantascienza classica affascinante', '9788804618236', '1951-06-01', 'Gnome Press', 2, 2, 255, 11.90, 4.5),
+('La piccola principessa', 'Narrativa classica per ragazzi', '9788804618243', '1905-01-01', 'Scribner', 2, 2, 400, 9.99, 4.4),
+('Orgoglio e pregiudizio', 'Romanzo classico senza tempo', '9780141187761', '1813-01-28', 'Murray', 2, 2, 432, 8.99, 4.8);
 
 -- LIBRI ↔ AUTORI
 INSERT INTO Libri_Autori (id_autore, id_libro) VALUES
-                                                   (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
+(1, 1),
+(2, 2),
+(3, 3),
+(4, 4),
+(5, 5);
 
 -- LIBRI ↔ GENERI
 INSERT INTO Libri_Generi (id_genere, id_libro) VALUES
-                                                   (2, 1), (1, 2), (5, 3), (4, 4), (2, 5);
+(2, 1),
+(1, 2),
+(5, 3),
+(6, 4),
+(2, 5),
+(1, 6),
+(1, 7);
 
--- INVENTARIO
--- Nota: Aggiornati gli stati per coerenza con i prestiti sotto
+-- INVENTARI
 INSERT INTO Inventari (id_libro, id_rfid, collocazione, stato) VALUES
-                                                                   (1, 4, 'A1-01', 'DISPONIBILE'),      -- ID Inventario 1
-                                                                   (1, 5, 'A1-02', 'IN_PRESTITO'),      -- ID Inventario 2 (Prestato a Mario)
-                                                                   (2, 6, 'B2-01', 'IN_PRESTITO'),      -- ID Inventario 3 (Prestato a Giulia)
-                                                                   (3, 7, 'C3-05', 'DISPONIBILE'),      -- ID Inventario 4
-                                                                   (4, 8, 'D4-02', 'NON_IN_PRESTITO');  -- ID Inventario 5
+(1, 4, 'A1-01', 'DISPONIBILE'),
+(1, 5, 'A1-02', 'IN_PRESTITO'),
+(2, 6, 'B2-01', 'IN_PRESTITO'),
+(3, 7, 'C3-05', 'DISPONIBILE'),
+(4, 8, 'D4-02', 'DISPONIBILE'),
+(5, NULL, 'E5-03', 'DISPONIBILE'),
+(6, NULL, 'F6-01', 'DISPONIBILE');
 
 -- PRESTITI
--- Nota: Usiamo ID inventario 2 e 3 che esistono
-INSERT INTO Prestiti (id_inventario, id_utente, scadenza_prestito) VALUES
-                                                                       (2, 1, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 15 DAY)), -- Mario ha il libro 1 (copia 2)
-                                                                       (3, 2, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 30 DAY)); -- Giulia ha il libro 2 (copia 3)
+INSERT INTO Prestiti (id_inventario, id_utente, data_prestito, scadenza_prestito) VALUES
+(2, 1, NOW(), DATE_ADD(NOW(), INTERVAL 15 DAY)),
+(3, 2, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY));
 
 -- PRENOTAZIONI
-INSERT INTO Prenotazioni (id_utente, id_libro) VALUES
-                                                   (1, 3), -- Mario prenota Signore degli Anelli
-                                                   (2, 4), -- Giulia prenota Nome della Rosa
-                                                   (3, 1); -- Lorenzo prenota 1984
-
--- MULTE
-INSERT INTO Multe (id_utente, giorni, importo, causa, commento) VALUES
-                                                                    (1, 2, 3.00, 'RITARDO', 'Consegna in ritardo'),
-                                                                    (2, NULL, 8.50, 'DANNI', 'Copertina rovinata');
+INSERT INTO Prenotazioni (id_utente, id_libro, copia_libro, data_richiesta, data_disponibilita, scadenza_ritiro) VALUES
+(1, 3, NULL, NOW(), NULL, NULL),
+(2, 4, NULL, NOW(), NULL, NULL),
+(3, 1, NULL, NOW(), NULL, NULL);
 
 -- RECENSIONI
 INSERT INTO Recensioni (id_libro, id_utente, voto, descrizione) VALUES
-                                                                    (1, 1, 5, 'Attualissimo'),
-                                                                    (3, 2, 5, 'Epico'),
-                                                                    (5, 3, 4, 'Ottima fantascienza');
-
--- NOTIFICHE WEB
-INSERT INTO Notifiche_Web (id_utente, tipo, titolo, messaggio, letto) VALUES
-                                                                          (1, 'WARNING', 'Scadenza prestito', 'Il prestito scade tra 3 giorni', 0),
-                                                                          (2, 'SUCCESS', 'Libro disponibile', 'Il libro prenotato è disponibile', 0),
-                                                                          (3, 'INFO', 'Badge ottenuto', 'Hai ottenuto un nuovo badge', 1);
+(1, 1, 5, 'Capolavoro di distopia, ancora attuale'),
+(3, 2, 5, 'Epico e indimenticabile'),
+(5, 3, 4, 'Ottima fantascienza classica');
 
 -- LOG AUDIT
 INSERT INTO Logs_Audit (id_utente, azione, dettagli) VALUES
-                                                         (1, 'LOGIN_SUCCESS', 'Login effettuato'),
-                                                         (2, 'LOGIN_FALLITO', 'Password errata'),
-                                                         (3, 'CREAZIONE_UTENTE', 'Nuovo utente registrato');
+(1, 'LOGIN_SUCCESS', 'Login effettuato'),
+(2, 'CREAZIONE_UTENTE', 'Nuovo utente registrato'),
+(3, 'LOGIN_SUCCESS', 'Login effettuato');

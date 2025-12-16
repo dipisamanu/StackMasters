@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Sessioni Sicure
+ * Gestione Sessioni Sicure - VERSIONE CORRETTA
  * File: src/config/session.php
  */
 
@@ -35,14 +35,19 @@ class Session {
 
     /**
      * Login utente
+     *
+     * @param int $userId ID utente
+     * @param string $nomeCompleto Nome completo (nome + cognome)
+     * @param string $email Email utente
+     * @param array $ruoli Array di ruoli con priorità
      */
-    public static function login($userId, $username, $email, $ruoli) {
+    public static function login($userId, $nomeCompleto, $email, $ruoli) {
         session_regenerate_id(true);
 
         $_SESSION['user_id'] = $userId;
-        $_SESSION['username'] = $username;
+        $_SESSION['nome_completo'] = $nomeCompleto;
         $_SESSION['email'] = $email;
-        $_SESSION['ruoli'] = $ruoli; // Array di ruoli
+        $_SESSION['ruoli'] = $ruoli;
         $_SESSION['logged_in'] = true;
         $_SESSION['last_activity'] = time();
         $_SESSION['ip'] = $_SERVER['REMOTE_ADDR'];
@@ -99,10 +104,17 @@ class Session {
     }
 
     /**
-     * Ottieni username
+     * Ottieni nome completo
      */
-    public static function getUsername() {
-        return $_SESSION['username'] ?? null;
+    public static function getNomeCompleto() {
+        return $_SESSION['nome_completo'] ?? null;
+    }
+
+    /**
+     * Ottieni email
+     */
+    public static function getEmail() {
+        return $_SESSION['email'] ?? null;
     }
 
     /**
@@ -138,6 +150,13 @@ class Session {
      */
     public static function getMainRole() {
         return $_SESSION['ruolo_principale']['nome'] ?? 'Studente';
+    }
+
+    /**
+     * Ottieni tutti i ruoli
+     */
+    public static function getRoles() {
+        return $_SESSION['ruoli'] ?? [];
     }
 
     /**
@@ -190,7 +209,7 @@ class Session {
      */
     public static function setFlash($type, $message) {
         $_SESSION['flash'] = [
-            'type' => $type, // 'success', 'error', 'warning', 'info'
+            'type' => $type,
             'message' => $message
         ];
     }
@@ -207,11 +226,30 @@ class Session {
     public static function hasFlash() {
         return isset($_SESSION['flash']);
     }
+
+    /**
+     * Debug info sessione (solo per sviluppo)
+     */
+    public static function debugInfo() {
+        if (!defined('DEBUG_MODE') || DEBUG_MODE !== true) {
+            return null;
+        }
+
+        return [
+            'user_id' => self::getUserId(),
+            'nome_completo' => self::getNomeCompleto(),
+            'email' => self::getEmail(),
+            'ruolo_principale' => self::getMainRole(),
+            'tutti_ruoli' => self::getRoles(),
+            'logged_in' => self::isLoggedIn(),
+            'last_activity' => $_SESSION['last_activity'] ?? null,
+            'ip' => $_SESSION['ip'] ?? null
+        ];
+    }
 }
 
 /**
  * Helper function per CSRF token
- * IMPORTANTE: Queste funzioni DEVONO essere FUORI dalla classe
  */
 if (!function_exists('generateCSRFToken')) {
     function generateCSRFToken() {
