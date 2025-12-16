@@ -199,7 +199,17 @@ try {
     $stmtAssegna->execute([$userId, $ruoloStudente['id_ruolo']]);
     error_log("Ruolo assegnato");
 
-    // 6. Invia email di verifica (se il servizio esiste)
+    // 6. INSERISCI LOG REGISTRAZIONE (CORRETTO)
+    $db->prepare("
+        INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+        VALUES (?, 'CREAZIONE_UTENTE', ?, INET_ATON(?))
+    ")->execute([
+        $userId,
+        "Nuovo utente registrato: " . $email,
+        $_SERVER['REMOTE_ADDR']
+    ]);
+
+    // 7. Invia email di verifica (se il servizio esiste)
     if (function_exists('getEmailService')) {
         try {
             $emailService = getEmailService();
@@ -212,10 +222,7 @@ try {
             }
         } catch (Exception $e) {
             error_log("Errore servizio email: " . $e->getMessage());
-            // Continuiamo comunque, l'email non è critica
         }
-    } else {
-        error_log("Servizio email non disponibile (funzione getEmailService non esiste)");
     }
 
     $db->commit();

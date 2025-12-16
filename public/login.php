@@ -4,6 +4,7 @@
  * File: public/login.php
  */
 
+require_once '../src/config/database.php';
 require_once '../src/config/session.php';
 
 // Se già loggato, reindirizza
