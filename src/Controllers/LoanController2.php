@@ -1,11 +1,5 @@
 <?php
 
-namespace Ottaviodipisa\StackMasters\Controllers;
-
-use Ottaviodipisa\StackMasters\Config\Database;
-use Ottaviodipisa\StackMasters\Utils\EmailService;
-use PDO;
-use Exception;
 
 /**
  * LoanController2 - Gestisce tutta la logica di business per prestiti e restituzioni
@@ -14,7 +8,6 @@ use Exception;
 class LoanController2
 {
     private PDO $db;
-    private EmailService $emailService;
 
     // Configurazione multe
     private const GIORNI_TOLLERANZA = 3;
@@ -27,7 +20,6 @@ class LoanController2
     {
         try {
             $this->db = Database::getInstance()->getConnection();
-            $this->emailService = new EmailService();
         } catch (Exception $e) {
             // Gestione degli errori
             throw new Exception("Errore durante l'inizializzazione del controller: " . $e->getMessage());

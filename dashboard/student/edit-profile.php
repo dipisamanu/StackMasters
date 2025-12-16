@@ -4,6 +4,8 @@
  * File: dashboard/student/edit-profile.php
  */
 
+session_start();
+
 require_once '../../src/config/database.php';
 require_once '../../src/config/session.php';
 
@@ -13,88 +15,107 @@ $db = getDB();
 $userId = Session::getUserId();
 
 // Recupera dati attuali
-$stmt = $db->prepare("SELECT * FROM Utenti WHERE id_utente = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
+try {
+    $stmt = $db->prepare("SELECT * FROM Utenti WHERE id_utente = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user) {
+        die("Utente non trovato");
+    }
+} catch (Exception $e) {
+    error_log("Errore recupero utente: " . $e->getMessage());
+    die("Errore nel caricamento dei dati");
+}
+
+$errors = [];
 
 // Gestione POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        Session::setFlash('error', 'Token CSRF non valido');
-        header('Location: edit-profile.php');
-        exit;
-    }
-
-    $errors = [];
-
-    // Campi modificabili
-    $email = strtolower(trim($_POST['email'] ?? ''));
-    $comune = trim($_POST['comune_nascita'] ?? '');
-    $notificheAttive = isset($_POST['notifiche_attive']) ? 1 : 0;
-    $quietStart = $_POST['quiet_hours_start'] ?? null;
-    $quietEnd = $_POST['quiet_hours_end'] ?? null;
-
-    // Validazione email
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Email non valida";
+        $errors[] = 'Token CSRF non valido';
     } else {
-        // Verifica se email già usata da altro utente
-        $stmtCheck = $db->prepare("SELECT id_utente FROM Utenti WHERE email = ? AND id_utente != ?");
-        $stmtCheck->execute([$email, $userId]);
-        if ($stmtCheck->fetch()) {
-            $errors[] = "Email già in uso da un altro utente";
+        // Campi modificabili
+        $email = strtolower(trim($_POST['email'] ?? ''));
+        $comune = trim($_POST['comune_nascita'] ?? '');
+        $notificheAttive = isset($_POST['notifiche_attive']) ? 1 : 0;
+        $quietStart = $_POST['quiet_hours_start'] ?? null;
+        $quietEnd = $_POST['quiet_hours_end'] ?? null;
+
+        // Validazione email
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = "Email non valida";
+        } else {
+            // Verifica se email già usata da altro utente
+            try {
+                $stmtCheck = $db->prepare("SELECT id_utente FROM Utenti WHERE email = ? AND id_utente != ?");
+                $stmtCheck->execute([$email, $userId]);
+                if ($stmtCheck->fetch()) {
+                    $errors[] = "Email già in uso da un altro utente";
+                }
+            } catch (Exception $e) {
+                error_log("Errore verifica email: " . $e->getMessage());
+                $errors[] = "Errore durante la verifica dell'email";
+            }
         }
-    }
 
-    // Validazione comune
-    if (empty($comune)) {
-        $errors[] = "Il comune è obbligatorio";
-    }
-
-    if (empty($errors)) {
-        try {
-            $stmtUpdate = $db->prepare("
-                UPDATE Utenti 
-                SET email = ?, 
-                    comune_nascita = ?, 
-                    notifiche_attive = ?,
-                    quiet_hours_start = ?,
-                    quiet_hours_end = ?
-                WHERE id_utente = ?
-            ");
-
-            $stmtUpdate->execute([
-                    $email,
-                    $comune,
-                    $notificheAttive,
-                    $quietStart ?: null,
-                    $quietEnd ?: null,
-                    $userId
-            ]);
-
-            // Log modifica (AZIONE CORRETTA)
-            $db->prepare("
-                INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
-                VALUES (?, 'MODIFICA_PROFILO', 'Profilo aggiornato', INET_ATON(?))
-            ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
-
-            Session::setFlash('success', 'Profilo aggiornato con successo!');
-            header('Location: profile.php');
-            exit;
-
-        } catch (Exception $e) {
-            error_log("Errore aggiornamento profilo: " . $e->getMessage());
-            $errors[] = "Errore durante l'aggiornamento. Riprova.";
+        // Validazione comune
+        if (empty($comune)) {
+            $errors[] = "Il comune è obbligatorio";
         }
-    }
 
-    // Se ci sono errori, mantieni i dati inseriti
-    if (!empty($errors)) {
-        $user['email'] = $email;
-        $user['comune_nascita'] = $comune;
-        $user['notifiche_attive'] = $notificheAttive;
-        $user['quiet_hours_start'] = $quietStart;
-        $user['quiet_hours_end'] = $quietEnd;
+        if (empty($errors)) {
+            try {
+                $stmtUpdate = $db->prepare("
+                    UPDATE Utenti 
+                    SET email = ?, 
+                        comune_nascita = ?, 
+                        notifiche_attive = ?,
+                        quiet_hours_start = ?,
+                        quiet_hours_end = ?
+                    WHERE id_utente = ?
+                ");
+
+                $stmtUpdate->execute([
+                        $email,
+                        $comune,
+                        $notificheAttive,
+                        $quietStart ?: null,
+                        $quietEnd ?: null,
+                        $userId
+                ]);
+
+                // Log modifica
+                try {
+                    $db->prepare("
+                        INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+                        VALUES (?, 'MODIFICA_PROFILO', 'Profilo aggiornato', INET_ATON(?))
+                    ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
+                } catch (Exception $e) {
+                    error_log("Errore log audit: " . $e->getMessage());
+                }
+
+                $_SESSION['flash'] = [
+                        'type' => 'success',
+                        'message' => 'Profilo aggiornato con successo!'
+                ];
+                header('Location: profile.php');
+                exit;
+
+            } catch (Exception $e) {
+                error_log("Errore aggiornamento profilo: " . $e->getMessage());
+                $errors[] = "Errore durante l'aggiornamento. Riprova.";
+            }
+        }
+
+        // Se ci sono errori, mantieni i dati inseriti
+        if (!empty($errors)) {
+            $user['email'] = $email;
+            $user['comune_nascita'] = $comune;
+            $user['notifiche_attive'] = $notificheAttive;
+            $user['quiet_hours_start'] = $quietStart;
+            $user['quiet_hours_end'] = $quietEnd;
+        }
     }
 }
 ?>
@@ -104,7 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modifica Profilo - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <link rel="icon" href="../../public/assets/img/itisrossi.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -135,6 +157,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #333;
             margin-bottom: 10px;
             font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .subtitle {
@@ -270,7 +295,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             transition: all 0.3s ease;
         }
 
@@ -319,7 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="container">
     <div class="card">
-        <h1>✏️ Modifica Profilo</h1>
+        <h1><i class="fas fa-edit"></i> Modifica Profilo</h1>
         <p class="subtitle">Aggiorna le tue informazioni personali</p>
 
         <?php if (!empty($errors)): ?>
@@ -355,7 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Dati Modificabili -->
             <div class="form-section">
-                <h2>📧 Contatti e Residenza</h2>
+                <h2>🔧 Contatti e Residenza</h2>
 
                 <div class="form-group">
                     <label for="email">Email *</label>
@@ -409,17 +436,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Pulsanti -->
             <div class="actions">
-                <button type="submit" class="btn btn-primary">💾 Salva Modifiche</button>
-                <a href="profile.php" class="btn btn-secondary">← Annulla</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salva Modifiche
+                </button>
+                <a href="profile.php" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Annulla
+                </a>
             </div>
         </form>
     </div>
 
     <!-- Sezione Cambio Password -->
     <div class="card">
-        <h2>🔒 Cambia Password</h2>
+        <h2><i class="fas fa-key"></i> Cambia Password</h2>
         <p class="subtitle">Per motivi di sicurezza, il cambio password richiede la verifica dell'identità</p>
-        <a href="change-password.php" class="btn btn-primary">Cambia Password</a>
+        <a href="change-password.php" class="btn btn-primary">
+            <i class="fas fa-key"></i> Cambia Password
+        </a>
     </div>
 </div>
 </body>

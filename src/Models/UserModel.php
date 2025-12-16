@@ -1,10 +1,5 @@
 <?php
 
-namespace Ottaviodipisa\StackMasters\Models;
-
-use Ottaviodipisa\StackMasters\Core\Database;
-use PDO;
-use PDOException;
 
 /**
  * UserModel - Gestisce le query relative agli utenti

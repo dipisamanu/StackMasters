@@ -1,8 +1,5 @@
 <?php
 
-namespace Ottaviodipisa\StackMasters\Controllers;
-
-use Ottaviodipisa\StackMasters\Models\UserModel;
 
 /**
  * UserController - Gestisce le operazioni relative al profilo utente

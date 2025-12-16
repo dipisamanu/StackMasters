@@ -72,7 +72,7 @@ CREATE TABLE Libri
 CREATE TABLE Utenti
 (
     id_utente               INT AUTO_INCREMENT PRIMARY KEY,
-    cf                      CHAR(16) UNIQUE    NOT NULL,
+    cf                      VARCHAR(20) UNIQUE    NOT NULL, -- Modificato da CHAR(16) a VARCHAR(20)
     nome                    VARCHAR(100)       NOT NULL,
     cognome                 VARCHAR(100)       NOT NULL,
     email                   VARCHAR(255)       NOT NULL,
@@ -301,9 +301,9 @@ INSERT INTO RFID (rfid, tipo) VALUES
 
 -- UTENTI
 INSERT INTO Utenti (cf, nome, cognome, email, password, data_nascita, sesso, comune_nascita, email_verificata, consenso_privacy, id_rfid) VALUES
-('RSSMRA01A01H501Z', 'Mario', 'Rossi', 'mario@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2004-03-12', 'M', 'Milano', 1, 1, 1),
-('VRDLGI02B22F205X', 'Giulia', 'Verdi', 'giulia@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2003-07-25', 'F', 'Roma', 1, 1, 2),
-('BNCLNZ03C10L219W', 'Lorenzo', 'Bianchi', 'lorenzo@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2005-11-03', 'M', 'Torino', 1, 1, 3);
+('RSSMRA91T04H501A', 'Mario', 'Rossi', 'mario@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2004-03-12', 'M', 'Milano', 1, 1, 1),
+('VRDLGI93L25F205B', 'Giulia', 'Verdi', 'giulia@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2003-07-25', 'F', 'Roma', 1, 1, 2),
+('BNCLNZ95K03L219C', 'Lorenzo', 'Bianchi', 'lorenzo@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2005-11-03', 'M', 'Torino', 1, 1, 3);
 
 -- UTENTI ↔ RUOLI
 INSERT INTO Utenti_Ruoli (id_utente, id_ruolo, prestiti_tot, streak_restituzioni) VALUES
@@ -362,10 +362,10 @@ INSERT INTO Prestiti (id_inventario, id_utente, data_prestito, scadenza_prestito
 (3, 2, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY));
 
 -- PRENOTAZIONI
-INSERT INTO Prenotazioni (id_utente, id_libro, copia_libro, data_richiesta, data_disponibilita, scadenza_ritiro) VALUES
-(1, 3, NULL, NOW(), NULL, NULL),
-(2, 4, NULL, NOW(), NULL, NULL),
-(3, 1, NULL, NOW(), NULL, NULL);
+INSERT INTO Prenotazioni (id_utente, id_libro, data_richiesta) VALUES
+(1, 3, NOW()),
+(2, 4, NOW()),
+(3, 1, NOW());
 
 -- RECENSIONI
 INSERT INTO Recensioni (id_libro, id_utente, voto, descrizione) VALUES

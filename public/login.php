@@ -4,16 +4,21 @@
  * File: public/login.php
  */
 
+session_start();
+
 require_once '../src/config/database.php';
-require_once '../src/config/session.php';
 
 // Se già loggato, reindirizza
-if (Session::isLoggedIn()) {
-    Session::redirectToDashboard();
+if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
+    header('Location: ../dashboard/student/index.php');
+    exit;
 }
 
-// Gestione messaggi flash
-$flash = Session::getFlash();
+// Gestione messaggi
+$login_error = $_SESSION['login_error'] ?? '';
+if (isset($_SESSION['login_error'])) {
+    unset($_SESSION['login_error']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -247,14 +252,13 @@ $flash = Session::getFlash();
         <p>Sistema Gestionale</p>
     </div>
 
-    <?php if ($flash): ?>
-        <div class="alert alert-<?= $flash['type'] ?>">
-            <?= htmlspecialchars($flash['message']) ?>
+    <?php if (!empty($login_error)): ?>
+        <div class="alert alert-danger">
+            ⚠️ <?= htmlspecialchars($login_error) ?>
         </div>
     <?php endif; ?>
 
     <form action="process-login.php" method="POST">
-        <input type="hidden" name="csrf_token" value="<?= generateCSRFToken() ?>">
 
         <div class="form-group">
             <label for="email">Email</label>

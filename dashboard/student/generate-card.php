@@ -2,15 +2,12 @@
 /**
  * Generazione PDF Tessera Biblioteca
  * File: dashboard/student/generate-card.php
- *
- * Requisito: Composer require tecnickcom/tcpdf
- * oppure usare FPDF (più semplice, senza composer)
  */
+
 
 require_once '../../src/config/database.php';
 require_once '../../src/config/session.php';
 
-// Richiedi login
 Session::requireLogin();
 
 $db = getDB();
@@ -40,16 +37,23 @@ try {
         LIMIT 1
     ");
     $stmt->execute([$userId]);
-    $user = $stmt->fetch();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
         die("Utente non trovato");
     }
 
-    // Genera PDF usando FPDF (più semplice, no composer)
-    // Se hai TCPDF installato, puoi usare quello per PDF più avanzati
+    // Log generazione tessera
+    try {
+        $db->prepare("
+            INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+            VALUES (?, 'GENERA_TESSERA', 'Tessera generata', INET_ATON(?))
+        ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
+    } catch (Exception $e) {
+        error_log("Errore log audit: " . $e->getMessage());
+    }
 
-    // Versione base con HTML/CSS che si può stampare o salvare come PDF dal browser
+    // Genera tessera HTML
     generateHTMLCard($user);
 
 } catch (Exception $e) {
@@ -61,7 +65,7 @@ try {
  * Genera tessera in HTML (stampabile/salvabile come PDF)
  */
 function generateHTMLCard($user) {
-    // Genera QR code dell'utente (puoi usare una libreria o API esterna)
+    // Genera QR code dell'utente
     $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" .
             urlencode($user['cf']);
 
@@ -74,10 +78,13 @@ function generateHTMLCard($user) {
     <head>
         <meta charset="UTF-8">
         <title>Tessera Biblioteca - <?= htmlspecialchars($user['nome'] . ' ' . $user['cognome']) ?></title>
+        <link rel="icon" href="../../public/assets/img/itisrossi.png">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         <style>
             @media print {
                 body { margin: 0; }
                 .no-print { display: none; }
+                .card-container { box-shadow: none; }
             }
 
             * {
@@ -101,10 +108,11 @@ function generateHTMLCard($user) {
                 padding: 30px;
                 border-radius: 10px;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                max-width: 900px;
             }
 
             .card {
-                width: 85.6mm;  /* Standard carta di credito */
+                width: 85.6mm;
                 height: 53.98mm;
                 background: linear-gradient(135deg, #bf2121 0%, #8b1818 100%);
                 border-radius: 10px;
@@ -113,6 +121,7 @@ function generateHTMLCard($user) {
                 position: relative;
                 box-shadow: 0 8px 20px rgba(0,0,0,0.2);
                 overflow: hidden;
+                margin: 0 auto 30px;
             }
 
             .card::before {
@@ -197,6 +206,9 @@ function generateHTMLCard($user) {
                 color: #bf2121;
                 margin-bottom: 15px;
                 font-size: 18px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
 
             .info-row {
@@ -223,6 +235,7 @@ function generateHTMLCard($user) {
                 margin-top: 30px;
                 display: flex;
                 gap: 10px;
+                justify-content: center;
             }
 
             .btn {
@@ -233,8 +246,9 @@ function generateHTMLCard($user) {
                 font-weight: 600;
                 cursor: pointer;
                 text-decoration: none;
-                display: inline-block;
-                text-align: center;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
                 transition: all 0.3s ease;
             }
 
@@ -278,7 +292,7 @@ function generateHTMLCard($user) {
                 </div>
                 <div class="user-id">
                     ID: <?= htmlspecialchars($user['id_utente']) ?> |
-                    <?= htmlspecialchars($user['ruolo']) ?>
+                    <?= htmlspecialchars($user['ruolo'] ?? 'Studente') ?>
                 </div>
             </div>
 
@@ -290,7 +304,7 @@ function generateHTMLCard($user) {
 
         <!-- Informazioni dettagliate -->
         <div class="info-group">
-            <h3>Dettagli Tessera</h3>
+            <h3><i class="fas fa-info-circle"></i> Dettagli Tessera</h3>
 
             <div class="info-row">
                 <div class="info-label">Nome Completo:</div>
@@ -309,17 +323,17 @@ function generateHTMLCard($user) {
 
             <div class="info-row">
                 <div class="info-label">Ruolo:</div>
-                <div class="info-value"><?= htmlspecialchars($user['ruolo']) ?></div>
+                <div class="info-value"><?= htmlspecialchars($user['ruolo'] ?? 'Studente') ?></div>
             </div>
 
             <div class="info-row">
                 <div class="info-label">Durata Prestito:</div>
-                <div class="info-value"><?= $user['durata_prestito'] ?> giorni</div>
+                <div class="info-value"><?= $user['durata_prestito'] ?? '30' ?> giorni</div>
             </div>
 
             <div class="info-row">
                 <div class="info-label">Limite Prestiti:</div>
-                <div class="info-value"><?= $user['limite_prestiti'] ?> libri contemporaneamente</div>
+                <div class="info-value"><?= $user['limite_prestiti'] ?? '3' ?> libri contemporaneamente</div>
             </div>
 
             <div class="info-row">
@@ -336,22 +350,16 @@ function generateHTMLCard($user) {
         <!-- Azioni -->
         <div class="actions no-print">
             <button class="btn btn-primary" onclick="window.print()">
-                🖨️ Stampa Tessera
+                <i class="fas fa-print"></i> Stampa Tessera
             </button>
-            <a href="../student/profile.php" class="btn btn-secondary">
-                ← Torna al Profilo
+            <a href="profile.php" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Torna al Profilo
             </a>
         </div>
     </div>
-
-    <script>
-        // Auto-print quando la pagina si carica (opzionale)
-        // window.addEventListener('load', () => {
-        //     setTimeout(() => window.print(), 500);
-        // });
-    </script>
     </body>
     </html>
     <?php
     exit;
 }
+?>

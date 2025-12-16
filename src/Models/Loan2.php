@@ -1,148 +1,88 @@
-<!-- FILE: views/bibliotecario/nuovo_prestito.php -->
 <?php
-$message = $data['message'] ?? '';
-$message_type = $data['message_type'] ?? '';
-$scanned_user = $data['scanned_user'] ?? '';
-?>
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuovo Prestito - Biblioteca</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
 
-<<<<<<< HEAD:src/Models/Loan.php
-<body class="p-4 sm:p-8 bg-gray-100">
-=======
-namespace Ottaviodipisa\StackMasters\models;
->>>>>>> main:src/models/Loan.php
+/**
+ * Loan2 Model - Gestione entità Prestiti (versione semplificata)
+ * File: src/Models/Loan2.php
+ */
 
-<div class="max-w-2xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
-        <i class="fas fa-barcode text-blue-600 mr-3"></i>
-        Registra Nuovo Prestito
-    </h1>
+class Loan2
+{
+    private \PDO $db;
 
-    <p class="text-gray-600 mb-8">
-        Scansiona i codici a barre della tessera utente e della copia del libro.
-    </p>
-
-    <?php if ($message): ?>
-        <div id="alert-message"
-             class="p-4 mb-8 rounded-lg font-medium text-sm
-             <?= $message_type === 'success'
-                 ? 'bg-green-100 text-green-700 border border-green-300'
-                 : 'bg-red-100 text-red-700 border border-red-300' ?>">
-            <?= $message ?>
-        </div>
-    <?php endif; ?>
-
-    <form method="POST" action="/bibliotecario/registra-prestito" class="space-y-6">
-
-        <!-- Campo Utente -->
-        <div>
-            <label for="user_barcode" class="block text-sm font-medium text-gray-700">
-                <i class="fas fa-user-tag mr-2"></i> Scansiona Tessera Utente (Codice Fiscale)
-            </label>
-            <input type="text" id="user_barcode" name="user_barcode" required
-                   placeholder="Codice Fiscale (16 caratteri)"
-                   value="<?= htmlspecialchars($scanned_user) ?>"
-                   class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
-        </div>
-
-        <!-- Campo Libro -->
-        <div>
-            <label for="book_barcode" class="block text-sm font-medium text-gray-700">
-                <i class="fas fa-book mr-2"></i> Scansiona Codice Copia Libro (EAN-13)
-            </label>
-            <input type="text" id="book_barcode" name="book_barcode" required
-                   placeholder="Codice a barre EAN-13 (13 cifre)"
-                   class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
-        </div>
-
-        <button type="submit"
-                class="w-full py-3 px-4 rounded-lg shadow text-white bg-blue-600 hover:bg-blue-700">
-            <i class="fas fa-arrow-right mr-2"></i> Conferma Prestito
-        </button>
-    </form>
-</div>
-
-<script>
-    // ============================
-    // VALIDAZIONE BARCODE
-    // ============================
-
-    // CF = 16 caratteri alfanumerici
-    function isUserBarcode(code) {
-        return /^[A-Za-z0-9]{16}$/.test(code);
+    public function __construct()
+    {
+        $this->db = Database::getInstance()->getConnection();
     }
 
-    // Libro = EAN-13 = 13 cifre
-    function isBookBarcode(code) {
-        return /^\d{13}$/.test(code);
-    }
+    /**
+     * Crea un nuovo prestito
+     *
+     * @param int $idInventario ID della copia
+     * @param int $idUtente ID dell'utente
+     * @param int $durataGiorni Durata del prestito in giorni
+     * @return bool Successo dell'operazione
+     */
+    public function creaPrestitio(int $idInventario, int $idUtente, int $durataGiorni): bool
+    {
+        $dataScadenza = date('Y-m-d H:i:s', strtotime("+$durataGiorni days"));
 
-    document.addEventListener('DOMContentLoaded', () => {
+        $sql = "INSERT INTO Prestiti (id_inventario, id_utente, scadenza_prestito) 
+                VALUES (?, ?, ?)";
 
-        const userInput = document.getElementById('user_barcode');
-        const bookInput = document.getElementById('book_barcode');
-
-        // Focus iniziale
-        if (!userInput.value.trim()) {
-            userInput.focus();
-        } else {
-            bookInput.focus();
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$idInventario, $idUtente, $dataScadenza]);
+        } catch (\PDOException $e) {
+            error_log("Errore creazione prestito: " . $e->getMessage());
+            return false;
         }
+    }
 
-        // Controllo dopo scansione UTENTE
-        userInput.addEventListener('change', function () {
-            const code = this.value.trim();
+    /**
+     * Restituisce un prestito
+     *
+     * @param int $idPrestito ID del prestito
+     * @return bool Successo dell'operazione
+     */
+    public function restituisciPrestito(int $idPrestito): bool
+    {
+        $sql = "UPDATE Prestiti 
+                SET data_restituzione = NOW() 
+                WHERE id_prestito = ?";
 
-            if (!isUserBarcode(code)) {
-                alert("Errore: Il codice scansionato NON è un Codice Fiscale valido (16 caratteri alfanumerici).");
-                this.value = "";
-                this.focus();
-                return;
-            }
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$idPrestito]);
+        } catch (\PDOException $e) {
+            error_log("Errore restituzione prestito: " . $e->getMessage());
+            return false;
+        }
+    }
 
-            bookInput.focus();
-        });
+    /**
+     * Recupera prestiti attivi di un utente
+     *
+     * @param int $idUtente ID dell'utente
+     * @return array Elenco prestiti attivi
+     */
+    public function getPrestitiAttivi(int $idUtente): array
+    {
+        $sql = "SELECT p.id_prestito, p.data_prestito, p.scadenza_prestito, 
+                       l.titolo, i.id_inventario
+                FROM Prestiti p
+                JOIN Inventari i ON p.id_inventario = i.id_inventario
+                JOIN Libri l ON i.id_libro = l.id_libro
+                WHERE p.id_utente = ? AND p.data_restituzione IS NULL
+                ORDER BY p.scadenza_prestito ASC";
 
-        // Controllo dopo scansione LIBRO
-        bookInput.addEventListener('change', function () {
-            const userCode = userInput.value.trim();
-            const bookCode = this.value.trim();
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$idUtente]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Errore recupero prestiti attivi: " . $e->getMessage());
+            return [];
+        }
+    }
+}
 
-            // Codici identici
-            if (bookCode === userCode) {
-                alert("Errore: Il codice del libro NON può essere uguale al codice utente.");
-                this.value = "";
-                this.focus();
-                return;
-            }
-
-            // Barcode libro valido?
-            if (!isBookBarcode(bookCode)) {
-                alert("Errore: Il codice scansionato NON è un EAN-13 valido (13 cifre).");
-                this.value = "";
-                this.focus();
-                return;
-            }
-
-            // CF nel campo libro → errore
-            if (isUserBarcode(bookCode)) {
-                alert("Errore: Sembra che tu abbia scansionato un CODICE FISCALE nel campo del libro.");
-                this.value = "";
-                this.focus();
-                return;
-            }
-        });
-
-    });
-</script>
-
-</body>
-</html>
