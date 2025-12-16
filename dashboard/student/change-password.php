@@ -4,15 +4,17 @@
  * File: dashboard/student/change-password.php
  */
 
-require_once '../../src/config/database.php';
-require_once '../../src/config/session.php';
+require_once __DIR__ . '/../../src/config/database.php';
+require_once __DIR__ . '/../../src/config/session.php';
 
 Session::requireLogin();
 
 $db = getDB();
 $userId = Session::getUserId();
+
 $errors = [];
 $success = false;
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
@@ -23,12 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirmPassword = $_POST['confirm_password'] ?? '';
 
         // Verifica password attuale
-        $stmt = $db->prepare("SELECT password FROM Utenti WHERE id_utente = ?");
-        $stmt->execute([$userId]);
-        $hashedPassword = $stmt->fetchColumn();
+        try {
+            $stmt = $db->prepare("SELECT password FROM Utenti WHERE id_utente = ?");
+            $stmt->execute([$userId]);
+            $hashedPassword = $stmt->fetchColumn();
 
-        if (!password_verify($currentPassword, $hashedPassword)) {
-            $errors[] = "Password attuale non corretta";
+            if (!password_verify($currentPassword, $hashedPassword)) {
+                $errors[] = "Password attuale non corretta";
+            }
+        } catch (Exception $e) {
+            error_log("Errore verifica password: " . $e->getMessage());
+            $errors[] = "Errore durante la verifica della password";
         }
 
         // Validazione nuova password
@@ -58,11 +65,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtUpdate = $db->prepare("UPDATE Utenti SET password = ? WHERE id_utente = ?");
                 $stmtUpdate->execute([$newHash, $userId]);
 
-                // Log CORRETTO
-                $db->prepare("
-                    INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
-                    VALUES (?, 'MODIFICA_PASSWORD', 'Password cambiata', INET_ATON(?))
-                ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
+                // Log
+                try {
+                    $db->prepare("
+                        INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+                        VALUES (?, 'MODIFICA_PASSWORD', 'Password cambiata', INET_ATON(?))
+                    ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
+                } catch (Exception $e) {
+                    error_log("Errore log audit: " . $e->getMessage());
+                }
 
                 $success = true;
 
@@ -80,7 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cambia Password - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <link rel="icon" href="../../public/assets/img/itisrossi.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -110,6 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #333;
             margin-bottom: 10px;
             font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .subtitle {
@@ -211,7 +226,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             transition: all 0.3s ease;
         }
 
@@ -237,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="container">
     <div class="card">
-        <h1>🔒 Cambia Password</h1>
+        <h1><i class="fas fa-key"></i> Cambia Password</h1>
         <p class="subtitle">Aggiorna la tua password per mantenere l'account sicuro</p>
 
         <?php if ($success): ?>
@@ -245,7 +262,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ✅ Password cambiata con successo! Per sicurezza, effettua nuovamente il login.
             </div>
             <div class="actions">
-                <a href="../../public/logout.php" class="btn btn-primary">Vai al Login</a>
+                <a href="../../public/logout.php" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Vai al Login
+                </a>
             </div>
         <?php else: ?>
             <?php if (!empty($errors)): ?>
@@ -285,8 +304,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="actions">
-                    <button type="submit" class="btn btn-primary">💾 Cambia Password</button>
-                    <a href="profile.php" class="btn btn-secondary">← Annulla</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Cambia Password
+                    </button>
+                    <a href="profile.php" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Annulla
+                    </a>
                 </div>
             </form>
         <?php endif; ?>

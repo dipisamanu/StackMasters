@@ -4,58 +4,77 @@
  * File: dashboard/student/profile.php
  */
 
-require_once '../../src/config/database.php';
-require_once '../../src/config/session.php';
+require_once __DIR__ . '/../../src/config/database.php';
+require_once __DIR__ . '/../../src/config/session.php';
 
 Session::requireLogin();
 
 $db = getDB();
 $userId = Session::getUserId();
 
+$flash = Session::getFlash();
+
 // Recupera dati utente
-$stmt = $db->prepare("
-    SELECT 
-        u.*,
-        r.nome as ruolo_principale,
-        r.durata_prestito,
-        r.limite_prestiti,
-        COALESCE(rf.rfid, 'Non assegnato') as rfid_code
-    FROM Utenti u
-    LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente
-    LEFT JOIN Ruoli r ON ur.id_ruolo = r.id_ruolo
-    LEFT JOIN RFID rf ON u.id_rfid = rf.id_rfid
-    WHERE u.id_utente = ?
-    ORDER BY r.priorita ASC
-    LIMIT 1
-");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
+try {
+    $stmt = $db->prepare("
+        SELECT 
+            u.*,
+            r.nome as ruolo_principale,
+            r.durata_prestito,
+            r.limite_prestiti,
+            COALESCE(rf.rfid, 'Non assegnato') as rfid_code
+        FROM Utenti u
+        LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente AND ur.id_ruolo = (
+            SELECT id_ruolo FROM Utenti_Ruoli WHERE id_utente = u.id_utente ORDER BY id_ruolo LIMIT 1
+        )
+        LEFT JOIN Ruoli r ON ur.id_ruolo = r.id_ruolo
+        LEFT JOIN RFID rf ON u.id_rfid = rf.id_rfid
+        WHERE u.id_utente = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user) {
+        die("Errore: Utente non trovato");
+    }
+} catch (Exception $e) {
+    error_log("Errore recupero utente: " . $e->getMessage());
+    die("Errore nel caricamento del profilo");
+}
 
 // Statistiche prestiti
-$stmtStats = $db->prepare("
-    SELECT 
-        COUNT(*) as totale_prestiti,
-        SUM(CASE WHEN data_restituzione IS NULL THEN 1 ELSE 0 END) as prestiti_attivi,
-        SUM(CASE WHEN data_restituzione IS NOT NULL THEN 1 ELSE 0 END) as prestiti_completati
-    FROM Prestiti
-    WHERE id_utente = ?
-");
-$stmtStats->execute([$userId]);
-$stats = $stmtStats->fetch();
+try {
+    $stmtStats = $db->prepare("
+        SELECT 
+            COUNT(*) as totale_prestiti,
+            SUM(CASE WHEN data_restituzione IS NULL THEN 1 ELSE 0 END) as prestiti_attivi,
+            SUM(CASE WHEN data_restituzione IS NOT NULL THEN 1 ELSE 0 END) as prestiti_completati
+        FROM Prestiti
+        WHERE id_utente = ?
+    ");
+    $stmtStats->execute([$userId]);
+    $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    error_log("Errore statistiche: " . $e->getMessage());
+    $stats = ['totale_prestiti' => 0, 'prestiti_attivi' => 0, 'prestiti_completati' => 0];
+}
 
 // Badge ottenuti
-$stmtBadges = $db->prepare("
-    SELECT b.nome, b.descrizione, b.icona_url, ub.data_conseguimento
-    FROM Utenti_Badge ub
-    JOIN Badge b ON ub.id_badge = b.id_badge
-    WHERE ub.id_utente = ?
-    ORDER BY ub.data_conseguimento DESC
-");
-$stmtBadges->execute([$userId]);
-$badges = $stmtBadges->fetchAll();
-
-// Flash message
-$flash = Session::getFlash();
+try {
+    $stmtBadges = $db->prepare("
+        SELECT b.nome, b.descrizione, b.icona_url, ub.data_conseguimento
+        FROM Utenti_Badge ub
+        JOIN Badge b ON ub.id_badge = b.id_badge
+        WHERE ub.id_utente = ?
+        ORDER BY ub.data_conseguimento DESC
+    ");
+    $stmtBadges->execute([$userId]);
+    $badges = $stmtBadges->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    error_log("Errore badge: " . $e->getMessage());
+    $badges = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -63,7 +82,8 @@ $flash = Session::getFlash();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Il Mio Profilo - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <link rel="icon" href="../../public/assets/img/itisrossi.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -98,18 +118,38 @@ $flash = Session::getFlash();
             font-size: 28px;
         }
 
-        .logout-btn {
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-header {
             padding: 10px 20px;
-            background: #dc3545;
             color: white;
             border: none;
             border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .logout-btn:hover {
+        .btn-dashboard {
+            background: #bf2121;
+        }
+
+        .btn-dashboard:hover {
+            background: #931b1b;
+        }
+
+        .btn-logout {
+            background: #dc3545;
+        }
+
+        .btn-logout:hover {
             background: #c82333;
         }
 
@@ -141,6 +181,16 @@ $flash = Session::getFlash();
         @media (max-width: 768px) {
             .grid {
                 grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header-buttons {
+                width: 100%;
+                justify-content: center;
             }
         }
 
@@ -299,17 +349,101 @@ $flash = Session::getFlash();
         .full-width {
             grid-column: 1 / -1;
         }
+
+        .danger-zone {
+            border: 2px solid #dc3545;
+        }
+
+        .danger-zone p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .actions-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .actions-section h2 {
+            color: #bf2121;
+            margin-bottom: 20px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .action-primary {
+            background: #bf2121;
+        }
+
+        .action-primary:hover {
+            background: #931b1b;
+        }
+
+        .action-secondary {
+            background: #0066cc;
+        }
+
+        .action-secondary:hover {
+            background: #0052a3;
+        }
+
+        .action-danger {
+            background: #dc3545;
+        }
+
+        .action-danger:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>👤 Il Mio Profilo</h1>
-        <a href="../../public/logout.php" class="logout-btn">Logout</a>
+        <h1><i class="fas fa-user-circle"></i> Il Mio Profilo</h1>
+        <div class="header-buttons">
+            <a href="index.php" class="btn-header btn-dashboard">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="../../public/logout.php" class="btn-header btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
     </div>
 
     <?php if ($flash): ?>
-        <div class="alert alert-<?= $flash['type'] ?>">
+        <div class="alert alert-<?= htmlspecialchars($flash['type']) ?>">
             <?= htmlspecialchars($flash['message']) ?>
         </div>
     <?php endif; ?>
@@ -317,7 +451,7 @@ $flash = Session::getFlash();
     <div class="grid">
         <!-- Informazioni Personali -->
         <div class="card">
-            <h2>📋 Informazioni Personali</h2>
+            <h2><i class="fas fa-id-card"></i> Informazioni Personali</h2>
 
             <div class="info-row">
                 <div class="info-label">Nome:</div>
@@ -348,19 +482,15 @@ $flash = Session::getFlash();
                 <div class="info-label">Comune di Nascita:</div>
                 <div class="info-value"><?= htmlspecialchars($user['comune_nascita']) ?></div>
             </div>
-
-            <div class="actions">
-                <a href="edit-profile.php" class="btn btn-primary">✏️ Modifica Profilo</a>
-            </div>
         </div>
 
         <!-- Account -->
         <div class="card">
-            <h2>🔐 Account</h2>
+            <h2><i class="fas fa-cog"></i> Account</h2>
 
             <div class="info-row">
                 <div class="info-label">Ruolo:</div>
-                <div class="info-value"><?= htmlspecialchars($user['ruolo_principale']) ?></div>
+                <div class="info-value"><?= htmlspecialchars($user['ruolo_principale'] ?? 'Non assegnato') ?></div>
             </div>
 
             <div class="info-row">
@@ -384,17 +514,12 @@ $flash = Session::getFlash();
                 <div class="info-label">Membro dal:</div>
                 <div class="info-value"><?= date('d/m/Y', strtotime($user['data_creazione'])) ?></div>
             </div>
-
-            <div class="actions">
-                <a href="generate-card.php" class="btn btn-primary">🎫 Scarica Tessera</a>
-                <a href="export-data.php" class="btn btn-secondary">📦 Esporta Dati</a>
-            </div>
         </div>
     </div>
 
     <!-- Statistiche -->
     <div class="card">
-        <h2>📊 Le Mie Statistiche</h2>
+        <h2><i class="fas fa-chart-bar"></i> Le Mie Statistiche</h2>
 
         <div class="stat-grid">
             <div class="stat-box">
@@ -417,7 +542,7 @@ $flash = Session::getFlash();
     <!-- Badge -->
     <?php if (count($badges) > 0): ?>
         <div class="card">
-            <h2>🏆 I Miei Badge</h2>
+            <h2><i class="fas fa-trophy"></i> I Miei Badge</h2>
 
             <div class="badges-grid">
                 <?php foreach ($badges as $badge): ?>
@@ -434,16 +559,32 @@ $flash = Session::getFlash();
         </div>
     <?php endif; ?>
 
+    <!-- Azioni Profilo -->
+    <div class="actions-section">
+        <h2><i class="fas fa-sliders-h"></i> Gestione Profilo</h2>
+        <div class="actions-grid">
+            <a href="change-password.php" class="action-btn action-primary">
+                <i class="fas fa-key"></i> 🔐 Cambio Password
+            </a>
+            <a href="edit-profile.php" class="action-btn action-primary">
+                <i class="fas fa-edit"></i> ✏️ Modifica Profilo
+            </a>
+            <a href="generate-card.php" class="action-btn action-secondary">
+                <i class="fas fa-id-card"></i> 🎫 Scarica Tessera
+            </a>
+            <a href="export-data.php" class="action-btn action-secondary">
+                <i class="fas fa-download"></i> 📦 Esporta Dati
+            </a>
+        </div>
+    </div>
+
     <!-- Zona Pericolosa -->
-    <div class="card" style="border: 2px solid #dc3545;">
-        <h2>⚠️ Zona Pericolosa</h2>
-        <p style="color: #666; margin-bottom: 15px;">
-            Le seguenti azioni sono irreversibili. Procedi con cautela.
-        </p>
-        <div class="actions">
-            <a href="delete-account.php" class="btn btn-danger"
-               onclick="return confirm('Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile!')">
-                🗑️ Elimina Account
+    <div class="actions-section danger-zone">
+        <h2><i class="fas fa-exclamation-triangle"></i> Zona Pericolosa</h2>
+        <p>Le seguenti azioni sono irreversibili. Procedi con cautela.</p>
+        <div class="actions-grid">
+            <a href="delete-account.php" class="action-btn action-danger" onclick="return confirm('Sei sicuro? Questa azione è IRREVERSIBILE!')">
+                <i class="fas fa-trash"></i> 🗑️ Elimina Account
             </a>
         </div>
     </div>

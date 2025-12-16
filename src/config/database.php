@@ -1,6 +1,5 @@
 <?php
 
-namespace Ottaviodipisa\StackMasters\Config;
 
 // Configurazione database
 define('DB_HOST', '127.0.0.1');

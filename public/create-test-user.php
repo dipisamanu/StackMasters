@@ -18,8 +18,8 @@ $testEmail = 'studente@test.it';
 $testPassword = 'Password123!';
 $testNome = 'Test';
 $testCognome = 'Utente';
-$testCF = 'TSTSTU0001A01H50'; // Codice fiscale esattamente 16 caratteri
-$testDataNascita = '2006-01-01';
+$testCF = 'TSTSNT06C01H501Z'; // Codice fiscale esattamente 16 caratteri
+$testDataNascita = '2006-03-01';
 $testSesso = 'M';
 $testComune = 'Milano';
 
