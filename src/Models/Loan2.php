@@ -14,7 +14,11 @@ $scanned_user = $data['scanned_user'] ?? '';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
+<<<<<<< HEAD:src/Models/Loan.php
 <body class="p-4 sm:p-8 bg-gray-100">
+=======
+namespace Ottaviodipisa\StackMasters\models;
+>>>>>>> main:src/models/Loan.php
 
 <div class="max-w-2xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
     <h1 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">

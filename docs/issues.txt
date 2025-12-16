@@ -1,0 +1,323 @@
+EPIC 0 — Setup Iniziale e Infrastruttura (PRIORITÀ ALTA)
+Questa Epic pone le fondamenta tecnologiche del progetto. Deve essere completata prima di scrivere qualsiasi riga di codice funzionale per garantire che tutto il team lavori su un ambiente sincronizzato.
+0.1 - Setup Repository GitHub
+Creare il repository remoto, configurare il file .gitignore per escludere file temporanei e cartelle vendor, e impostare le regole di protezione dei branch (es. vietato push diretto su main). Invitare tutti i membri del team e assegnare i permessi.
+0.2 - Configurazione ambiente di sviluppo locale
+Assicurarsi che ogni membro del team abbia installato e configurato lo stesso stack (es. XAMPP o Docker) con versioni compatibili di PHP e MySQL. Verificare che il server locale risponda correttamente su tutte le macchine.
+0.3 - Progettazione Schema ER del Database
+Disegnare il diagramma Entità-Relazione dettagliato, definendo chiavi primarie, chiavi esterne e tipi di dati corretti per tutte le entità (Utenti, Libri, Prestiti, ecc.). Questo schema servirà da mappa per tutto lo sviluppo successivo.
+0.4 - Creazione file install.sql
+Scrivere lo script SQL DDL completo per la creazione del database e delle tabelle, includendo i vincoli di integrità referenziale. Lo script deve essere eseguibile più volte (idempotente o con DROP IF EXISTS) per resettare l'ambiente rapidamente.
+0.5 - Creazione classe Database.php
+Implementare una classe PHP che gestisca la connessione al database tramite PDO utilizzando il pattern Singleton. Questo garantisce un'unica istanza di connessione attiva per richiesta, ottimizzando le risorse.
+0.6 - Setup struttura cartelle progetto e librerie base
+Organizzare le cartelle del progetto secondo uno standard MVC (Model-View-Controller) o logico (es. assets, includes, api, views). Includere framework CSS base o librerie JS comuni (es. jQuery, Bootstrap) pronte all'uso.
+
+EPIC 1 — Registrazione e Gestione Utenti
+Questa Epic gestisce il ciclo di vita dell'utente, dalla registrazione sicura alla gestione del profilo, garantendo la qualità dei dati inseriti (specie il Codice Fiscale) e la conformità alle norme privacy.
+1.1 - Frontend: Form di registrazione con validazione
+Realizzare la pagina HTML di registrazione con tutti i campi anagrafici richiesti. Implementare validazione lato client (Javascript) per fornire feedback immediato su campi obbligatori o formati errati prima dell'invio al server.
+1.2 - Backend: Algoritmo calcolo Codice Fiscale
+Sviluppare una funzione PHP che calcoli il Codice Fiscale italiano partendo dai dati anagrafici. Include l'importazione e l'interrogazione di una tabella di supporto contenente i codici catastali di tutti i comuni italiani.
+1.3 - Backend: Validazione incrociata dati vs CF
+Implementare una logica di controllo backend che, se l'utente inserisce manualmente il CF, verifica che corrisponda matematicamente ai dati anagrafici inseriti. Previene errori di digitazione o dati falsi.
+1.4 - UX: Gestione errori e alert incongruenza
+Progettare messaggi di errore chiari e user-friendly che appaiano quando la validazione fallisce. L'utente deve capire esattamente quale campo correggere (es. "Il comune di nascita non corrisponde al Codice Fiscale inserito").
+1.5 - Backend: Integrazione PHPMailer per verifica
+Configurare la libreria PHPMailer per inviare email transazionali tramite SMTP. Creare la logica che genera un token univoco e invia un'email contenente il link di attivazione all'indirizzo specificato dall'utente.
+1.6 - Backend: Logica attivazione account
+Creare la pagina di atterraggio del link di verifica che controlla la validità del token nel database. Se valido, cambia lo stato dell'utente da "pending" ad "active" e permette il login.
+1.7 - Feature: Generazione PDF Tessera
+Implementare uno script (usando FPDF o TCPDF) che generi dinamicamente un file PDF scaricabile. Il PDF deve contenere i dati utente e un codice a barre (generato al volo) corrispondente al Codice Fiscale.
+1.8 - Backend: CRUD Modifica profilo utente
+Creare le interfacce e le query necessarie per permettere all'utente di aggiornare i propri dati (email, password, domicilio). Assicurarsi che i dati critici (come il CF) non siano modificabili liberamente dopo la registrazione.
+1.9 - Privacy: Export dati utente in JSON
+Sviluppare una funzionalità GDPR-compliant che estragga tutti i dati associati a un utente (anagrafica, storico prestiti, multe) e generi un file JSON scaricabile per la portabilità dei dati.
+1.10 - Privacy: Cancellazione account
+Implementare la procedura di "Diritto all'oblio". L'account deve essere disattivato o anonimizzato (soft delete) per mantenere la coerenza storica dei prestiti, rimuovendo però i dati identificativi personali.
+
+EPIC 2 — Sistema di Autenticazione e Ruoli
+Questa Epic definisce chi può accedere al sistema e cosa può fare. È cruciale per la sicurezza, proteggendo le aree amministrative e garantendo che gli utenti vedano solo i propri dati.
+2.1 - Backend: Login Controller e gestione Sessioni
+Sviluppare il controller che verifica le credenziali utente. In caso di successo, avvia una sessione PHP sicura memorizzando ID utente e ruolo, gestendo anche il timeout di inattività.
+2.2 - Security: Validazione robustezza password
+Implementare controlli (Regex) sia lato client che server per imporre password forti (minimo 8 caratteri, lettere maiuscole, numeri e simboli) durante la registrazione o il cambio password.
+2.3 - Security: Implementazione hashing password
+Utilizzare le funzioni native password_hash() (Bcrypt/Argon2) per salvare le password nel DB e password_verify() per il login. Garantire che le password non siano mai salvate in chiaro.
+2.4 - Security: Protezione Brute Force
+Creare un sistema che traccia i tentativi di login falliti per indirizzo IP. Dopo 5 errori consecutivi, bloccare temporaneamente l'accesso da quell'IP per prevenire attacchi di forza bruta.
+2.5 - Feature: Flow recupero password
+Implementare il flusso "Password dimenticata": invio email con token temporaneo, pagina di reset password sicura e aggiornamento del database con la nuova credenziale hashata.
+2.6 - Backend: Middleware gestione permessi
+Scrivere funzioni riutilizzabili (isAdmin(), isLibrarian()) da includere in testa alle pagine protette. Se l'utente non ha il ruolo richiesto, lo script deve interrompersi e reindirizzare all'errore.
+2.7 - Logic: Gestione gerarchia ruoli multipli
+Adattare la logica dei permessi per gestire utenti con più cappelli (es. un Docente che fa anche da Bibliotecario). Il sistema deve concedere la somma dei privilegi associati ai ruoli posseduti.
+2.8 - UX: Routing automatico post-login
+Implementare una logica di reindirizzamento intelligente dopo il login. Gli admin vanno alla dashboard gestionale, gli utenti normali alla home del catalogo o al proprio profilo.
+
+EPIC 3 — Catalogo e Gestione Libri
+Il cuore della biblioteca. Questa Epic permette di popolare il database dei libri (manualmente o via API) e di gestire la distinzione fondamentale tra il "titolo" astratto e le copie fisiche reali.
+3.1 - Backend: CRUD base inserimento Libro
+Creare le funzioni backend per inserire, leggere, modificare ed eliminare i metadati di un libro (Titolo, Autore, Editore, Anno). Gestire correttamente i caratteri speciali e l'encoding UTF-8.
+3.2 - Logic: Gestione entità "Copie" multiple
+Implementare la logica DB che collega un libro a N copie fisiche. Ogni copia deve avere il proprio ID univoco e stato, permettendo di gestire più esemplari dello stesso titolo.
+3.3 - Logic: Validazione checksum ISBN
+Scrivere una funzione algoritmica che verifichi la correttezza formale dei codici ISBN-10 e ISBN-13 inseriti, controllando la cifra di controllo finale per evitare errori di catalogazione.
+3.4 - API: Integrazione Google Books API
+Sviluppare uno script che accetta un ISBN, interroga l'API pubblica di Google Books e restituisce un oggetto JSON normalizzato con i dati del libro, pronto per popolare il form.
+3.5 - API: Integrazione Open Library API
+Implementare un meccanismo di fallback: se Google Books non trova il libro, il sistema deve interrogare automaticamente Open Library per tentare di recuperare i metadati mancanti.
+3.6 - Frontend: Form di catalogazione rapida
+ Creare un form intelligente dove, inserendo solo l'ISBN, una chiamata AJAX recupera i dati dalle API e riempie automaticamente tutti gli altri campi, velocizzando enormemente il lavoro del bibliotecario.
+3.7 - Feature: Generazione Barcode copie
+Integrare una libreria per generare immagini di codici a barre (es. Code-128) basati sull'ID univoco della copia. Questi codici serviranno per etichettare fisicamente i libri.
+3.8 - DB: Gestione stati fisici copia
+Definire e gestire nel database un campo ENUM per lo stato di conservazione (Nuovo, Buono, Usurato). L'interfaccia deve permettere al bibliotecario di aggiornare questo stato al rientro del libro.
+3.9 - Feature: Upload immagine copertina
+Gestire l'upload sicuro delle immagini di copertina (controllo estensione e dimensione), oppure salvare direttamente l'URL dell'immagine fornita dalle API esterne.
+3.10 - Frontend: Grid view catalogo pubblico
+Realizzare la pagina principale del catalogo con una griglia di "card". Ogni card mostra copertina e info essenziali. La griglia deve essere responsive e adattarsi a schermi mobile e desktop.
+3.11 - UX: Badge disponibilità
+Implementare la logica visiva che mostra un pallino colorato sulla card del libro: Verde (copie disponibili), Arancione (tutte in prestito), Rosso (non disponibile/perso).
+3.12 - Frontend: Pagina dettaglio libro
+Creare la vista singola del libro che mostra trama estesa, dettagli editoriali e recensioni. Deve includere la lista delle copie (se rilevante) o le opzioni di prenotazione.
+3.13 - Backend: Flag libri smarriti
+Aggiungere la possibilità di marcare un libro come "Fuori Catalogo" o "Smarrito" senza cancellarlo fisicamente dal DB, preservando così lo storico dei prestiti passati.
+3.14 - Dev: Script "Seeder" dati prova
+Scrivere uno script PHP che popola il database con 50 libri finti (ma realistici) e relative copie. Essenziale per testare impaginazione, ricerca e grafici senza dover inserire dati a mano.
+
+EPIC 4 — Ricerca, Filtri e Scoperta Contenuti
+Permette agli utenti di trovare ciò che cercano. Include motori di ricerca potenti, filtri avanzati e logiche per mostrare i libri più rilevanti o nuovi.
+4.1 - DB: Implementazione Ricerca Full-Text
+Configurare gli indici FULLTEXT su MySQL per i campi titolo e autore. Scrivere query performanti che permettano di trovare risultati anche con parole parziali o in ordine diverso.
+4.2 - Frontend: Autocomplete AJAX
+Implementare un listener JavaScript sulla barra di ricerca che, dopo la digitazione di 3 caratteri, interroga il server e mostra un menu a tendina con i suggerimenti in tempo reale.
+4.3 - Logic: Implementazione Fuzzy Search
+Integrare algoritmi (come Levenshtein o Soundex) nella logica di ricerca per gestire errori di battitura, trovando "Harry Potter" anche se l'utente scrive "Hary Poter".
+4.4 - UX: Messaggi "Forse cercavi..."
+Gestire il caso "zero risultati": se la ricerca esatta fallisce, il sistema deve proporre termini simili o libri popolari invece di mostrare una pagina vuota.
+4.5 - Backend: Query Builder dinamico
+Sviluppare una classe PHP capace di costruire query SQL complesse concatenando condizioni (AND/OR) basate sui filtri selezionati dall'utente nell'interfaccia di ricerca avanzata.
+4.6 - Frontend: UI Filtri laterali
+Disegnare la sidebar con checkbox per categorie e slider per gli anni. L'interfaccia deve aggiornare i risultati (o ricaricare la pagina con parametri GET) quando i filtri vengono applicati.
+4.7 - Logic: Sorting risultati
+Aggiungere un menu a tendina per ordinare i risultati della ricerca. Implementare le diverse query SQL per ordinamento per rilevanza, alfabetico, anno o popolarità.
+4.8 - Logic: Query sezione "Novità"
+Scrivere la query ottimizzata che estrae gli ultimi X libri inseriti a catalogo per mostrarli in un carosello o sezione dedicata della homepage.
+4.9 - Logic: Query "Più prestati"
+Implementare una query analitica che conta le occorrenze nella tabella prestiti nell'ultimo mese e restituisce i libri più popolari per la sezione "Top Charts".
+4.10 - Logic: Query "Correlati"
+Sviluppare la logica che, dato un libro visualizzato, ne trova altri simili basandosi sulla stessa categoria, stesso autore o stessi tag, da mostrare in fondo alla scheda libro.
+
+EPIC 5 — Gestione Prestiti
+La funzionalità operativa principale. Gestisce il movimento dei libri, le scadenze differenziate per utente e la validazione delle regole di business (es. limiti prestiti).
+5.1 - Frontend: Interfaccia Bibliotecario "Nuovo Prestito"
+Creare una dashboard operativa ottimizzata per l'uso veloce: focus automatico sui campi input, supporto per lettore barcode e visualizzazione rapida dei dati utente scansionato.
+5.2 - Logic: Check limiti prestiti per ruolo
+Implementare controlli backend prima di confermare un prestito: verificare il ruolo dell'utente e impedire l'operazione se ha già raggiunto il numero massimo di libri in carico (es. 3 per studenti).
+5.3 - Logic: Blocco preventivo per multe
+Aggiungere un controllo bloccante: se l'utente ha un debito (multe non pagate) superiore a 0 o flaggato come insolvente, il sistema deve impedire nuovi prestiti.
+5.4 - Logic: Check prenotazioni prioritarie
+Prima di prestare una copia, verificare se esiste una prenotazione attiva per quel titolo. Se sì, il prestito deve essere consentito solo all'utente che ha effettuato la prenotazione.
+5.5 - Logic: Calcolo scadenza dinamica
+Scrivere la funzione che calcola la data di restituzione prevista aggiungendo X giorni alla data odierna, dove X varia in base al ruolo dell'utente (14gg studenti, 30gg docenti).
+5.6 - DB: Transazione atomica prestito
+Incapsulare la creazione del record prestito e l'aggiornamento dello stato copia (da "Disponibile" a "In Prestito") in una transazione SQL per evitare disallineamenti dati in caso di errore.
+5.7 - Feature: Generazione PDF ricevuta
+Creare un template PDF per la ricevuta di prestito che include i titoli presi, le date di scadenza e un QR code riassuntivo, da stampare o inviare via mail.
+5.8 - Backend: Trigger email riepilogo
+Collegare all'evento "Prestito Confermato" l'invio automatico di un'email all'utente con il riepilogo dell'operazione e le scadenze, usando il sistema di notifiche.
+5.9 - Frontend: Interfaccia Restituzione
+Realizzare un form semplificato che richiede solo il barcode del libro. Il sistema deve identificare automaticamente il prestito aperto associato e procedere alla chiusura.
+5.10 - Logic: Calcolo ritardi restituzione
+Confrontare la data di restituzione effettiva con la data di scadenza prevista. Se la prima è successiva, calcolare il numero di giorni di ritardo e passarlo al modulo multe.
+5.11 - UX: Popup valutazione stato libro
+Al momento della restituzione, mostrare un modale al bibliotecario per confermare se il libro è in buone condizioni o danneggiato. In caso di danni, permettere l'inserimento di una nota o penale.
+5.12 - Feature: Tasto "Rinnova"
+Aggiungere nella dashboard personale dell'utente un pulsante per estendere il prestito. Il pulsante deve essere attivo solo se mancano pochi giorni alla scadenza.
+5.13 - Logic: Validazione rinnovo
+Implementare le regole per il rinnovo: consentito solo se il libro non è prenotato da altri, se non è già scaduto e se non è stato già rinnovato il numero massimo di volte.
+
+EPIC 6 — Sistema Prenotazioni e Code FIFO
+Gestisce le code d'attesa quando un libro non è disponibile. Assicura equità (First-In-First-Out) e automatizza il passaggio del libro da un utente all'altro.
+6.1 - Frontend: Tasto "Prenota" condizionale
+Modificare la scheda libro per mostrare il pulsante "Prenota" esclusivamente quando tutte le copie fisiche risultano "In Prestito" o "Riservate", nascondendolo se c'è disponibilità immediata.
+6.2 - DB: Tabella prenotazioni FIFO
+Creare la tabella prenotazioni che memorizza l'ordine temporale delle richieste. La logica di assegnazione deve rigorosamente rispettare l'ordine di inserimento (chi prima prenota, prima riceve).
+6.3 - Frontend: Visualizzazione posizione coda
+Mostrare all'utente, sia al momento della prenotazione che nel suo profilo, quante persone ci sono prima di lui in lista d'attesa per dare trasparenza sui tempi.
+6.4 - Logic: Algoritmo stima attesa
+Sviluppare un calcolo approssimativo del tempo di attesa basato sulla data di scadenza dei prestiti attivi per quel libro o sulla media storica di possesso.
+6.5 - Logic: Trigger assegnazione al rientro
+Modificare la logica di restituzione: quando una copia rientra, il sistema controlla se ci sono prenotazioni. Se sì, la copia non torna "Disponibile" ma viene assegnata al primo utente in coda.
+6.6 - Notification: Email disponibilità
+Automatizzare l'invio di una notifica urgente all'utente quando la sua prenotazione diventa disponibile per il ritiro, indicando chiaramente la scadenza della riserva.
+6.7 - Logic: Timer 48 ore riserva
+Gestire uno stato "Riservato" per la copia che dura 48 ore dal momento della notifica. Durante questo tempo, nessun altro (tranne il prenotante) può prendere in prestito quella copia.
+6.8 - Cron Job: Gestione scadenze prenotazioni
+Creare uno script pianificato che controlla le prenotazioni "Riservate" scadute. Se l'utente non ha ritirato, la prenotazione decade e la copia passa al successivo in lista o torna libera.
+6.9 - Logic: Limite prenotazioni utente
+Imporre un vincolo numerico (es. max 5 prenotazioni contemporanee) per evitare che un singolo utente blocchi troppi libri futuri.
+6.10 - Notification: Email reminder scadenza
+Inviare un promemoria automatico poche ore prima che la finestra di ritiro di 48 ore si chiuda, per ridurre i casi di mancato ritiro per dimenticanza.
+
+EPIC 7 — Integrazione Barcode e RFID
+Migliora l'esperienza d'uso e la velocità operativa integrando hardware esterno. Rende il sistema "fisico" e professionale.
+7.1 - JS: Listener globale input rapidi
+Scrivere uno script JavaScript in ascolto su tutta la pagina che rileva sequenze di tasti rapidissime (tipiche degli scanner B) per catturare l'input senza bisogno di cliccare su un campo specifico.
+7.2 - Logic: Regex distinzione codici Implementare espressioni regolari per capire automaticamente se il codice scansionato è un EAN-13 (Libro commerciale), un Code-128 interno (Copia specifica) o una tessera utente.
+7.3 - UX: Autofocus intelligente Configurare le pagine amministrative affinché il cursore ritorni sempre automaticamente nel campo di input principale dopo ogni operazione, permettendo scansioni a raffica.
+7.4 - JS: Gestione eventi "Enter" Intercettare il tasto "Invio" (che gli scanner inviano a fine lettura) per sottomettere automaticamente i form o passare al campo successivo senza intervento manuale su tastiera/mouse.
+7.5 - Hardware: Integrazione ID tag RFID (Opzionale/Simulato) Predisporre il database e i form per accettare UID alfa-numerici tipici dei tag NFC/RFID, permettendo l'uso futuro di questa tecnologia.
+7.6 - UI: Scansione batch Creare un'interfaccia dedicata dove i codici scansionati si accumulano in una lista temporanea, permettendo di processare la restituzione di 10 libri in un solo colpo.
+7.7 - Feature: Modalità Inventario Sviluppare una funzione "Check Inventario": scansionando i libri sugli scaffali, il sistema segna quali sono presenti e alla fine produce un report su quelli che risultano "Disponibili" a sistema ma mancano fisicamente.
+7.8 - UX: Feedback sonoro Implementare suoni distinti (es. un "Beep" acuto per OK, un "Buzzer" grave per Errore) via JavaScript per dare conferma uditiva al bibliotecario senza che debba guardare lo schermo.
+
+EPIC 8 — Sistema Notifiche Automatiche
+Mantiene gli utenti informati e riduce i ritardi. Un sistema proattivo che gestisce le comunicazioni via email e interfaccia web.
+8.1 - Backend: Template engine email Creare file HTML base per le email con segnaposto per i contenuti dinamici. Assicurare che il design sia coerente con il sito e leggibile su client desktop e mobile.
+8.2 - Cron Job: Preavviso scadenza Script giornaliero che individua i prestiti che scadranno tra 3 giorni e invia un'email cortese di promemoria ("Ricordati che devi restituire...").
+8.3 - Cron Job: Avviso prestito scaduto Script che rileva i prestiti scaduti ieri e invia subito una notifica di mancata restituzione, informando delle possibili conseguenze (blocco prestiti).
+8.4 - Logic: Notifica maturazione multa Automatizzare l'invio di una comunicazione quando scade il periodo di tolleranza e inizia ufficialmente il calcolo economico della multa giornaliera.
+8.5 - Logic: Escalation sollecito formale Configurare una notifica speciale, magari con testo più severo o PDF allegato, per i ritardi gravi (oltre 14 giorni) che richiedono attenzione immediata.
+8.6 - Logic: Trigger notifica prenotazione Collegare l'evento di "Copia Assegnata" (dall'Epic 6) al sistema di notifiche per avvisare istantaneamente l'utente che il libro che aspettava è pronto.
+8.7 - Frontend: Centro notifiche in-app Aggiungere un'icona campanella nell'header del sito che mostra un badge con il numero di messaggi non letti e un dropdown con le ultime notifiche di sistema.
+8.8 - DB: Preferenze notifiche Permettere agli utenti di configurare nelle impostazioni quali tipi di notifiche ricevere (es. "Voglio solo email per ritardi, non per consigli di lettura").
+8.9 - Logic: Fasce orarie "Quiet hours" Implementare un controllo sull'orario di invio delle email non urgenti (es. newsletter o consigli) per evitare di disturbare gli utenti di notte.
+8.10 - Compliance: Link Unsubscribe Inserire in tutte le email automatiche (eccetto quelle transazionali critiche) un link funzionante per disiscriversi o gestire le preferenze di notifica.
+
+EPIC 9 — Multe e Gestione Finanziaria
+Introduce la responsabilità economica. Automatizza il calcolo delle penalità per ritardo e gestisce i pagamenti e i danni ai materiali.
+9.1 - Cron Job: Calcolo multe notturno
+Sviluppare lo script che ogni notte scansiona i prestiti scaduti. Per ogni giorno di ritardo oltre la tolleranza, incrementa il campo "importo multa" associato all'utente.
+9.2 - Logic: Applicazione tolleranza
+Implementare la logica "Grace Period": se il ritardo è inferiore a 3 giorni, la multa resta a 0€. Appena scatta il 4° giorno, la multa viene calcolata retroattivamente o dal 4° giorno (secondo regole).
+9.3 - Middleware: Blocco debitori
+Integrare nel sistema di prestiti un controllo che verifica il saldo multe dell'utente. Se > 0, inibire l'azione di nuovo prestito e mostrare un avviso "Regolarizzare posizione".
+9.4 - Frontend: Gestione pagamenti Admin
+Creare un pannello per il bibliotecario dove cercare un utente, visualizzare il dettaglio delle multe pendenti e registrare un pagamento parziale o totale.
+9.5 - Feature: Generazione Ricevuta PDF
+Al momento della registrazione del pagamento, generare automaticamente un documento PDF che funge da quietanza liberatoria per l'utente.
+9.6 - Logic: Costi extra manuali
+Permettere al bibliotecario di aggiungere addebiti "una tantum" al conto dell'utente, specificando una causale (es. "Danneggiamento copertina", "Smarrimento volume").
+9.7 - Logic: Sconto Top User
+Implementare un algoritmo che verifica lo storico dell'utente. Se rispetta certi criteri di affidabilità (tanti prestiti, zero ritardi), applicare automaticamente uno sconto sulle multe future.
+9.8 - Analytics: Report incassi
+Creare una vista che aggrega i pagamenti ricevuti per periodo, utile alla segreteria della scuola per la contabilità interna.
+9.9 - Analytics: Report sofferenze
+Generare una lista degli utenti con i debiti più alti o più vecchi, per permettere azioni di recupero mirate da parte dell'amministrazione.
+
+EPIC 10 — Analytics e Reportistica
+Fornisce insight sull'uso della biblioteca. Trasforma i dati grezzi in grafici e report utili per prendere decisioni sugli acquisti e monitorare l'andamento.
+10.1 - API: Endpoint dati Dashboard
+Creare un'API interna leggera che restituisce in formato JSON i numeri chiave (KPI) aggiornati: totale prestiti attivi, nuovi utenti mese, libri più letti.
+10.2 - Frontend: Grafico Lineare Prestiti
+Integrare la libreria Chart.js per visualizzare l'andamento dei prestiti negli ultimi 12 mesi. Il grafico deve essere interattivo (tooltip al passaggio del mouse).
+10.3 - Frontend: Grafico a Torta Categorie
+Visualizzare la distribuzione dei prestiti per genere letterario, aiutando a capire quali sezioni della biblioteca sono più frequentate.
+10.4 - DB: Query Top 10
+Scrivere query SQL ottimizzate per estrarre le classifiche: i 10 libri più prestati di sempre e i 10 utenti più attivi ("Top Readers").
+10.5 - Frontend: Widget scadenze odierne
+Creare una tabella nella dashboard admin che elenca i prestiti che scadono oggi o domani, permettendo al bibliotecario di avere il polso della situazione giornaliera.
+10.6 - Feature: Export dati CSV/Excel
+Aggiungere pulsanti "Esporta" sopra le tabelle principali (Prestiti, Utenti) per scaricare i dati grezzi in formato elaborabile con fogli di calcolo.
+10.7 - Backend: Generazione Report Mensile
+Sviluppare uno script complesso che aggrega statistiche, grafici e tabelle del mese appena trascorso e compila un documento PDF multipagina professionale.
+10.8 - System: Archiviazione Report
+Salvare i PDF generati in una cartella protetta del server e mantenere un indice nel database per permettere il download storico dei report passati.
+10.9 - Frontend: Statistiche personali
+Mostrare all'utente, nel suo profilo, i propri dati di lettura: numero libri letti quest'anno, pagine totali (stimati), generi preferiti.
+10.10 - Dev: Dati finti per grafici
+Popolare il database con uno storico di prestiti retroattivo (es. prestiti fatti 3 mesi fa) per garantire che i grafici non siano vuoti durante la demo del progetto.
+
+EPIC 11 — Gamification, Badge e Obiettivi
+Rende la lettura divertente e coinvolgente. Usa meccaniche di gioco per incentivare gli studenti a leggere di più e meglio.
+11.1 - DB: Tabelle Gamification
+Progettare e creare le tabelle per gestire i badge disponibili, le condizioni di sblocco e l'associazione utenti-badge e utenti-obiettivi.
+11.2 - Logic: Trigger Badge Genere
+Implementare un listener che controlla le categorie dei libri letti. Al raggiungimento di soglie (es. 5 Gialli), sblocca il badge tematico corrispondente.
+11.3 - Logic: Badge "Flash" velocità
+Premiare gli utenti che restituiscono i libri in anticipo rispetto alla scadenza per X volte consecutive, incentivando la rotazione veloce dei titoli.
+11.4 - Logic: Badge "Costanza"
+Monitorare l'attività mensile: se l'utente prende in prestito almeno un libro ogni mese per 6 mesi, assegnare un riconoscimento per la continuità.
+11.5 - Frontend: Progress bar obiettivi
+Visualizzare graficamente quanto manca al raggiungimento di un obiettivo annuale (es. "Leggi 20 libri"). La barra deve riempirsi dinamicamente.
+11.6 - Logic: Calcolo diversità lettura
+Analizzare i generi letti dall'utente e assegnare un punteggio o badge "Eclettico" a chi legge categorie molto diverse tra loro.
+11.7 - Frontend: Leaderboard
+Creare una pagina con le classifiche degli utenti più attivi. Includere filtri (mensile/annuale) e anonimizzare i nomi se richiesto dalla privacy.
+11.8 - Cron Job: Calcolo vincitori mese
+Uno script che a fine mese "congela" la classifica, assegna i premi virtuali ai vincitori e resetta i contatori per la competizione del mese successivo.
+11.9 - Admin: Creazione badge eventi
+Creare un'interfaccia admin per aggiungere badge temporanei legati a periodi specifici (es. "Halloween Reading Challenge") senza toccare il codice.
+11.10 - Frontend: Animazione sblocco
+Implementare un effetto visivo (popup, coriandoli CSS) che appare al primo login dell'utente dopo aver sbloccato un nuovo badge, per massimizzare la gratificazione.
+
+EPIC 12 — Sistema di Raccomandazione
+Aiuta gli utenti a scoprire nuovi libri. Utilizza algoritmi intelligenti per suggerire letture basate sui gusti personali e sui comportamenti della comunità.
+12.1 - DB: Analisi storico prestiti
+Creare Viste SQL o query aggregate che preparino i dati necessari agli algoritmi, normalizzando la matrice utenti-libri-gradimento.
+12.2 - Logic: Algoritmo Utenti Simili
+Implementare il "Collaborative Filtering": trovare utenti che hanno letto gli stessi libri dell'utente corrente e usare i loro altri prestiti come suggerimenti.
+12.3 - Math: Jaccard Similarity
+Scrivere la funzione matematica in PHP che calcola l'indice di somiglianza tra due set di libri letti, restituendo un valore da 0 a 1 per ogni coppia di utenti.
+12.4 - Logic: Calcolo scoring libri
+Attribuire un punteggio a ogni libro candidato per la raccomandazione, pesando fattori come la somiglianza tra utenti e la popolarità globale del libro.
+12.5 - Frontend: Widget "Scelti per te"
+Mostrare in homepage i 5-6 libri con il punteggio di raccomandazione più alto, escludendo ovviamente quelli già letti dall'utente.
+12.6 - UX: Spiegazione suggerimento
+Aggiungere una piccola dicitura sotto ogni libro consigliato (es. "Perché hai letto Harry Potter" o "Simile ai tuoi gusti Fantasy") per aumentare la fiducia nel sistema.
+12.7 - Frontend: Feedback raccomandazioni
+Permettere all'utente di scartare un consiglio o mettere "Mi piace", usando questo input per affinare le raccomandazioni future (Reinforcement Learning base).
+12.8 - Logic: Strategia Fallback
+Gestire il "Cold Start problem": per i nuovi utenti senza storico, mostrare classifiche generiche o libri curati editorialmente invece di lasciare il widget vuoto.
+12.9 - Logic: "Chi ha letto questo..."
+Implementare l'algoritmo Item-to-Item che, nella scheda di un libro, suggerisce altri volumi che compaiono spesso insieme nello storico prestiti di altri utenti.
+12.10 - Logic: Algoritmo Trending
+Creare un calcolo di "tendenza" che valorizza i prestiti recenti molto più di quelli vecchi, per intercettare i libri che stanno diventando virali nella scuola ora.
+
+EPIC 13 — Sicurezza e Protezione Dati
+Mette in sicurezza l'applicazione contro attacchi comuni e garantisce il rispetto delle leggi sui dati personali. È trasversale a tutto il progetto.
+13.1 - Security: Sanitization Helper
+Creare una funzione wrapper globale per la pulizia degli input (htmlentities, strip_tags) da usare obbligatoriamente su ogni dato ricevuto via POST/GET prima di usarlo.
+13.2 - Security: Prepared Statements obbligatori
+Revisionare tutto il codice di accesso al database per garantire che non esistano query concatenate con stringhe, ma solo Prepared Statements per prevenire SQL Injection.
+13.3 - Security: Content Security Policy (CSP)
+Configurare gli header HTTP per limitare le fonti da cui il browser può caricare script e stili, mitigando i rischi di attacchi XSS (Cross-Site Scripting).
+13.4 - Security: Token CSRF
+Implementare un sistema che genera un token segreto per ogni sessione e lo richiede in ogni form di modifica dati, impedendo che siti malevoli eseguano azioni a nome dell'utente.
+13.5 - Security: Rate Limiting
+Introdurre un middleware che limita il numero di richieste API per secondo da un singolo IP, proteggendo il server da sovraccarico e scraping aggressivo.
+13.6 - Security: Honeypot anti-bot
+Inserire nei form pubblici (registrazione, contatti) campi invisibili agli umani ma visibili ai bot; se compilati, la richiesta viene scartata silenziosamente.
+13.7 - Log: Logging eventi sicurezza
+Creare un file di log protetto dove vengono registrati tentativi di accesso falliti, errori critici e modifiche sospette, includendo IP e Timestamp per analisi forense.
+13.8 - Config: Forzare HTTPS
+Configurare il file .htaccess (o equivalente webserver) per reindirizzare automaticamente tutto il traffico HTTP su HTTPS, garantendo la crittografia dei dati in transito.
+13.9 - Security: Headers anti-clickjacking
+Impostare l'header X-Frame-Options: DENY o SAMEORIGIN per impedire che il sito venga caricato dentro un iframe invisibile su siti terzi per rubare click.
+13.10 - Legal: Conformità GDPR
+Inserire banner per il consenso ai cookie (se usati), link alla Privacy Policy nel footer e assicurarsi che i checkbox per il marketing non siano pre-flaggati.
+
+EPIC 14 — Deployment, Backup e Manutenzione
+Riguarda la messa in produzione e la vita del software dopo il lancio. Assicura che il sistema sia installabile, resiliente e documentato.
+14.1 - DevOps: Script installazione guidata
+Creare uno script install.php che guida l'amministratore nella prima configurazione: verifica requisiti, crea il DB, chiede credenziali admin e genera il file di configurazione.
+14.2 - DevOps: Check requisiti server
+Implementare una pagina di diagnostica che controlla la versione PHP, le estensioni necessarie (PDO, GD, CURL) e i permessi di scrittura sulle cartelle upload/log.
+14.3 - Cron Job: Dump database giornaliero
+Configurare un task automatico che esegue mysqldump ogni notte, comprime il file SQL e lo salva in una cartella sicura con data e ora nel nome.
+14.4 - DevOps: Script rotazione backup
+Scrivere uno script che cancella automaticamente i backup più vecchi di 7 o 30 giorni per evitare di saturare lo spazio disco del server.
+14.5 - Test: Procedura Disaster Recovery
+Documentare e testare manualmente i passaggi necessari per ripristinare il sito da zero usando i file di backup in caso di crash totale del server.
+14.6 - DevOps: Configurazione Log Rotation
+Assicurarsi che i file di log dell'applicazione non crescano all'infinito, implementando una rotazione o un archivio automatico quando raggiungono una certa dimensione.
+14.7 - Monitoring: Setup Uptime Monitor
+Configurare un servizio esterno gratuito (es. UptimeRobot) che pinga il sito ogni 5 minuti e invia un'email al team se il server non risponde.
+14.8 - Backend: Error Handler critici
+Sviluppare un gestore di errori globale che, in caso di "Fatal Error" o eccezione non gestita, mostra una pagina di cortesia all'utente e invia i dettagli tecnici via mail all'admin.
+14.9 - Architettura: Predisposizione modulare
+Organizzare il codice in modo che nuove funzionalità future possano essere aggiunte come "plugin" o moduli senza dover riscrivere il core dell'applicazione.
+14.10 - Doc: Consolidamento Manuali
+Fase finale di raccolta: unire tutte le documentazioni prodotte nelle varie Epic in un unico Manuale Tecnico (per i dev futuri) e un Manuale Utente (per i bibliotecari), esportandoli in PDF definitivi.

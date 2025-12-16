@@ -1,17 +1,17 @@
 <?php
 
-namespace Ottaviodipisa\StackMasters\Models;
+namespace Ottaviodipisa\StackMasters\Controllers;
 
-use Ottaviodipisa\StackMasters\Core\Database;
+use Ottaviodipisa\StackMasters\Config\Database;
 use Ottaviodipisa\StackMasters\Utils\EmailService;
 use PDO;
 use Exception;
 
 /**
- * PrestitoManager - Gestisce tutta la logica di business per prestiti e restituzioni
+ * LoanController2 - Gestisce tutta la logica di business per prestiti e restituzioni
  * Adattato allo schema database biblioteca_db
  */
-class LoanController
+class LoanController2
 {
     private PDO $db;
     private EmailService $emailService;
@@ -25,8 +25,13 @@ class LoanController
 
     public function __construct()
     {
-        $this->db = Database::getInstance()->getConnection();
-        $this->emailService = new EmailService();
+        try {
+            $this->db = Database::getInstance()->getConnection();
+            $this->emailService = new EmailService();
+        } catch (Exception $e) {
+            // Gestione degli errori
+            throw new Exception("Errore durante l'inizializzazione del controller: " . $e->getMessage());
+        }
     }
 
     /**
@@ -93,16 +98,16 @@ class LoanController
             // 12. INVIO EMAIL CONFERMA (fuori dalla transazione)
             $this->inviaEmailConferma($utente, $copia, $dataScadenza, $prestitoId);
 
-            // 13. RITORNA RISULTATO
             return [
-                'prestito_id' => $prestitoId,
-                'data_scadenza' => $dataScadenza,
-                'messaggio' => $messaggioPrenotazione ?: 'Prestito registrato con successo',
-                'utente' => $utente['nome'] . ' ' . $utente['cognome'],
-                'libro' => $copia['titolo'],
-                'autori' => $copia['autori']
+                'status' => 'success',
+                'message' => "Prestito registrato con successo",
+                'details' => [
+                    'utente' => $utente,
+                    'copia' => $copia,
+                    'data_scadenza' => $dataScadenza,
+                    'messaggio_prenotazione' => $messaggioPrenotazione
+                ]
             ];
-
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
@@ -692,3 +697,4 @@ class LoanController
         // TODO: Implementare con EmailService
     }
 }
+
