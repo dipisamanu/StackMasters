@@ -1,9 +1,9 @@
 <?php
 
-namespace Ottaviodipisa\StackMasters\Controllers;
+namespace Ottaviodipisa\StackMasters\controllers;
 
 use Ottaviodipisa\StackMasters\Core\Controller; // Assumendo che il tuo Base Controller sia qui
-use Ottaviodipisa\StackMasters\Models\PrestitoManager;
+use Ottaviodipisa\StackMasters\models\PrestitoManager;
 
 /**
  * Gestisce tutte le operazioni relative al Prestito e alla Restituzione
