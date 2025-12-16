@@ -2,13 +2,12 @@
 
 namespace Ottaviodipisa\StackMasters\Controllers;
 
-use Ottaviodipisa\StackMasters\Core\Controller;
 use Ottaviodipisa\StackMasters\Models\UserModel;
 
 /**
  * UserController - Gestisce le operazioni relative al profilo utente
  */
-class UserController extends Controller
+class UserController
 {
     private UserModel $userModel;
 
@@ -52,29 +51,22 @@ class UserController extends Controller
             $prestiti_attivi = $this->userModel->getActiveLoans($userId);
 
             // Prepara dati per la vista
-            $data = [
-                'utente' => $utente,
-                'ruoli' => $ruoli,
-                'prestiti_attivi' => $prestiti_attivi,
-                'active_section' => $activeSection,
-                'message' => '',
-                'message_type' => ''
-            ];
+            $active_section = $activeSection;
+            $message = '';
+            $message_type = '';
 
-            $this->view('admin/profile', $data);
+            include __DIR__ . '/../Views/admin/profile.php';
 
         } catch (\Exception $e) {
             // Gestione errori
-            $data = [
-                'utente' => [],
-                'ruoli' => [],
-                'prestiti_attivi' => [],
-                'active_section' => $activeSection,
-                'message' => 'Errore nel caricamento dei dati: ' . $e->getMessage(),
-                'message_type' => 'error'
-            ];
+            $utente = [];
+            $ruoli = [];
+            $prestiti_attivi = [];
+            $active_section = $activeSection;
+            $message = 'Errore nel caricamento dei dati: ' . $e->getMessage();
+            $message_type = 'error';
 
-            $this->view('admin/profile', $data);
+            include __DIR__ . '/../Views/admin/profile.php';
         }
     }
 
@@ -119,5 +111,88 @@ class UserController extends Controller
             header('Location: /utente/profilo');
             exit;
         }
+    }
+
+    /**
+     * Mostra la pagina di login
+     */
+    public function showLogin()
+    {
+        // Se l'utente è già loggato, redirect alla dashboard
+        if (isset($_SESSION['user_id'])) {
+            header('Location: /utente/profilo');
+            exit;
+        }
+
+        $error = $_SESSION['login_error'] ?? null;
+
+        // Pulisce il messaggio di errore dalla sessione
+        unset($_SESSION['login_error']);
+
+        include __DIR__ . '/../Views/auth/login.php';
+    }
+
+    /**
+     * Gestisce il processo di login
+     */
+    public function login()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /login');
+            exit;
+        }
+
+        // Recupera i dati dal form
+        $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+        $password = $_POST['password'] ?? '';
+
+        // Validazione base
+        if (empty($email) || empty($password)) {
+            $_SESSION['login_error'] = 'Email e password sono obbligatorie';
+            header('Location: /login');
+            exit;
+        }
+
+        try {
+            // Verifica le credenziali
+            $user = $this->userModel->verifyLogin($email, $password);
+
+            if ($user) {
+                // Login riuscito - salva i dati in sessione
+                $_SESSION['user_id'] = $user['id_utente'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['nome'] = $user['nome'];
+                $_SESSION['cognome'] = $user['cognome'];
+                $_SESSION['email'] = $user['email'];
+
+                // Redirect alla dashboard
+                header('Location: /utente/profilo');
+                exit;
+            } else {
+                // Credenziali errate
+                $_SESSION['login_error'] = 'Email o password non corretti';
+                header('Location: /login');
+                exit;
+            }
+
+        } catch (\Exception $e) {
+            $_SESSION['login_error'] = 'Errore durante il login: ' . $e->getMessage();
+            header('Location: /login');
+            exit;
+        }
+    }
+
+    /**
+     * Gestisce il logout
+     */
+    public function logout()
+    {
+        // Distrugge la sessione
+        session_unset();
+        session_destroy();
+
+        // Redirect alla pagina di login
+        header('Location: /login');
+        exit;
     }
 }

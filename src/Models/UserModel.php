@@ -84,7 +84,7 @@ class UserModel
                 FROM Utenti_Ruoli ur
                 JOIN Ruoli r ON ur.id_ruolo = r.id_ruolo
                 WHERE ur.id_utente = :userId
-                ORDER BY r.priorita ASC";
+                ORDER BY r.priorita";
 
         try {
             $stmt = $this->db->prepare($sql);
@@ -122,7 +122,7 @@ class UserModel
                 WHERE p.id_utente = :userId
                 AND p.data_restituzione IS NULL
                 GROUP BY p.id_prestito, p.data_prestito, p.scadenza_prestito, l.titolo, l.copertina_url
-                ORDER BY p.scadenza_prestito ASC";
+                ORDER BY p.scadenza_prestito";
 
         try {
             $stmt = $this->db->prepare($sql);
@@ -145,7 +145,7 @@ class UserModel
      */
     public function updateUserProfile(int $userId, array $data): bool
     {
-        $sql = "UPDATE Utenti SET ";
+        // Costruisce dinamicamente solo i campi da aggiornare e crea la query completa alla fine
         $fields = [];
         $params = [];
 
@@ -176,8 +176,7 @@ class UserModel
             return false;
         }
 
-        $sql .= implode(', ', $fields);
-        $sql .= " WHERE id_utente = :userId";
+        $sql = 'UPDATE Utenti SET ' . implode(', ', $fields) . ' WHERE id_utente = :userId';
         $params[':userId'] = $userId;
 
         try {
@@ -292,6 +291,50 @@ class UserModel
 
         } catch (PDOException $e) {
             throw new \Exception("Errore nel recupero delle multe: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Verifica le credenziali di login
+     *
+     * @param string $email Email dell'utente
+     * @param string $password Password in chiaro
+     * @return array|false Dati utente se login riuscito, false altrimenti
+     */
+    public function verifyLogin(string $email, string $password): array|false
+    {
+        $sql = "SELECT
+                    id_utente,
+                    username,
+                    nome,
+                    cognome,
+                    email,
+                    password
+                FROM Utenti
+                WHERE email = :email";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+            $stmt->execute();
+
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$user) {
+                return false;
+            }
+
+            // Verifica la password
+            if (password_verify($password, $user['password'])) {
+                // Rimuove la password dalla risposta
+                unset($user['password']);
+                return $user;
+            }
+
+            return false;
+
+        } catch (PDOException $e) {
+            throw new \Exception("Errore durante il login: " . $e->getMessage());
         }
     }
 }
