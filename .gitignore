@@ -7,8 +7,9 @@
 # IMPORTANTISSIMO: Mai caricare le password del DB su GitHub!
 # Epic 14.1 menziona un file di configurazione generato
 config.php
-database.php
 .env
+database.php
+db_connection.php
 
 # --- File di Sistema e IDE ---
 # File generati dal Mac o Windows
@@ -19,7 +20,7 @@ Thumbs.db
 .idea/
 
 # --- Upload e File Generati dall'Utente ---
-# Epic 3.9: Upload immagini copertina
+# [cite_start]Epic 3.9: Upload immagini copertina [cite: 177]
 # Non vogliamo le immagini di test degli sviluppatori nel repository
 /uploads/
 /assets/uploads/
