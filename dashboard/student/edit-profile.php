@@ -1,10 +1,4 @@
 <?php
-/**
- * Modifica Profilo Utente
- * File: dashboard/student/edit-profile.php
- */
-
-session_start();
 
 require_once '../../src/config/database.php';
 require_once '../../src/config/session.php';
@@ -95,10 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     error_log("Errore log audit: " . $e->getMessage());
                 }
 
-                $_SESSION['flash'] = [
-                        'type' => 'success',
-                        'message' => 'Profilo aggiornato con successo!'
-                ];
+                Session::setFlash('success', 'Profilo aggiornato con successo!');
                 header('Location: profile.php');
                 exit;
 
@@ -382,7 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Dati Modificabili -->
             <div class="form-section">
-                <h2>🔧 Contatti e Residenza</h2>
+                <h2>📧 Contatti e Residenza</h2>
 
                 <div class="form-group">
                     <label for="email">Email *</label>
