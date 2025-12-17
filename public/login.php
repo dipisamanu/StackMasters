@@ -2,6 +2,8 @@
 /**
  * Pagina Login
  * File: public/login.php
+ *
+ * EPIC 2.5 - Feature: Flow recupero password
  */
 
 session_start();
@@ -16,9 +18,12 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
 
 // Gestione messaggi
 $login_error = $_SESSION['login_error'] ?? '';
-if (isset($_SESSION['login_error'])) {
-    unset($_SESSION['login_error']);
-}
+$login_success = $_SESSION['login_success'] ?? '';
+$login_warning = $_SESSION['login_warning'] ?? '';
+
+if (isset($_SESSION['login_error'])) unset($_SESSION['login_error']);
+if (isset($_SESSION['login_success'])) unset($_SESSION['login_success']);
+if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -75,6 +80,7 @@ if (isset($_SESSION['login_error'])) {
             margin-bottom: 20px;
             font-size: 14px;
             animation: slideIn 0.3s ease;
+            border: 1px solid;
         }
 
         @keyframes slideIn {
@@ -91,19 +97,19 @@ if (isset($_SESSION['login_error'])) {
         .alert-success {
             background: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
+            border-color: #c3e6cb;
         }
 
-        .alert-error {
+        .alert-danger {
             background: #f8d7da;
             color: #721c24;
-            border: 1px solid #f5c6cb;
+            border-color: #f5c6cb;
         }
 
         .alert-warning {
             background: #fff3cd;
             color: #856404;
-            border: 1px solid #ffeaa7;
+            border-color: #ffeaa7;
         }
 
         .form-group {
@@ -177,6 +183,7 @@ if (isset($_SESSION['login_error'])) {
         .remember-forgot a {
             color: #bf2121;
             text-decoration: none;
+            font-weight: 600;
         }
 
         .remember-forgot a:hover {
@@ -252,9 +259,21 @@ if (isset($_SESSION['login_error'])) {
         <p>Sistema Gestionale</p>
     </div>
 
+    <?php if (!empty($login_success)): ?>
+        <div class="alert alert-success">
+            ✅ <?= htmlspecialchars($login_success) ?>
+        </div>
+    <?php endif; ?>
+
     <?php if (!empty($login_error)): ?>
         <div class="alert alert-danger">
             ⚠️ <?= htmlspecialchars($login_error) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($login_warning)): ?>
+        <div class="alert alert-warning">
+            ⚠️ <?= htmlspecialchars($login_warning) ?>
         </div>
     <?php endif; ?>
 
