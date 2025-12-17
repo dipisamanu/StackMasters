@@ -36,7 +36,7 @@ if (isset($_SESSION['login_error'])) {
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #9f3232 0%, #b57070 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;

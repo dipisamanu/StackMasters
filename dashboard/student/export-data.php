@@ -1,10 +1,4 @@
 <?php
-/**
- * Export Dati Utente in JSON (GDPR Compliance)
- * File: dashboard/student/export-data.php
- */
-
-session_start();
 
 require_once '../../src/config/database.php';
 require_once '../../src/config/session.php';
