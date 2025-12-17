@@ -1,8 +1,4 @@
 <?php
-/**
- * Verifica Email dopo Registrazione
- * File: public/verify-email.php
- */
 
 require_once '../src/config/database.php';
 require_once '../src/config/session.php';
