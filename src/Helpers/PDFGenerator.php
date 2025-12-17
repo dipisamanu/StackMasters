@@ -1,11 +1,35 @@
 <?php
 require_once __DIR__ . '/tcpdf/tcpdf.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
-$host = 'localhost';
-$db   = 'biblioteca_db';
-$user = 'root';
-$pass = '';
-$charset = 'utf8mb4';
+use Dotenv\Dotenv;
+
+// Carica .env dalla root del progetto
+$projectRoot = dirname(__DIR__, 2);
+if (file_exists($projectRoot . '/.env')) {
+    try {
+        Dotenv::createImmutable($projectRoot)->load();
+    } catch (\Throwable $e) {
+        throw new \Exception("Errore caricamento .env: " . $e->getMessage());
+    }
+}
+
+// Leggi credenziali dal .env (senza fallback - obbligatorio)
+if (empty($_ENV['DB_HOST'])) {
+    throw new \Exception("Variabile DB_HOST non definita in .env");
+}
+if (empty($_ENV['DB_DATABASE'])) {
+    throw new \Exception("Variabile DB_DATABASE non definita in .env");
+}
+if (empty($_ENV['DB_USERNAME'])) {
+    throw new \Exception("Variabile DB_USERNAME non definita in .env");
+}
+
+$host = $_ENV['DB_HOST'];
+$db   = $_ENV['DB_DATABASE'];
+$user = $_ENV['DB_USERNAME'];
+$pass = $_ENV['DB_PASSWORD'] ?? '';
+$charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [
@@ -81,3 +105,4 @@ $pdf->write2DBarcode($qr_data, 'QRCODE,H', '', '', 50, 50, null, 'N');
 
 // Output PDF
 $pdf->Output('ricevuta_prestiti.pdf', 'I');
+
