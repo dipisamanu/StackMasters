@@ -27,7 +27,7 @@ if (isset($_SESSION['flash'])) {
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: rgba(202, 201, 201, 0.97);
+            background: linear-gradient(135deg, #9f3232 0%, #b57070 100%);
             margin: 0;
             padding: 0;
             display: flex;
