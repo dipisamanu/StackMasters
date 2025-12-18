@@ -2,7 +2,7 @@ DROP DATABASE IF EXISTS biblioteca_db;
 CREATE DATABASE biblioteca_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE biblioteca_db;
 
-CREATE TABLE Autori
+CREATE TABLE autori
 (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(100) NOT NULL,
@@ -10,21 +10,21 @@ CREATE TABLE Autori
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Lingue
+CREATE TABLE lingue
 (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(60) NOT NULL,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Generi
+CREATE TABLE generi
 (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(60) NOT NULL,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Ruoli
+CREATE TABLE ruoli
 (
     id_ruolo             INT AUTO_INCREMENT PRIMARY KEY,
     priorita             TINYINT UNSIGNED NOT NULL UNIQUE COMMENT '0=Admin, 1=Bibliotecario, 2=Docente, 3=Studente',
@@ -34,7 +34,7 @@ CREATE TABLE Ruoli
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Badge
+CREATE TABLE badge
 (
     id_badge    INT AUTO_INCREMENT PRIMARY KEY,
     nome        VARCHAR(50) UNIQUE NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE Badge
     icona_url   TEXT
 );
 
-CREATE TABLE RFID
+CREATE TABLE rfid
 (
     id_rfid              INT AUTO_INCREMENT PRIMARY KEY,
     rfid                 VARCHAR(128) UNIQUE      NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE RFID
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Libri
+CREATE TABLE libri
 (
     id_libro             INT AUTO_INCREMENT PRIMARY KEY,
     titolo               VARCHAR(100) NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE Libri
     FOREIGN KEY (lingua_originale_id) REFERENCES Lingue (id)
 );
 
-CREATE TABLE Utenti
+CREATE TABLE utenti
 (
     id_utente               INT AUTO_INCREMENT PRIMARY KEY,
     cf                      CHAR(16) UNIQUE    NOT NULL,
@@ -96,7 +96,7 @@ CREATE TABLE Utenti
     FOREIGN KEY (id_rfid) REFERENCES RFID (id_rfid) ON DELETE SET NULL
 );
 
-CREATE TABLE Libri_Autori
+CREATE TABLE libri_autori
 (
     id_autore            INT,
     id_libro             INT,
@@ -106,7 +106,7 @@ CREATE TABLE Libri_Autori
     FOREIGN KEY (id_libro) REFERENCES Libri (id_libro) ON DELETE CASCADE
 );
 
-CREATE TABLE Libri_Generi
+CREATE TABLE libri_generi
 (
     id_genere            INT,
     id_libro             INT,
@@ -116,7 +116,7 @@ CREATE TABLE Libri_Generi
     FOREIGN KEY (id_libro) REFERENCES Libri (id_libro) ON DELETE CASCADE
 );
 
-CREATE TABLE Utenti_Ruoli
+CREATE TABLE utenti_ruoli
 (
     id_utente           INT,
     id_ruolo            INT,
@@ -127,7 +127,7 @@ CREATE TABLE Utenti_Ruoli
     FOREIGN KEY (id_ruolo) REFERENCES Ruoli (id_ruolo)
 );
 
-CREATE TABLE Utenti_Badge
+CREATE TABLE utenti_badge
 (
     id_utente          INT,
     id_badge           INT,
@@ -137,7 +137,7 @@ CREATE TABLE Utenti_Badge
     FOREIGN KEY (id_badge) REFERENCES Badge (id_badge) ON DELETE CASCADE
 );
 
-CREATE TABLE Inventari
+CREATE TABLE inventari
 (
     id_inventario        INT AUTO_INCREMENT PRIMARY KEY,
     id_libro             INT NOT NULL,
@@ -150,7 +150,7 @@ CREATE TABLE Inventari
     FOREIGN KEY (id_rfid) REFERENCES RFID (id_rfid)
 );
 
-CREATE TABLE Prestiti
+CREATE TABLE prestiti
 (
     id_prestito          INT AUTO_INCREMENT PRIMARY KEY,
     id_inventario        INT       NOT NULL,
@@ -163,7 +163,7 @@ CREATE TABLE Prestiti
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente)
 );
 
-CREATE TABLE Prenotazioni
+CREATE TABLE prenotazioni
 (
     id_prenotazione      INT AUTO_INCREMENT PRIMARY KEY,
     id_utente            INT       NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE Prenotazioni
     FOREIGN KEY (copia_libro) REFERENCES Inventari (id_inventario)
 );
 
-CREATE TABLE Multe
+CREATE TABLE multe
 (
     id_multa             INT AUTO_INCREMENT PRIMARY KEY,
     id_utente            INT                       NOT NULL,
@@ -192,7 +192,7 @@ CREATE TABLE Multe
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente)
 );
 
-CREATE TABLE Recensioni
+CREATE TABLE recensioni
 (
     id_recensione  INT AUTO_INCREMENT PRIMARY KEY,
     id_libro       INT NOT NULL,
@@ -205,7 +205,7 @@ CREATE TABLE Recensioni
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente)
 );
 
-CREATE TABLE Logs_Audit
+CREATE TABLE logs_audit
 (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     id_utente  INT                                                                                                     NULL,
@@ -220,7 +220,7 @@ CREATE TABLE Logs_Audit
 -- AGGIUNTA TABELLA STORICO NOTIFICHE --
 
 -- TABELLA NOTIFICHE_WEB
-CREATE TABLE Notifiche_Web
+CREATE TABLE notifiche_web
 (
     id_notifica      INT AUTO_INCREMENT PRIMARY KEY,
     id_utente        INT NOT NULL,
@@ -240,141 +240,3 @@ CREATE TABLE Notifiche_Web
 
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente) ON DELETE CASCADE
 );
-
--- ===========================
--- DATI DI ESEMPIO (SEED DATA)
--- ===========================
-
--- LINGUE
-INSERT INTO Lingue (nome) VALUES
-('Italiano'),
-('Inglese'),
-('Francese'),
-('Spagnolo'),
-('Tedesco');
-
--- GENERI
-INSERT INTO Generi (nome) VALUES
-('Narrativa'),
-('Fantascienza'),
-('Saggio'),
-('Storico'),
-('Fantasy'),
-('Giallo'),
-('Poesia'),
-('Autobiografia');
-
--- AUTORI
-INSERT INTO Autori (nome, cognome) VALUES
-('George', 'Orwell'),
-('Italo', 'Calvino'),
-('J.R.R.', 'Tolkien'),
-('Umberto', 'Eco'),
-('Isaac', 'Asimov'),
-('Donna', 'Tartt'),
-('Stephen', 'King');
-
--- RUOLI
-INSERT INTO Ruoli (priorita, nome, durata_prestito, limite_prestiti) VALUES
-(0, 'Admin', NULL, NULL),
-(1, 'Bibliotecario', 30, 10),
-(2, 'Docente', 30, 5),
-(3, 'Studente', 15, 3);
-
--- BADGE
-INSERT INTO Badge (nome, descrizione, icona_url) VALUES
-('Lettore Accanito', 'Oltre 10 libri letti', 'reader.png'),
-('Puntuale', 'Mai in ritardo', 'time.png'),
-('Maratoneta', '5 libri in un mese', 'marathon.png'),
-('Collezionista', '50 libri letti', 'collection.png');
-
--- RFID
-INSERT INTO RFID (rfid, tipo) VALUES
-('RFID-UTENTE-001', 'UTENTE'),
-('RFID-UTENTE-002', 'UTENTE'),
-('RFID-UTENTE-003', 'UTENTE'),
-('RFID-LIBRO-001', 'LIBRO'),
-('RFID-LIBRO-002', 'LIBRO'),
-('RFID-LIBRO-003', 'LIBRO'),
-('RFID-LIBRO-004', 'LIBRO'),
-('RFID-LIBRO-005', 'LIBRO');
-
--- UTENTI
-INSERT INTO Utenti (cf, nome, cognome, email, password, data_nascita, sesso, comune_nascita, email_verificata, consenso_privacy, id_rfid) VALUES
-('RSSMRA01A01H501Z', 'Mario', 'Rossi', 'mario@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2004-03-12', 'M', 'Milano', 1, 1, 1),
-('VRDLGI02B22F205X', 'Giulia', 'Verdi', 'giulia@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2003-07-25', 'F', 'Roma', 1, 1, 2),
-('BNCLNZ03C10L219W', 'Lorenzo', 'Bianchi', 'lorenzo@demo.it', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/LLa', '2005-11-03', 'M', 'Torino', 1, 1, 3);
-
--- UTENTI ↔ RUOLI
-INSERT INTO Utenti_Ruoli (id_utente, id_ruolo, prestiti_tot, streak_restituzioni) VALUES
-(1, 3, 5, 2),
-(2, 3, 8, 4),
-(3, 1, 12, 6);
-
--- UTENTI ↔ BADGE
-INSERT INTO Utenti_Badge (id_utente, id_badge) VALUES
-(1, 1),
-(2, 1),
-(2, 2),
-(3, 3);
-
--- LIBRI
-INSERT INTO Libri (titolo, descrizione, isbn, anno_uscita, editore, lingua_id, lingua_originale_id, numero_pagine, valore_copertina, rating) VALUES
-('1984', 'Distopia politica affascinante', '9780451524935', '1949-06-08', 'Secker & Warburg', 2, 2, 328, 12.90, 4.8),
-('Il barone rampante', 'Romanzo filosofico di grande profondità', '9788807900123', '1957-01-01', 'Einaudi', 1, 1, 256, 10.50, 4.6),
-('Il Signore degli Anelli', 'Fantasy epico masterpiece', '9780261102385', '1954-01-01', 'Allen & Unwin', 2, 2, 1200, 35.00, 4.9),
-('Il nome della rosa', 'Giallo storico complesso', '9788845245660', '1980-01-01', 'Bompiani', 1, 1, 512, 14.90, 4.7),
-('Fondazione', 'Fantascienza classica affascinante', '9788804618236', '1951-06-01', 'Gnome Press', 2, 2, 255, 11.90, 4.5),
-('La piccola principessa', 'Narrativa classica per ragazzi', '9788804618243', '1905-01-01', 'Scribner', 2, 2, 400, 9.99, 4.4),
-('Orgoglio e pregiudizio', 'Romanzo classico senza tempo', '9780141187761', '1813-01-28', 'Murray', 2, 2, 432, 8.99, 4.8);
-
--- LIBRI ↔ AUTORI
-INSERT INTO Libri_Autori (id_autore, id_libro) VALUES
-(1, 1),
-(2, 2),
-(3, 3),
-(4, 4),
-(5, 5);
-
--- LIBRI ↔ GENERI
-INSERT INTO Libri_Generi (id_genere, id_libro) VALUES
-(2, 1),
-(1, 2),
-(5, 3),
-(6, 4),
-(2, 5),
-(1, 6),
-(1, 7);
-
--- INVENTARI
-INSERT INTO Inventari (id_libro, id_rfid, collocazione, stato) VALUES
-(1, 4, 'A1-01', 'DISPONIBILE'),
-(1, 5, 'A1-02', 'IN_PRESTITO'),
-(2, 6, 'B2-01', 'IN_PRESTITO'),
-(3, 7, 'C3-05', 'DISPONIBILE'),
-(4, 8, 'D4-02', 'DISPONIBILE'),
-(5, NULL, 'E5-03', 'DISPONIBILE'),
-(6, NULL, 'F6-01', 'DISPONIBILE');
-
--- PRESTITI
-INSERT INTO Prestiti (id_inventario, id_utente, data_prestito, scadenza_prestito) VALUES
-(2, 1, NOW(), DATE_ADD(NOW(), INTERVAL 15 DAY)),
-(3, 2, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY));
-
--- PRENOTAZIONI
-INSERT INTO Prenotazioni (id_utente, id_libro, copia_libro, data_richiesta, data_disponibilita, scadenza_ritiro) VALUES
-(1, 3, NULL, NOW(), NULL, NULL),
-(2, 4, NULL, NOW(), NULL, NULL),
-(3, 1, NULL, NOW(), NULL, NULL);
-
--- RECENSIONI
-INSERT INTO Recensioni (id_libro, id_utente, voto, descrizione) VALUES
-(1, 1, 5, 'Capolavoro di distopia, ancora attuale'),
-(3, 2, 5, 'Epico e indimenticabile'),
-(5, 3, 4, 'Ottima fantascienza classica');
-
--- LOG AUDIT
-INSERT INTO Logs_Audit (id_utente, azione, dettagli) VALUES
-(1, 'LOGIN_SUCCESS', 'Login effettuato'),
-(2, 'CREAZIONE_UTENTE', 'Nuovo utente registrato'),
-(3, 'LOGIN_SUCCESS', 'Login effettuato');
