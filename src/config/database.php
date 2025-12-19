@@ -28,10 +28,9 @@ if (empty($_ENV['DB_USERNAME'])) {
 $dbHost = $_ENV['DB_HOST'];
 $dbName = $_ENV['DB_DATABASE'];
 $dbUser = $_ENV['DB_USERNAME'];
-$dbPass = $_ENV['DB_PASSWORD'];
-$dbCharset = $_ENV['DB_CHARSET'];
+$dbPass = $_ENV['DB_PASSWORD'] ?? '';
+$dbCharset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
 
-// Classe Database con PDO
 class Database {
     private static $instance = null;
     private $connection;
@@ -42,6 +41,7 @@ class Database {
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES " . $GLOBALS['dbCharset'] // CRITICO per UTF-8
         ];
 
         try {
@@ -69,7 +69,45 @@ class Database {
     public function getConnection() {
         return $this->connection;
     }
+
+    public function beginTransaction() {
+        return $this->connection->beginTransaction();
+    }
+
+    public function commit() {
+        return $this->connection->commit();
+    }
+
+    public function rollback() {
+        return $this->connection->rollback();
+    }
+
+    public function inTransaction() {
+        return $this->connection->inTransaction();
+    }
+
+    public function lastInsertId() {
+        return $this->connection->lastInsertId();
+    }
+
+    public function query($sql, $params = []) {
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute($params);
+        return $stmt;
+    }
+
+
+    public function fetchOne($sql, $params = []) {
+        $stmt = $this->query($sql, $params);
+        return $stmt->fetch();
+    }
+
+    public function fetchAll($sql, $params = []) {
+        $stmt = $this->query($sql, $params);
+        return $stmt->fetchAll();
+    }
 }
+
 function getDB() {
     return Database::getInstance()->getConnection();
 }
