@@ -7,7 +7,7 @@
  */
 class LoanController
 {
-    private PDO $db;
+    public PDO $db;
 
     // Configurazione multe
     private const GIORNI_TOLLERANZA = 3;
