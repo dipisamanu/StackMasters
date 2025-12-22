@@ -2,7 +2,7 @@
 
 // Riferimento al Singleton per la connessione al DB
 
-class PrestitoManager
+class Loan
 {
     private \PDO $db;
     // Costanti di configurazione
