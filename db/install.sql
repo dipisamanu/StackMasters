@@ -2,7 +2,7 @@ DROP DATABASE IF EXISTS biblioteca_db;
 CREATE DATABASE biblioteca_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE biblioteca_db;
 
-CREATE TABLE Autori
+CREATE TABLE autori
 (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(100) NOT NULL,
@@ -10,21 +10,21 @@ CREATE TABLE Autori
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Lingue
+CREATE TABLE lingue
 (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(60) NOT NULL,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Generi
+CREATE TABLE generi
 (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(60) NOT NULL,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Ruoli
+CREATE TABLE ruoli
 (
     id_ruolo             INT AUTO_INCREMENT PRIMARY KEY,
     priorita             TINYINT UNSIGNED NOT NULL UNIQUE COMMENT '0=Admin, 1=Bibliotecario, 2=Docente, 3=Studente',
@@ -34,7 +34,7 @@ CREATE TABLE Ruoli
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Badge
+CREATE TABLE badge
 (
     id_badge    INT AUTO_INCREMENT PRIMARY KEY,
     nome        VARCHAR(50) UNIQUE NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE Badge
     icona_url   TEXT
 );
 
-CREATE TABLE RFID
+CREATE TABLE rfid
 (
     id_rfid              INT AUTO_INCREMENT PRIMARY KEY,
     rfid                 VARCHAR(128) UNIQUE      NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE RFID
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Libri
+CREATE TABLE libri
 (
     id_libro             INT AUTO_INCREMENT PRIMARY KEY,
     titolo               VARCHAR(100) NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE Libri
     FOREIGN KEY (lingua_originale_id) REFERENCES Lingue (id)
 );
 
-CREATE TABLE Utenti
+CREATE TABLE utenti
 (
     id_utente               INT AUTO_INCREMENT PRIMARY KEY,
     cf                      VARCHAR(20) UNIQUE    NOT NULL, -- Modificato da CHAR(16) a VARCHAR(20)
@@ -96,7 +96,7 @@ CREATE TABLE Utenti
     FOREIGN KEY (id_rfid) REFERENCES RFID (id_rfid) ON DELETE SET NULL
 );
 
-CREATE TABLE Libri_Autori
+CREATE TABLE libri_autori
 (
     id_autore            INT,
     id_libro             INT,
@@ -106,7 +106,7 @@ CREATE TABLE Libri_Autori
     FOREIGN KEY (id_libro) REFERENCES Libri (id_libro) ON DELETE CASCADE
 );
 
-CREATE TABLE Libri_Generi
+CREATE TABLE libri_generi
 (
     id_genere            INT,
     id_libro             INT,
@@ -116,7 +116,7 @@ CREATE TABLE Libri_Generi
     FOREIGN KEY (id_libro) REFERENCES Libri (id_libro) ON DELETE CASCADE
 );
 
-CREATE TABLE Utenti_Ruoli
+CREATE TABLE utenti_ruoli
 (
     id_utente           INT,
     id_ruolo            INT,
@@ -127,7 +127,7 @@ CREATE TABLE Utenti_Ruoli
     FOREIGN KEY (id_ruolo) REFERENCES Ruoli (id_ruolo)
 );
 
-CREATE TABLE Utenti_Badge
+CREATE TABLE utenti_badge
 (
     id_utente          INT,
     id_badge           INT,
@@ -137,7 +137,7 @@ CREATE TABLE Utenti_Badge
     FOREIGN KEY (id_badge) REFERENCES Badge (id_badge) ON DELETE CASCADE
 );
 
-CREATE TABLE Inventari
+CREATE TABLE inventari
 (
     id_inventario        INT AUTO_INCREMENT PRIMARY KEY,
     id_libro             INT NOT NULL,
@@ -150,7 +150,7 @@ CREATE TABLE Inventari
     FOREIGN KEY (id_rfid) REFERENCES RFID (id_rfid)
 );
 
-CREATE TABLE Prestiti
+CREATE TABLE prestiti
 (
     id_prestito          INT AUTO_INCREMENT PRIMARY KEY,
     id_inventario        INT       NOT NULL,
@@ -163,7 +163,7 @@ CREATE TABLE Prestiti
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente)
 );
 
-CREATE TABLE Prenotazioni
+CREATE TABLE prenotazioni
 (
     id_prenotazione      INT AUTO_INCREMENT PRIMARY KEY,
     id_utente            INT       NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE Prenotazioni
     FOREIGN KEY (copia_libro) REFERENCES Inventari (id_inventario)
 );
 
-CREATE TABLE Multe
+CREATE TABLE multe
 (
     id_multa             INT AUTO_INCREMENT PRIMARY KEY,
     id_utente            INT                       NOT NULL,
@@ -192,7 +192,7 @@ CREATE TABLE Multe
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente)
 );
 
-CREATE TABLE Recensioni
+CREATE TABLE recensioni
 (
     id_recensione  INT AUTO_INCREMENT PRIMARY KEY,
     id_libro       INT NOT NULL,
@@ -205,7 +205,7 @@ CREATE TABLE Recensioni
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente)
 );
 
-CREATE TABLE Logs_Audit
+CREATE TABLE logs_audit
 (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     id_utente  INT                                                                                                     NULL,
@@ -220,7 +220,7 @@ CREATE TABLE Logs_Audit
 -- AGGIUNTA TABELLA STORICO NOTIFICHE --
 
 -- TABELLA NOTIFICHE_WEB
-CREATE TABLE Notifiche_Web
+CREATE TABLE notifiche_web
 (
     id_notifica      INT AUTO_INCREMENT PRIMARY KEY,
     id_utente        INT NOT NULL,
