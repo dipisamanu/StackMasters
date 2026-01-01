@@ -8,6 +8,14 @@ use Ottaviodipisa\StackMasters\Services\LoanService;
 class LoanController
 {
     private LoanService $service;
+    public PDO $db;
+
+    // Configurazione multe
+    private const GIORNI_TOLLERANZA = 3;
+    private const IMPORTO_MULTA_GIORNALIERA = 0.50;
+
+    // Configurazione prenotazioni
+    private const ORE_RISERVA_PRENOTAZIONE = 48;
 
     public function __construct()
     {

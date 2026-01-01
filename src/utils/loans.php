@@ -56,7 +56,7 @@ $scanned_user = $data['scanned_user'] ?? '';
     <!-- FORM -->
     <form id="loan-form"
           method="POST"
-          action="/bibliotecario/registra-prestito"
+          action="/dashboard/librarian/registra-prestito.php"
           class="space-y-6">
 
         <!-- CODICE FISCALE -->
