@@ -17,12 +17,6 @@ class LibroManager {
         $this->conn = $this->db->connect();
     }
 
-    /**
-     * CREATE - Inserisce un nuovo libro nel database
-     *
-     * @param array $data Dati del libro
-     * @return array ['success' => bool, 'id' => int|null, 'message' => string]
-     */
     public function createLibro($data) {
         // Validazione ISBN
         if (!empty($data['isbn'])) {
