@@ -5,8 +5,9 @@ let lastKeyTime = 0;
 
 // Regex
 const CF_REGEX = /^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/i;
-// Codice libro: EAN13 o codice interno alfanumerico minimo 3 caratteri
-const BOOK_REGEX = /^(\d{13}|[A-Z0-9]{3,})$/i;
+const BOOK_REGEX = /^(?:\d{13}|(?=.*[A-Z])[A-Z0-9]{3,})$/i;
+
+
 
 // Funzioni helper per icona
 function setBarcodeIcon(el, state) {
@@ -87,9 +88,8 @@ function checkFieldLogic(el, type) {
     if (type === "user") {
         if (!CF_REGEX.test(val)) {
             forceError("❌ Codice Fiscale NON valido");
-            el.value = "";
-            el.focus();
             setBarcodeIcon(el, "error");
+            el.focus();
             return;
         }
         setBarcodeIcon(el, "ok");
@@ -98,10 +98,9 @@ function checkFieldLogic(el, type) {
 
     if (type === "book") {
         if (!BOOK_REGEX.test(val)) {
-            forceError("❌ Codice Libro NON valido");
-            el.value = "";
-            el.focus();
+            forceError("❌ Codice Libro NON valido\nDeve essere:\n- EAN13 (13 cifre)\n- oppure codice alfanumerico con almeno una lettera");
             setBarcodeIcon(el, "error");
+            el.focus();
             return;
         }
         setBarcodeIcon(el, "ok");
