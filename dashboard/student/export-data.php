@@ -1,8 +1,4 @@
 <?php
-/**
- * Export Dati Utente in JSON (GDPR Compliance)
- * File: dashboard/student/export-data.php
- */
 
 require_once '../../src/config/database.php';
 require_once '../../src/config/session.php';
@@ -36,7 +32,7 @@ try {
         WHERE id_utente = ?
     ");
     $stmtUser->execute([$userId]);
-    $userData = $stmtUser->fetch();
+    $userData = $stmtUser->fetch(PDO::FETCH_ASSOC);
 
     // 2. Ruoli
     $stmtRuoli = $db->prepare("
@@ -46,7 +42,7 @@ try {
         WHERE ur.id_utente = ?
     ");
     $stmtRuoli->execute([$userId]);
-    $ruoli = $stmtRuoli->fetchAll();
+    $ruoli = $stmtRuoli->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Badge
     $stmtBadge = $db->prepare("
@@ -56,7 +52,7 @@ try {
         WHERE ub.id_utente = ?
     ");
     $stmtBadge->execute([$userId]);
-    $badges = $stmtBadge->fetchAll();
+    $badges = $stmtBadge->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Prestiti
     $stmtPrestiti = $db->prepare("
@@ -75,7 +71,7 @@ try {
         ORDER BY p.data_prestito DESC
     ");
     $stmtPrestiti->execute([$userId]);
-    $prestiti = $stmtPrestiti->fetchAll();
+    $prestiti = $stmtPrestiti->fetchAll(PDO::FETCH_ASSOC);
 
     // 5. Prenotazioni
     $stmtPrenotazioni = $db->prepare("
@@ -92,7 +88,7 @@ try {
         ORDER BY pr.data_richiesta DESC
     ");
     $stmtPrenotazioni->execute([$userId]);
-    $prenotazioni = $stmtPrenotazioni->fetchAll();
+    $prenotazioni = $stmtPrenotazioni->fetchAll(PDO::FETCH_ASSOC);
 
     // 6. Multe
     $stmtMulte = $db->prepare("
@@ -109,7 +105,7 @@ try {
         ORDER BY data_creazione DESC
     ");
     $stmtMulte->execute([$userId]);
-    $multe = $stmtMulte->fetchAll();
+    $multe = $stmtMulte->fetchAll(PDO::FETCH_ASSOC);
 
     // 7. Recensioni
     $stmtRecensioni = $db->prepare("
@@ -125,7 +121,7 @@ try {
         ORDER BY r.data_creazione DESC
     ");
     $stmtRecensioni->execute([$userId]);
-    $recensioni = $stmtRecensioni->fetchAll();
+    $recensioni = $stmtRecensioni->fetchAll(PDO::FETCH_ASSOC);
 
     // 8. Log Audit (ultimi 100)
     $stmtLogs = $db->prepare("
@@ -140,7 +136,7 @@ try {
         LIMIT 100
     ");
     $stmtLogs->execute([$userId]);
-    $logs = $stmtLogs->fetchAll();
+    $logs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
 
     // 9. Notifiche
     $stmtNotifiche = $db->prepare("
@@ -158,7 +154,7 @@ try {
         LIMIT 50
     ");
     $stmtNotifiche->execute([$userId]);
-    $notifiche = $stmtNotifiche->fetchAll();
+    $notifiche = $stmtNotifiche->fetchAll(PDO::FETCH_ASSOC);
 
     // Costruisci array completo
     $exportData = [
@@ -199,11 +195,15 @@ try {
             ]
     ];
 
-    // Log export (AZIONE CORRETTA)
-    $db->prepare("
-        INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
-        VALUES (?, 'EXPORT_DATI', 'Export dati personali richiesto', INET_ATON(?))
-    ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
+    // Log export
+    try {
+        $db->prepare("
+            INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+            VALUES (?, 'EXPORT_DATI', 'Export dati personali richiesto', INET_ATON(?))
+        ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
+    } catch (Exception $e) {
+        error_log("Errore log audit: " . $e->getMessage());
+    }
 
     // Output JSON con headers corretti
     header('Content-Type: application/json; charset=utf-8');
@@ -224,6 +224,7 @@ try {
     <head>
         <meta charset="UTF-8">
         <title>Errore Export</title>
+        <link rel="icon" href="../../public/assets/img/itisrossi.png">
         <style>
             body {
                 font-family: Arial, sans-serif;

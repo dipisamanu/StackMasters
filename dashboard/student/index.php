@@ -4,17 +4,13 @@
  * File: dashboard/student/index.php
  */
 
-require_once '../../src/config/database.php';
-require_once '../../src/config/session.php';
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-// Richiedi login
+require_once __DIR__ . '/../../src/config/database.php';
+require_once __DIR__ . '/../../src/config/session.php';
+
 Session::requireLogin();
-
-// Consenti solo ai ruoli appropriati
-if (!Session::hasRole('Studente') && !Session::hasRole('Docente') && !Session::isAdmin()) {
-    http_response_code(403);
-    die("Accesso negato. Questa pagina è riservata agli studenti.");
-}
 
 $db = getDB();
 $userId = Session::getUserId();
@@ -27,14 +23,13 @@ try {
         SELECT 
             p.id_prestito,
             l.titolo,
-            l.autore,
             p.data_prestito,
             p.scadenza_prestito,
             p.data_restituzione,
-            p.rinnovi,
             DATEDIFF(p.scadenza_prestito, CURDATE()) as giorni_rimanenti
         FROM Prestiti p
-        INNER JOIN Libri l ON p.id_libro = l.id_libro
+        INNER JOIN Inventari i ON p.id_inventario = i.id_inventario
+        INNER JOIN Libri l ON i.id_libro = l.id_libro
         WHERE p.id_utente = ? AND p.data_restituzione IS NULL
         ORDER BY p.scadenza_prestito ASC
     ");
@@ -47,8 +42,8 @@ try {
 
 // Calcola statistiche
 $totalePrestiti = count($prestiti);
-$pratitiScaduti = count(array_filter($prestiti, fn($p) => $p['giorni_rimanenti'] < 0));
-$pratitiInScadenza = count(array_filter($prestiti, fn($p) => $p['giorni_rimanenti'] >= 0 && $p['giorni_rimanenti'] <= 3));
+$pratitiScaduti = count(array_filter($prestiti, function($p) { return $p['giorni_rimanenti'] < 0; }));
+$pratitiInScadenza = count(array_filter($prestiti, function($p) { return $p['giorni_rimanenti'] >= 0 && $p['giorni_rimanenti'] <= 3; }));
 
 ?>
 <!DOCTYPE html>
@@ -98,18 +93,41 @@ $pratitiInScadenza = count(array_filter($prestiti, fn($p) => $p['giorni_rimanent
         }
 
         .header-right {
-            text-align: right;
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
 
         .header-right a {
-            color: #bf2121;
+            padding: 10px 20px;
             text-decoration: none;
             font-weight: 600;
-            margin-left: 20px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
         }
 
-        .header-right a:hover {
-            color: #931b1b;
+        .header-right a:first-child {
+            background: #bf2121;
+            color: white;
+        }
+
+        .header-right a:first-child:hover {
+            background: #931b1b;
+            transform: translateY(-2px);
+        }
+
+        .header-right a:last-child {
+            background: #dc3545;
+            color: white;
+        }
+
+        .header-right a:last-child:hover {
+            background: #c82333;
+            transform: translateY(-2px);
         }
 
         .stats {
@@ -306,16 +324,23 @@ $pratitiInScadenza = count(array_filter($prestiti, fn($p) => $p['giorni_rimanent
     </style>
 </head>
 <body>
+<!-- DEBUG: Pagina caricata, userId: <?= $userId ?> -->
 <div class="container">
     <!-- Header -->
     <div class="header">
         <div>
-            <h1><i class="fas fa-home" style="color: #bf2121; margin-right: 10px;"></i>Benvenuto, <?= htmlspecialchars($nomeCompleto) ?></h1>
+            <h1><i class="fas fa-home" style="color: #bf2121; margin-right: 10px;"></i>Benvenuto, <?= htmlspecialchars($nomeCompleto ?? 'Utente') ?></h1>
             <p>La tua dashboard della Biblioteca ITIS Rossi</p>
         </div>
         <div class="header-right">
-            <a href="profile.php"><i class="fas fa-user"></i> Profilo</a>
-            <a href="../../public/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="profile.php" style="background: #bf2121; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;" onmouseover="this.style.background='#931b1b'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='#bf2121'; this.style.transform='translateY(0)';">
+                <i class="fas fa-user-circle" style="font-size: 18px;"></i>
+                <strong>PROFILO</strong>
+            </a>
+            <a href="../../public/logout.php" style="background: #dc3545; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;" onmouseover="this.style.background='#c82333'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='#dc3545'; this.style.transform='translateY(0)';">
+                <i class="fas fa-sign-out-alt" style="font-size: 18px;"></i>
+                <strong>LOGOUT</strong>
+            </a>
         </div>
     </div>
 

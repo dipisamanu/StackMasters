@@ -27,7 +27,7 @@ if (isset($_SESSION['flash'])) {
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: rgba(202, 201, 201, 0.97);
+            background: linear-gradient(135deg, #9f3232 0%, #b57070 100%);
             margin: 0;
             padding: 0;
             display: flex;
@@ -271,6 +271,23 @@ if (isset($_SESSION['flash'])) {
             padding: 0;
         }
 
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .login-link a {
+            color: #bf2121;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
     </style>
 </head>
 
@@ -389,6 +406,9 @@ if (isset($_SESSION['flash'])) {
         <button type="submit">Registrati</button>
 
     </form>
+    <div class="login-link">
+        Hai già un account? <a href="login.php">Accedi ora</a>
+    </div>
 </div>
 
 <script>

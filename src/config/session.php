@@ -4,11 +4,21 @@
  * File: src/config/session.php
  */
 
+// Determina il base URL
+if (!defined('BASE_URL')) {
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $script = $_SERVER['SCRIPT_FILENAME'];
+    $public = strpos($script, '/public/') !== false ? '/public' : (strpos($script, '/dashboard/') !== false ? '/dashboard' : '');
+
+    define('BASE_URL', $protocol . '://' . $host . (strpos($host, ':') === false ? '' : '') . '/StackMasters');
+}
+
 // Configurazione sessione sicura
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_secure', 0); // Metti 1 se usi HTTPS
-ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.cookie_samesite', 'Lax');
 
 // Nome sessione personalizzato
 session_name('BIBLIOTECA_SESSION');
@@ -20,30 +30,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Rigenera ID sessione per prevenire session fixation
-if (!isset($_SESSION['created'])) {
-    $_SESSION['created'] = time();
-} elseif (time() - $_SESSION['created'] > 1800) {
-    session_regenerate_id(true);
-    $_SESSION['created'] = time();
-}
 
 /**
  * Classe per gestire le sessioni utente
  */
 class Session {
 
-    /**
-     * Login utente
-     *
-     * @param int $userId ID utente
-     * @param string $nomeCompleto Nome completo (nome + cognome)
-     * @param string $email Email utente
-     * @param array $ruoli Array di ruoli con priorità
-     */
     public static function login($userId, $nomeCompleto, $email, $ruoli) {
-        session_regenerate_id(true);
-
         $_SESSION['user_id'] = $userId;
         $_SESSION['nome_completo'] = $nomeCompleto;
         $_SESSION['email'] = $email;
@@ -51,6 +44,7 @@ class Session {
         $_SESSION['logged_in'] = true;
         $_SESSION['last_activity'] = time();
         $_SESSION['ip'] = $_SERVER['REMOTE_ADDR'];
+        $_SESSION['created'] = time();
 
         // Determina il ruolo principale (priorità più bassa = più importante)
         usort($ruoli, function($a, $b) {
@@ -86,11 +80,11 @@ class Session {
             return false;
         }
 
-        // Verifica IP (protezione contro session hijacking)
-        if (isset($_SESSION['ip']) && $_SESSION['ip'] !== $_SERVER['REMOTE_ADDR']) {
-            self::logout();
-            return false;
-        }
+        // Verifica IP (protezione contro session hijacking) - DISABILITATO IN SVILUPPO
+        // if (isset($_SESSION['ip']) && $_SESSION['ip'] !== $_SERVER['REMOTE_ADDR']) {
+        //     self::logout();
+        //     return false;
+        // }
 
         $_SESSION['last_activity'] = time();
         return true;
@@ -167,15 +161,15 @@ class Session {
 
         switch ($role) {
             case 'Admin':
-                header('Location: /StackMasters/dashboard/admin/index.php');
+                header('Location: ' . BASE_URL . '/dashboard/admin/index.php');
                 break;
             case 'Bibliotecario':
-                header('Location: /StackMasters/dashboard/librarian/index.php');
+                header('Location: ' . BASE_URL . '/dashboard/librarian/index.php');
                 break;
             case 'Docente':
             case 'Studente':
             default:
-                header('Location: /StackMasters/dashboard/student/index.php');
+                header('Location: ' . BASE_URL . '/dashboard/student/index.php');
                 break;
         }
         exit;
@@ -187,7 +181,7 @@ class Session {
     public static function requireLogin() {
         if (!self::isLoggedIn()) {
             $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
-            header('Location: /StackMasters/public/login.php');
+            header('Location: ' . BASE_URL . '/public/login.php');
             exit;
         }
     }
