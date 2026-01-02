@@ -16,9 +16,9 @@ class BookModel
     }
 
     /**
-     * Recupera lista libri (Fix SQL Parameter Error)
+     * Recupera lista libri con Ricerca e Filtri
      */
-    public function getAll(string $search = ''): array
+    public function getAll(string $search = '', array $filters = []): array
     {
         // Query Base
         $sql = "SELECT l.*, 
@@ -32,12 +32,11 @@ class BookModel
 
         $params = [];
 
+        // 1. GESTIONE RICERCA (Parametri unici per evitare errori PDO)
         if (!empty($search)) {
             $trimSearch = trim($search);
             $likeTerm = "%$trimSearch%";
 
-            // FIX: Usiamo nomi di parametri DIVERSI per ogni campo (:q1, :q2...)
-            // Alcuni database non accettano di ripetere :q più volte.
             $sql .= " AND (
                         l.titolo LIKE :q1 
                         OR l.isbn LIKE :q2 
@@ -47,7 +46,6 @@ class BookModel
                         OR a.cognome LIKE :q6
                       )";
 
-            // Assegniamo lo stesso valore a tutti i parametri
             $params[':q1'] = $likeTerm;
             $params[':q2'] = $likeTerm;
             $params[':q3'] = $likeTerm;
@@ -56,13 +54,29 @@ class BookModel
             $params[':q6'] = $likeTerm;
         }
 
-        $sql .= " GROUP BY l.id_libro ORDER BY l.ultimo_aggiornamento DESC";
+        $sql .= " GROUP BY l.id_libro";
 
-        // Esecuzione diretta per vedere eventuali errori se ci sono ancora
+        // 2. GESTIONE FILTRI (HAVING lavora sui risultati aggregati/calcolati)
+        $having = [];
+
+        // Filtro: Solo Disponibili
+        if (!empty($filters['solo_disponibili'])) {
+            $having[] = "copie_disponibili > 0";
+        }
+
+        if (!empty($having)) {
+            $sql .= " HAVING " . implode(' AND ', $having);
+        }
+
+        $sql .= " ORDER BY l.ultimo_aggiornamento DESC";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // ... [Il resto dei metodi create, update, delete rimane invariato] ...
+    // Copiali dal file precedente o lasciali se stai modificando solo getAll
 
     public function create(array $data): bool
     {
@@ -73,7 +87,6 @@ class BookModel
                     VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine)";
 
             $stmt = $this->db->prepare($sql);
-
             $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
 
             $stmt->execute([
@@ -197,3 +210,4 @@ class BookModel
             ->execute([$idLibro, $idAutore]);
     }
 }
+?>
