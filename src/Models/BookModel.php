@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Libri
+ * BookModel - Gestione Dati con Controllo ISBN Duplicato
  * File: src/Models/BookModel.php
  */
 
@@ -13,14 +13,11 @@ class BookModel
     public function __construct()
     {
         $this->db = Database::getInstance()->getConnection();
+        $this->db->exec("SET NAMES 'utf8mb4'");
     }
 
-    /**
-     * Recupera lista libri con Ricerca e Filtri
-     */
     public function getAll(string $search = '', array $filters = []): array
     {
-        // Query Base
         $sql = "SELECT l.*, 
                        GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
                        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro) as copie_totali,
@@ -32,40 +29,22 @@ class BookModel
 
         $params = [];
 
-        // 1. GESTIONE RICERCA (Parametri unici per evitare errori PDO)
         if (!empty($search)) {
             $trimSearch = trim($search);
-            $likeTerm = "%$trimSearch%";
+            $like = "%$trimSearch%";
 
             $sql .= " AND (
-                        l.titolo LIKE :q1 
-                        OR l.isbn LIKE :q2 
-                        OR l.editore LIKE :q3 
+                        l.titolo LIKE :q1 OR l.isbn LIKE :q2 OR l.editore LIKE :q3 
                         OR CAST(l.anno_uscita AS CHAR) LIKE :q4
-                        OR CONCAT(a.nome, ' ', a.cognome) LIKE :q5
-                        OR a.cognome LIKE :q6
+                        OR CONCAT(a.nome, ' ', a.cognome) LIKE :q5 OR a.cognome LIKE :q6
                       )";
-
-            $params[':q1'] = $likeTerm;
-            $params[':q2'] = $likeTerm;
-            $params[':q3'] = $likeTerm;
-            $params[':q4'] = $likeTerm;
-            $params[':q5'] = $likeTerm;
-            $params[':q6'] = $likeTerm;
+            $params = array_fill_keys([':q1',':q2',':q3',':q4',':q5',':q6'], $like);
         }
 
         $sql .= " GROUP BY l.id_libro";
 
-        // 2. GESTIONE FILTRI (HAVING lavora sui risultati aggregati/calcolati)
-        $having = [];
-
-        // Filtro: Solo Disponibili
         if (!empty($filters['solo_disponibili'])) {
-            $having[] = "copie_disponibili > 0";
-        }
-
-        if (!empty($having)) {
-            $sql .= " HAVING " . implode(' AND ', $having);
+            $sql .= " HAVING copie_disponibili > 0";
         }
 
         $sql .= " ORDER BY l.ultimo_aggiornamento DESC";
@@ -74,9 +53,6 @@ class BookModel
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
-    // ... [Il resto dei metodi create, update, delete rimane invariato] ...
-    // Copiali dal file precedente o lasciali se stai modificando solo getAll
 
     public function create(array $data): bool
     {
@@ -87,29 +63,44 @@ class BookModel
                     VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine)";
 
             $stmt = $this->db->prepare($sql);
-            $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
+
+            $annoDate = null;
+            if (!empty($data['anno'])) {
+                $annoDate = $data['anno'] . '-01-01 00:00:00';
+            }
 
             $stmt->execute([
-                ':titolo' => strip_tags($data['titolo']),
-                ':isbn' => strip_tags($data['isbn'] ?? ''),
-                ':editore' => strip_tags($data['editore'] ?? ''),
+                ':titolo' => $this->clean($data['titolo']),
+                ':isbn' => $this->clean($data['isbn'] ?? ''),
+                ':editore' => $this->clean($data['editore'] ?? ''),
                 ':anno' => $annoDate,
-                ':descrizione' => strip_tags($data['descrizione'] ?? ''),
+                ':descrizione' => $this->clean($data['descrizione'] ?? ''),
                 ':pagine' => !empty($data['pagine']) ? (int)$data['pagine'] : null
             ]);
 
             $idLibro = $this->db->lastInsertId();
 
             if (!empty($data['autore'])) {
-                $this->linkAuthor($idLibro, $data['autore']);
+                $this->linkAuthor($idLibro, $this->clean($data['autore']));
             }
 
             $this->db->commit();
             return true;
 
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+
+            // 1062 è il codice MySQL per "Duplicate entry"
+            if ($e->errorInfo[1] == 1062) {
+                // Verifica se l'errore riguarda la colonna ISBN
+                if (strpos(strtolower($e->getMessage()), 'isbn') !== false) {
+                    throw new Exception("Un libro con questo ISBN è già presente nella libreria!");
+                }
+            }
+
+            throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
             $this->db->rollBack();
-            error_log("Errore Create: " . $e->getMessage());
             throw $e;
         }
     }
@@ -120,35 +111,46 @@ class BookModel
             $this->db->beginTransaction();
 
             $sql = "UPDATE libri SET 
-                    titolo = :titolo, 
-                    isbn = :isbn, 
-                    editore = :editore, 
-                    anno_uscita = :anno, 
-                    descrizione = :descrizione, 
-                    numero_pagine = :pagine 
+                    titolo = :titolo, isbn = :isbn, editore = :editore, 
+                    anno_uscita = :anno, descrizione = :descrizione, numero_pagine = :pagine 
                     WHERE id_libro = :id";
 
             $stmt = $this->db->prepare($sql);
-            $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
+
+            $annoDate = null;
+            if (!empty($data['anno'])) {
+                $annoDate = $data['anno'] . '-01-01 00:00:00';
+            }
 
             $stmt->execute([
-                ':titolo' => strip_tags($data['titolo']),
-                ':isbn' => strip_tags($data['isbn'] ?? ''),
-                ':editore' => strip_tags($data['editore'] ?? ''),
+                ':titolo' => $this->clean($data['titolo']),
+                ':isbn' => $this->clean($data['isbn'] ?? ''),
+                ':editore' => $this->clean($data['editore'] ?? ''),
                 ':anno' => $annoDate,
-                ':descrizione' => strip_tags($data['descrizione'] ?? ''),
+                ':descrizione' => $this->clean($data['descrizione'] ?? ''),
                 ':pagine' => !empty($data['pagine']) ? (int)$data['pagine'] : null,
                 ':id' => $id
             ]);
 
             if (!empty($data['autore'])) {
                 $this->db->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$id]);
-                $this->linkAuthor($id, $data['autore']);
+                $this->linkAuthor($id, $this->clean($data['autore']));
             }
 
             $this->db->commit();
             return true;
 
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+
+            // Controllo Duplicati anche in modifica
+            if ($e->errorInfo[1] == 1062) {
+                if (strpos(strtolower($e->getMessage()), 'isbn') !== false) {
+                    throw new Exception("Impossibile salvare: questo ISBN è già assegnato a un altro libro.");
+                }
+            }
+
+            throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
@@ -164,20 +166,16 @@ class BookModel
                 WHERE i.id_libro = ? AND p.data_restituzione IS NULL
             ");
             $check->execute([$idLibro]);
-            if ($check->fetchColumn() > 0) {
-                throw new Exception("Impossibile eliminare: ci sono copie in prestito.");
-            }
+            if ($check->fetchColumn() > 0) throw new Exception("Impossibile eliminare: copie in prestito.");
 
             $this->db->beginTransaction();
 
-            $this->db->prepare("DELETE FROM recensioni WHERE id_libro = ?")->execute([$idLibro]);
-            $this->db->prepare("DELETE FROM prenotazioni WHERE id_libro = ?")->execute([$idLibro]);
-            $this->db->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$idLibro]);
-            $this->db->prepare("DELETE FROM libri_generi WHERE id_libro = ?")->execute([$idLibro]);
-            $this->db->prepare("DELETE FROM inventari WHERE id_libro = ?")->execute([$idLibro]);
+            $tables = ['recensioni', 'prenotazioni', 'libri_autori', 'libri_generi', 'inventari'];
+            foreach($tables as $t) {
+                $this->db->prepare("DELETE FROM $t WHERE id_libro = ?")->execute([$idLibro]);
+            }
 
-            $stmt = $this->db->prepare("DELETE FROM libri WHERE id_libro = ?");
-            $stmt->execute([$idLibro]);
+            $this->db->prepare("DELETE FROM libri WHERE id_libro = ?")->execute([$idLibro]);
 
             $this->db->commit();
             return true;
@@ -209,5 +207,8 @@ class BookModel
         $this->db->prepare("INSERT INTO libri_autori (id_libro, id_autore) VALUES (?, ?)")
             ->execute([$idLibro, $idAutore]);
     }
+
+    private function clean($str) {
+        return strip_tags(trim($str ?? ''));
+    }
 }
-?>
