@@ -6,30 +6,51 @@ Session::requireRole('Bibliotecario');
 
 $bookModel = new BookModel();
 $search = $_GET['q'] ?? '';
-$books = $bookModel->getAll($search);
+$books = [];
+$error = '';
 
-$success = $_SESSION['flash_success'] ?? '';
-$error = $_SESSION['flash_error'] ?? '';
-unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+// Tenta di recuperare i libri, se fallisce mostra l'errore SQL esatto
+try {
+    $books = $bookModel->getAll($search);
+} catch (Exception $e) {
+    $error = "ERRORE CRITICO DATABASE: " . $e->getMessage();
+}
+
+// Recupera messaggi flash normali
+if (isset($_SESSION['flash_success'])) {
+    $success = $_SESSION['flash_success'];
+    unset($_SESSION['flash_success']);
+}
+if (isset($_SESSION['flash_error'])) {
+    $error = $_SESSION['flash_error'];
+    unset($_SESSION['flash_error']);
+}
 
 require_once '../../src/Views/layout/header.php';
 ?>
 
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>📚 Catalogo Libri (Titoli)</h2>
+            <h2>📚 Catalogo Libri</h2>
             <button class="btn btn-primary" onclick="openModal('create')">
                 <i class="fas fa-plus"></i> Nuovo Titolo
             </button>
         </div>
 
-        <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
-        <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+        <?php if (!empty($error)): ?>
+            <div class="alert alert-danger">
+                <strong>⚠️ Attenzione:</strong> <?= htmlspecialchars($error) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($success)): ?>
+            <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+        <?php endif; ?>
 
         <div class="card mb-4">
             <div class="card-body">
                 <form method="GET" class="d-flex gap-2">
-                    <input type="text" name="q" class="form-control" placeholder="Cerca titolo, autore, editore o ISBN..." value="<?= htmlspecialchars($search) ?>">
+                    <input type="text" name="q" class="form-control" placeholder="Cerca titolo o autore..." value="<?= htmlspecialchars($search) ?>">
                     <button class="btn btn-secondary">Cerca</button>
                     <?php if($search): ?><a href="books.php" class="btn btn-outline-secondary">Reset</a><?php endif; ?>
                 </form>
@@ -62,14 +83,12 @@ require_once '../../src/Views/layout/header.php';
                                 <td><?= $b['anno_uscita'] ? date('Y', strtotime($b['anno_uscita'])) : '-' ?></td>
                                 <td class="small font-monospace"><?= htmlspecialchars($b['isbn']) ?></td>
                                 <td class="text-center">
-                                    <span class="badge bg-secondary" title="Totali"><?= $b['copie_totali'] ?></span>
-                                    <span class="badge bg-success" title="Disponibili"><?= $b['copie_disponibili'] ?></span>
+                                    <span class="badge bg-secondary"><?= $b['copie_totali'] ?></span>
+                                    <span class="badge bg-success"><?= $b['copie_disponibili'] ?></span>
                                 </td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-warning" onclick='openModal("edit", <?= json_encode($b) ?>)'>
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <form action="process-book.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare questo libro e TUTTE le copie?');">
+                                    <button class="btn btn-sm btn-warning" onclick='openModal("edit", <?= json_encode($b) ?>)'><i class="fas fa-edit"></i></button>
+                                    <form action="process-book.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id_libro" value="<?= $b['id_libro'] ?>">
                                         <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>

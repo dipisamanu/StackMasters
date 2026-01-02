@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Libri Completa
+ * BookModel - Gestione Libri
  * File: src/Models/BookModel.php
  */
 
@@ -15,9 +15,12 @@ class BookModel
         $this->db = Database::getInstance()->getConnection();
     }
 
+    /**
+     * Recupera lista libri (Fix SQL Parameter Error)
+     */
     public function getAll(string $search = ''): array
     {
-        // Query con alias (l.) per evitare ambiguità
+        // Query Base
         $sql = "SELECT l.*, 
                        GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
                        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro) as copie_totali,
@@ -30,20 +33,35 @@ class BookModel
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (l.titolo LIKE :q OR l.isbn LIKE :q OR l.editore LIKE :q OR CONCAT(a.nome, ' ', a.cognome) LIKE :q)";
-            $params[':q'] = "%$search%";
+            $trimSearch = trim($search);
+            $likeTerm = "%$trimSearch%";
+
+            // FIX: Usiamo nomi di parametri DIVERSI per ogni campo (:q1, :q2...)
+            // Alcuni database non accettano di ripetere :q più volte.
+            $sql .= " AND (
+                        l.titolo LIKE :q1 
+                        OR l.isbn LIKE :q2 
+                        OR l.editore LIKE :q3 
+                        OR CAST(l.anno_uscita AS CHAR) LIKE :q4
+                        OR CONCAT(a.nome, ' ', a.cognome) LIKE :q5
+                        OR a.cognome LIKE :q6
+                      )";
+
+            // Assegniamo lo stesso valore a tutti i parametri
+            $params[':q1'] = $likeTerm;
+            $params[':q2'] = $likeTerm;
+            $params[':q3'] = $likeTerm;
+            $params[':q4'] = $likeTerm;
+            $params[':q5'] = $likeTerm;
+            $params[':q6'] = $likeTerm;
         }
 
         $sql .= " GROUP BY l.id_libro ORDER BY l.ultimo_aggiornamento DESC";
 
-        try {
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Errore SQL Search: " . $e->getMessage());
-            return [];
-        }
+        // Esecuzione diretta per vedere eventuali errori se ci sono ancora
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function create(array $data): bool
@@ -56,7 +74,6 @@ class BookModel
 
             $stmt = $this->db->prepare($sql);
 
-            // Gestione Anno (Int -> DateTime)
             $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
 
             $stmt->execute([
@@ -79,8 +96,8 @@ class BookModel
 
         } catch (Exception $e) {
             $this->db->rollBack();
-            error_log("Errore Create Book: " . $e->getMessage());
-            return false;
+            error_log("Errore Create: " . $e->getMessage());
+            throw $e;
         }
     }
 
@@ -112,7 +129,6 @@ class BookModel
             ]);
 
             if (!empty($data['autore'])) {
-                // Rimuove vecchi autori e mette il nuovo (semplificato)
                 $this->db->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$id]);
                 $this->linkAuthor($id, $data['autore']);
             }
@@ -122,15 +138,13 @@ class BookModel
 
         } catch (Exception $e) {
             $this->db->rollBack();
-            error_log("Errore Update Book: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 
     public function delete(int $idLibro): bool
     {
         try {
-            // Controllo prestiti attivi
             $check = $this->db->prepare("
                 SELECT COUNT(*) FROM prestiti p
                 JOIN inventari i ON p.id_inventario = i.id_inventario
@@ -138,19 +152,17 @@ class BookModel
             ");
             $check->execute([$idLibro]);
             if ($check->fetchColumn() > 0) {
-                throw new Exception("Impossibile eliminare: copie in prestito.");
+                throw new Exception("Impossibile eliminare: ci sono copie in prestito.");
             }
 
             $this->db->beginTransaction();
 
-            // Pulizia Cascata Manuale
             $this->db->prepare("DELETE FROM recensioni WHERE id_libro = ?")->execute([$idLibro]);
             $this->db->prepare("DELETE FROM prenotazioni WHERE id_libro = ?")->execute([$idLibro]);
             $this->db->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$idLibro]);
             $this->db->prepare("DELETE FROM libri_generi WHERE id_libro = ?")->execute([$idLibro]);
-            $this->db->prepare("DELETE FROM inventari WHERE id_libro = ?")->execute([$idLibro]); // Cancella copie fisiche
+            $this->db->prepare("DELETE FROM inventari WHERE id_libro = ?")->execute([$idLibro]);
 
-            // Elimina Libro
             $stmt = $this->db->prepare("DELETE FROM libri WHERE id_libro = ?");
             $stmt->execute([$idLibro]);
 
@@ -159,7 +171,6 @@ class BookModel
 
         } catch (Exception $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
-            // Rilanciamo l'eccezione per mostrarla nel frontend
             throw $e;
         }
     }
