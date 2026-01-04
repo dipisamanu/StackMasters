@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Libri - Interfaccia con Errori nel Modale
+ * Gestione Catalogo Libri
  * File: dashboard/librarian/books.php
  */
 
@@ -11,7 +11,7 @@ Session::requireRole('Bibliotecario');
 
 $bookModel = new BookModel();
 
-// Gestione Filtri
+// Gestione Filtri e Ricerca
 $search = $_GET['q'] ?? '';
 $filterAvailable = isset($_GET['available']) && $_GET['available'] === 'on';
 $filters = $filterAvailable ? ['solo_disponibili' => true] : [];
@@ -22,24 +22,19 @@ $sysError = '';
 try {
     $books = $bookModel->getAll($search, $filters);
 } catch (Exception $e) {
-    $sysError = "Errore Sistema: " . $e->getMessage();
+    $sysError = "Errore nel recupero dati: " . $e->getMessage();
 }
 
-// Recupero Messaggi Flash
+// Recupero Messaggi
 $success = $_SESSION['flash_success'] ?? '';
 $error = $_SESSION['flash_error'] ?? '';
-$oldData = $_SESSION['form_data'] ?? []; // Dati precedenti per repopolare
-
-// Pulizia sessione
+$oldData = $_SESSION['form_data'] ?? [];
 unset($_SESSION['flash_success'], $_SESSION['flash_error'], $_SESSION['form_data']);
 
-// LOGICA SMART PER L'ERRORE:
-// Se abbiamo $oldData, significa che l'errore appartiene al form (Modale).
-// Quindi lo salviamo in $modalError e svuotiamo $error (così non appare doppio nella pagina principale).
 $modalError = '';
 if (!empty($oldData) && !empty($error)) {
     $modalError = $error;
-    $error = ''; // Nascondilo dalla pagina principale
+    $error = '';
 }
 
 require_once '../../src/Views/layout/header.php';
@@ -48,8 +43,8 @@ require_once '../../src/Views/layout/header.php';
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="fw-bold text-danger"><i class="fas fa-book me-2"></i>Gestione Catalogo</h2>
-                <p class="text-muted small mb-0">Inserisci, modifica e controlla i metadati dei libri.</p>
+                <h2 class="fw-bold text-danger"><i class="fas fa-book me-2"></i>Catalogo Libri</h2>
+                <p class="text-muted small mb-0">Gestione titoli e inventario.</p>
             </div>
             <button class="btn btn-danger shadow-sm" onclick="openModal('create')">
                 <i class="fas fa-plus me-2"></i>Nuovo Titolo
@@ -57,14 +52,14 @@ require_once '../../src/Views/layout/header.php';
         </div>
 
         <?php if ($error || $sysError): ?>
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+            <div class="alert alert-danger alert-dismissible fade show">
                 <i class="fas fa-exclamation-triangle me-2"></i> <?= htmlspecialchars($error . $sysError) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
         <?php if ($success): ?>
-            <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <div class="alert alert-success alert-dismissible fade show">
                 <i class="fas fa-check-circle me-2"></i> <?= htmlspecialchars($success) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -77,7 +72,7 @@ require_once '../../src/Views/layout/header.php';
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                             <input type="text" name="q" class="form-control border-start-0 ps-0"
-                                   placeholder="Cerca titolo, autore, ISBN..." value="<?= htmlspecialchars($search) ?>">
+                                   placeholder="Cerca titolo, autore o ISBN..." value="<?= htmlspecialchars($search) ?>">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -118,7 +113,7 @@ require_once '../../src/Views/layout/header.php';
                             <tr>
                                 <td class="ps-4">
                                     <div class="fw-bold text-dark"><?= htmlspecialchars($b['titolo']) ?></div>
-                                    <div class="small text-muted"><i class="fas fa-user-edit me-1"></i><?= htmlspecialchars($b['autori_nomi'] ?? 'N/D') ?></div>
+                                    <div class="small text-muted"><?= htmlspecialchars($b['autori_nomi'] ?? 'N/D') ?></div>
                                 </td>
                                 <td>
                                     <small class="d-block">Editore: <strong><?= htmlspecialchars($b['editore']) ?></strong></small>
@@ -132,9 +127,15 @@ require_once '../../src/Views/layout/header.php';
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
-                                        <a href="inventory.php?id_libro=<?= $b['id_libro'] ?>" class="btn btn-light btn-sm text-success" title="Inventario"><i class="fas fa-boxes"></i></a>
-                                        <button class="btn btn-light btn-sm text-primary" onclick='openModal("edit", <?= json_encode($b) ?>)'><i class="fas fa-edit"></i></button>
-                                        <form action="process-book.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare questo libro?');">
+                                        <a href="inventory.php?id_libro=<?= $b['id_libro'] ?>" class="btn btn-light btn-sm text-success" title="Gestisci Inventario">
+                                            <i class="fas fa-boxes"></i>
+                                        </a>
+
+                                        <button class="btn btn-light btn-sm text-primary" onclick='openModal("edit", <?= json_encode($b) ?>)'>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+
+                                        <form action="process-book.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare questo libro e tutto il suo inventario?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id_libro" value="<?= $b['id_libro'] ?>">
                                             <button class="btn btn-light btn-sm text-danger"><i class="fas fa-trash"></i></button>
@@ -151,21 +152,17 @@ require_once '../../src/Views/layout/header.php';
     </div>
 
     <div class="modal fade" id="bookModal" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title" id="modalTitle">Gestione Libro</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-
                 <form action="process-book.php" method="POST" id="bookForm">
                     <div class="modal-body">
-
-                        <div id="modalAlertBox" class="alert alert-danger d-none"></div>
-
                         <?php if (!empty($modalError)): ?>
                             <div class="alert alert-danger fade show border-start border-danger border-4">
-                                <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($modalError) ?>
+                                <?= htmlspecialchars($modalError) ?>
                             </div>
                         <?php endif; ?>
 
@@ -173,12 +170,12 @@ require_once '../../src/Views/layout/header.php';
                         <input type="hidden" name="id_libro" id="bookId">
 
                         <div class="row g-3">
-                            <div class="col-md-12">
+                            <div class="col-12">
                                 <label class="form-label fw-bold">Titolo *</label>
                                 <input type="text" name="titolo" id="titolo" class="form-control" required maxlength="100">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Autore (Nome Cognome) *</label>
+                                <label class="form-label fw-bold">Autore *</label>
                                 <input type="text" name="autore" id="autore" class="form-control" required maxlength="100">
                             </div>
                             <div class="col-md-6">
@@ -187,11 +184,11 @@ require_once '../../src/Views/layout/header.php';
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Anno</label>
-                                <input type="number" name="anno" id="anno" class="form-control" min="1400" max="<?= date('Y')+2 ?>" placeholder="YYYY">
+                                <input type="number" name="anno" id="anno" class="form-control" min="1400" max="<?= date('Y')+2 ?>">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">ISBN</label>
-                                <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="10 o 13 cifre">
+                                <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Pagine</label>
@@ -204,8 +201,8 @@ require_once '../../src/Views/layout/header.php';
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                        <button type="submit" class="btn btn-danger">Salva Libro</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                        <button type="submit" class="btn btn-danger">Salva</button>
                     </div>
                 </form>
             </div>
@@ -216,25 +213,14 @@ require_once '../../src/Views/layout/header.php';
         let bookModal;
         document.addEventListener('DOMContentLoaded', function() {
             bookModal = new bootstrap.Modal(document.getElementById('bookModal'));
-
-            // RE-APERTURA AUTOMATICA IN CASO DI ERRORE
             <?php if (!empty($oldData)): ?>
-            const old = <?= json_encode($oldData) ?>;
-            // Determina se era edit o create basandosi sulla presenza dell'ID
-            const mode = old.id_libro ? 'edit' : 'create';
-            openModal(mode, old, true);
+            openModal(<?= empty($oldData['id_libro']) ? "'create'" : "'edit'" ?>, <?= json_encode($oldData) ?>, true);
             <?php endif; ?>
         });
 
         function openModal(mode, data = null, isOldData = false) {
             const form = document.getElementById('bookForm');
-
-            // Reset dei campi solo se non stiamo ripristinando dati vecchi
-            if(!isOldData) {
-                form.reset();
-                // Nascondi eventuali alert PHP statici se l'utente riapre il modale manualmente dopo un errore
-                // (Nota: per farlo bene servirebbe un po' più di JS, ma il reset form aiuta)
-            }
+            if(!isOldData) form.reset();
 
             if (mode === 'edit') {
                 document.getElementById('modalTitle').innerText = 'Modifica Libro';
@@ -242,8 +228,7 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('bookId').value = data.id_libro;
 
                 document.getElementById('titolo').value = data.titolo;
-                // Se è oldData, usa 'autore', altrimenti 'autori_nomi' dal DB
-                document.getElementById('autore').value = isOldData ? (data.autore || '') : (data.autori_nomi || '');
+                document.getElementById('autore').value = isOldData ? data.autore : (data.autori_nomi || '');
                 document.getElementById('editore').value = data.editore;
 
                 let anno = data.anno_uscita || data.anno || '';
@@ -257,7 +242,6 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('modalTitle').innerText = 'Nuovo Libro';
                 document.getElementById('formAction').value = 'create';
 
-                // Se stiamo ripopolando un inserimento fallito
                 if(isOldData) {
                     document.getElementById('titolo').value = data.titolo;
                     document.getElementById('autore').value = data.autore;
@@ -268,7 +252,6 @@ require_once '../../src/Views/layout/header.php';
                     document.getElementById('descrizione').value = data.descrizione;
                 }
             }
-
             bookModal.show();
         }
     </script>
