@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Libri - Interfaccia con Errori nel Modale
+ * Gestione Catalogo Libri (Versione Pulita)
  * File: dashboard/librarian/books.php
  */
 
@@ -11,12 +11,10 @@ Session::requireRole('Bibliotecario');
 
 $bookModel = new BookModel();
 
-// Gestione Filtri
 $search = $_GET['q'] ?? '';
 $filterAvailable = isset($_GET['available']) && $_GET['available'] === 'on';
 $filters = $filterAvailable ? ['solo_disponibili' => true] : [];
 
-// Recupero Dati
 $books = [];
 $sysError = '';
 try {
@@ -25,21 +23,15 @@ try {
     $sysError = "Errore Sistema: " . $e->getMessage();
 }
 
-// Recupero Messaggi Flash
 $success = $_SESSION['flash_success'] ?? '';
 $error = $_SESSION['flash_error'] ?? '';
-$oldData = $_SESSION['form_data'] ?? []; // Dati precedenti per repopolare
-
-// Pulizia sessione
+$oldData = $_SESSION['form_data'] ?? [];
 unset($_SESSION['flash_success'], $_SESSION['flash_error'], $_SESSION['form_data']);
 
-// LOGICA SMART PER L'ERRORE:
-// Se abbiamo $oldData, significa che l'errore appartiene al form (Modale).
-// Quindi lo salviamo in $modalError e svuotiamo $error (così non appare doppio nella pagina principale).
 $modalError = '';
 if (!empty($oldData) && !empty($error)) {
     $modalError = $error;
-    $error = ''; // Nascondilo dalla pagina principale
+    $error = '';
 }
 
 require_once '../../src/Views/layout/header.php';
@@ -49,7 +41,7 @@ require_once '../../src/Views/layout/header.php';
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="fw-bold text-danger"><i class="fas fa-book me-2"></i>Gestione Catalogo</h2>
-                <p class="text-muted small mb-0">Inserisci, modifica e controlla i metadati dei libri.</p>
+                <p class="text-muted small mb-0">Catalogo dei titoli disponibili in biblioteca.</p>
             </div>
             <button class="btn btn-danger shadow-sm" onclick="openModal('create')">
                 <i class="fas fa-plus me-2"></i>Nuovo Titolo
@@ -57,14 +49,14 @@ require_once '../../src/Views/layout/header.php';
         </div>
 
         <?php if ($error || $sysError): ?>
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+            <div class="alert alert-danger alert-dismissible fade show">
                 <i class="fas fa-exclamation-triangle me-2"></i> <?= htmlspecialchars($error . $sysError) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
         <?php if ($success): ?>
-            <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <div class="alert alert-success alert-dismissible fade show">
                 <i class="fas fa-check-circle me-2"></i> <?= htmlspecialchars($success) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -160,12 +152,9 @@ require_once '../../src/Views/layout/header.php';
 
                 <form action="process-book.php" method="POST" id="bookForm">
                     <div class="modal-body">
-
-                        <div id="modalAlertBox" class="alert alert-danger d-none"></div>
-
                         <?php if (!empty($modalError)): ?>
                             <div class="alert alert-danger fade show border-start border-danger border-4">
-                                <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($modalError) ?>
+                                <?= htmlspecialchars($modalError) ?>
                             </div>
                         <?php endif; ?>
 
@@ -217,10 +206,8 @@ require_once '../../src/Views/layout/header.php';
         document.addEventListener('DOMContentLoaded', function() {
             bookModal = new bootstrap.Modal(document.getElementById('bookModal'));
 
-            // RE-APERTURA AUTOMATICA IN CASO DI ERRORE
             <?php if (!empty($oldData)): ?>
             const old = <?= json_encode($oldData) ?>;
-            // Determina se era edit o create basandosi sulla presenza dell'ID
             const mode = old.id_libro ? 'edit' : 'create';
             openModal(mode, old, true);
             <?php endif; ?>
@@ -229,12 +216,7 @@ require_once '../../src/Views/layout/header.php';
         function openModal(mode, data = null, isOldData = false) {
             const form = document.getElementById('bookForm');
 
-            // Reset dei campi solo se non stiamo ripristinando dati vecchi
-            if(!isOldData) {
-                form.reset();
-                // Nascondi eventuali alert PHP statici se l'utente riapre il modale manualmente dopo un errore
-                // (Nota: per farlo bene servirebbe un po' più di JS, ma il reset form aiuta)
-            }
+            if(!isOldData) form.reset();
 
             if (mode === 'edit') {
                 document.getElementById('modalTitle').innerText = 'Modifica Libro';
@@ -242,7 +224,6 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('bookId').value = data.id_libro;
 
                 document.getElementById('titolo').value = data.titolo;
-                // Se è oldData, usa 'autore', altrimenti 'autori_nomi' dal DB
                 document.getElementById('autore').value = isOldData ? (data.autore || '') : (data.autori_nomi || '');
                 document.getElementById('editore').value = data.editore;
 
@@ -257,7 +238,6 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('modalTitle').innerText = 'Nuovo Libro';
                 document.getElementById('formAction').value = 'create';
 
-                // Se stiamo ripopolando un inserimento fallito
                 if(isOldData) {
                     document.getElementById('titolo').value = data.titolo;
                     document.getElementById('autore').value = data.autore;

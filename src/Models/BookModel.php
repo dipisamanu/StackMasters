@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Dati con Controllo ISBN Duplicato
+ * BookModel - Gestione Libri (Versione Pulita)
  * File: src/Models/BookModel.php
  */
 
@@ -14,6 +14,21 @@ class BookModel
     {
         $this->db = Database::getInstance()->getConnection();
         $this->db->exec("SET NAMES 'utf8mb4'");
+    }
+
+    public function getById(int $id)
+    {
+        $sql = "SELECT l.*, 
+                       GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi
+                FROM libri l
+                LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+                LEFT JOIN autori a ON la.id_autore = a.id
+                WHERE l.id_libro = :id
+                GROUP BY l.id_libro";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getAll(string $search = '', array $filters = []): array
@@ -32,7 +47,6 @@ class BookModel
         if (!empty($search)) {
             $trimSearch = trim($search);
             $like = "%$trimSearch%";
-
             $sql .= " AND (
                         l.titolo LIKE :q1 OR l.isbn LIKE :q2 OR l.editore LIKE :q3 
                         OR CAST(l.anno_uscita AS CHAR) LIKE :q4
@@ -63,11 +77,7 @@ class BookModel
                     VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine)";
 
             $stmt = $this->db->prepare($sql);
-
-            $annoDate = null;
-            if (!empty($data['anno'])) {
-                $annoDate = $data['anno'] . '-01-01 00:00:00';
-            }
+            $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
 
             $stmt->execute([
                 ':titolo' => $this->clean($data['titolo']),
@@ -89,15 +99,9 @@ class BookModel
 
         } catch (PDOException $e) {
             $this->db->rollBack();
-
-            // 1062 è il codice MySQL per "Duplicate entry"
-            if ($e->errorInfo[1] == 1062) {
-                // Verifica se l'errore riguarda la colonna ISBN
-                if (strpos(strtolower($e->getMessage()), 'isbn') !== false) {
-                    throw new Exception("Un libro con questo ISBN è già presente nella libreria!");
-                }
+            if ($e->errorInfo[1] == 1062 && strpos(strtolower($e->getMessage()), 'isbn') !== false) {
+                throw new Exception("Un libro con questo ISBN è già presente nella libreria!");
             }
-
             throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
             $this->db->rollBack();
@@ -116,11 +120,7 @@ class BookModel
                     WHERE id_libro = :id";
 
             $stmt = $this->db->prepare($sql);
-
-            $annoDate = null;
-            if (!empty($data['anno'])) {
-                $annoDate = $data['anno'] . '-01-01 00:00:00';
-            }
+            $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
 
             $stmt->execute([
                 ':titolo' => $this->clean($data['titolo']),
@@ -142,14 +142,9 @@ class BookModel
 
         } catch (PDOException $e) {
             $this->db->rollBack();
-
-            // Controllo Duplicati anche in modifica
-            if ($e->errorInfo[1] == 1062) {
-                if (strpos(strtolower($e->getMessage()), 'isbn') !== false) {
-                    throw new Exception("Impossibile salvare: questo ISBN è già assegnato a un altro libro.");
-                }
+            if ($e->errorInfo[1] == 1062 && strpos(strtolower($e->getMessage()), 'isbn') !== false) {
+                throw new Exception("Impossibile salvare: ISBN già assegnato.");
             }
-
             throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
             $this->db->rollBack();
@@ -174,7 +169,6 @@ class BookModel
             foreach($tables as $t) {
                 $this->db->prepare("DELETE FROM $t WHERE id_libro = ?")->execute([$idLibro]);
             }
-
             $this->db->prepare("DELETE FROM libri WHERE id_libro = ?")->execute([$idLibro]);
 
             $this->db->commit();
@@ -190,7 +184,7 @@ class BookModel
     {
         $parts = explode(' ', trim($fullName), 2);
         $nome = $parts[0];
-        $cognome = $parts[1] ?? '';
+        $cognome = $parts[1] ?? '.';
 
         $stmt = $this->db->prepare("SELECT id FROM autori WHERE nome LIKE ? AND cognome LIKE ? LIMIT 1");
         $stmt->execute([$nome, $cognome]);
