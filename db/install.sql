@@ -66,14 +66,13 @@ CREATE TABLE libri
     copertina_url        TEXT,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (lingua_id) REFERENCES Lingue (id),
-    FOREIGN KEY (lingua_originale_id) REFERENCES Lingue (id),
-    FULLTEXT INDEX idx_ricerca_libri (titolo, descrizione, editore)
+    FOREIGN KEY (lingua_originale_id) REFERENCES Lingue (id)
 );
 
 CREATE TABLE utenti
 (
     id_utente               INT AUTO_INCREMENT PRIMARY KEY,
-    cf                      VARCHAR(20) UNIQUE    NOT NULL,
+    cf                      VARCHAR(20) UNIQUE    NOT NULL, -- Modificato da CHAR(16) a VARCHAR(20)
     nome                    VARCHAR(100)       NOT NULL,
     cognome                 VARCHAR(100)       NOT NULL,
     email                   VARCHAR(255)       NOT NULL,
@@ -218,7 +217,9 @@ CREATE TABLE logs_audit
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente) ON DELETE SET NULL
 );
 
--- TABELLA STORICO NOTIFICHE
+-- AGGIUNTA TABELLA STORICO NOTIFICHE --
+
+-- TABELLA NOTIFICHE_WEB
 CREATE TABLE notifiche_web
 (
     id_notifica      INT AUTO_INCREMENT PRIMARY KEY,
@@ -227,8 +228,13 @@ CREATE TABLE notifiche_web
     titolo           VARCHAR(100) NOT NULL,
     messaggio        TEXT NOT NULL,
     link_azione      VARCHAR(255), -- Rimane per creare link diretti nella pagina Archivio e nell'email
+
+    -- Gestione Archivio Web
     letto            BOOLEAN DEFAULT FALSE,
+
+    -- Gestione Email
     stato_email      ENUM ('NON_RICHIESTA', 'DA_INVIARE', 'INVIATA', 'FALLITA') DEFAULT 'DA_INVIARE',
+
     data_creazione   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     data_invio_email TIMESTAMP NULL,
 
