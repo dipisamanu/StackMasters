@@ -40,6 +40,14 @@ class InventoryModel
             if (strlen($rfidCode) < 3) throw new Exception("Il codice RFID è troppo corto.");
             if (strlen($collocazione) < 2) throw new Exception("La collocazione non è valida.");
 
+            // CONTROLLO UNICITA' COLLOCAZIONE
+            // Verifica se esiste già un libro (qualsiasi) in quella posizione
+            $checkColl = $this->db->prepare("SELECT id_inventario FROM inventari WHERE collocazione = ?");
+            $checkColl->execute([$collocazione]);
+            if ($checkColl->fetch()) {
+                throw new Exception("La collocazione '$collocazione' è già occupata da un altro libro.");
+            }
+
             // 1. Gestione RFID
             $stmt = $this->db->prepare("SELECT id_rfid FROM rfid WHERE rfid = ? AND tipo = 'LIBRO'");
             $stmt->execute([$rfidCode]);
@@ -79,7 +87,6 @@ class InventoryModel
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            // Rilanciamo l'eccezione per il controller
             throw $e;
         }
     }
@@ -89,6 +96,13 @@ class InventoryModel
         $collocazione = strtoupper(trim($collocazione));
 
         if (strlen($collocazione) < 2) throw new Exception("Collocazione non valida.");
+
+        // CONTROLLO UNICITA' COLLOCAZIONE (Escludendo se stesso)
+        $checkColl = $this->db->prepare("SELECT id_inventario FROM inventari WHERE collocazione = ? AND id_inventario != ?");
+        $checkColl->execute([$collocazione, $copyId]);
+        if ($checkColl->fetch()) {
+            throw new Exception("La collocazione '$collocazione' è già occupata.");
+        }
 
         $sql = "UPDATE inventari SET 
                 collocazione = :coll, 
