@@ -9,16 +9,16 @@ $projectRoot = dirname(__DIR__, 2);
 if (file_exists($projectRoot . '/.env')) {
     try {
         Dotenv::createImmutable($projectRoot)->load();
-        $dbHost = $_ENV['DB_HOST'];
-        $dbName = $_ENV['DB_DATABASE'];
-        $dbUser = $_ENV['DB_USERNAME'];
-        $dbPass = $_ENV['DB_PASSWORD'];
-        $dbCharset = $_ENV['DB_CHARSET'];
-
     } catch (\Throwable $e) {
         throw new \Exception("Errore caricamento .env: " . $e->getMessage());
     }
 }
+
+$dbHost = $_ENV['DB_HOST'];
+$dbName = $_ENV['DB_DATABASE'];
+$dbUser = $_ENV['DB_USERNAME'];
+$dbPass = $_ENV['DB_PASSWORD'];
+$dbCharset = $_ENV['DB_CHARSET'];
 
 // Configurazione database da .env
 if (empty($_ENV['DB_HOST'])) {
