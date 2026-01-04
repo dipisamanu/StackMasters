@@ -9,6 +9,12 @@ $projectRoot = dirname(__DIR__, 2);
 if (file_exists($projectRoot . '/.env')) {
     try {
         Dotenv::createImmutable($projectRoot)->load();
+        $dbHost = $_ENV['DB_HOST'];
+        $dbName = $_ENV['DB_DATABASE'];
+        $dbUser = $_ENV['DB_USERNAME'];
+        $dbPass = $_ENV['DB_PASSWORD'];
+        $dbCharset = $_ENV['DB_CHARSET'];
+
     } catch (\Throwable $e) {
         throw new \Exception("Errore caricamento .env: " . $e->getMessage());
     }
@@ -24,12 +30,6 @@ if (empty($_ENV['DB_DATABASE'])) {
 if (empty($_ENV['DB_USERNAME'])) {
     throw new \Exception("Variabile DB_USERNAME non definita in .env");
 }
-
-$dbHost = $_ENV['DB_HOST'];
-$dbName = $_ENV['DB_DATABASE'];
-$dbUser = $_ENV['DB_USERNAME'];
-$dbPass = $_ENV['DB_PASSWORD'];
-$dbCharset = $_ENV['DB_CHARSET'];
 
 // Classe Database con PDO
 class Database {
