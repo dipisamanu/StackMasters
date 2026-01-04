@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Libri (Completo con getById e Collocazione Univoca)
+ * BookModel - Gestione Libri (Versione Pulita)
  * File: src/Models/BookModel.php
  */
 
@@ -92,32 +92,6 @@ class BookModel
 
             if (!empty($data['autore'])) {
                 $this->linkAuthor($idLibro, $this->clean($data['autore']));
-            }
-
-            // Generazione automatica inventario
-            $numCopie = (int)($data['num_copie'] ?? 0);
-            $collocazioneBase = $this->clean($data['collocazione'] ?? '');
-
-            if ($numCopie > 0 && !empty($collocazioneBase)) {
-                $isbnBase = $this->clean($data['isbn'] ?? 'BOOK');
-
-                $rfidStmt = $this->db->prepare("INSERT INTO rfid (rfid, tipo) VALUES (?, 'LIBRO')");
-                $invStmt = $this->db->prepare("INSERT INTO inventari (id_libro, id_rfid, collocazione, condizione, stato) 
-                                               VALUES (?, ?, ?, 'BUONO', 'DISPONIBILE')");
-
-                // Check preventivo se la collocazione base esiste gia, se si, aggiungiamo indice
-                for ($i = 1; $i <= $numCopie; $i++) {
-                    $tempRfid = substr($isbnBase, 0, 10) . '-' . time() . '-' . $i;
-
-                    // Modifica per garantire unicità: Aggiungi indice alla collocazione
-                    // Es: SCAFFALE-A diventa SCAFFALE-A-1, SCAFFALE-A-2
-                    $uniqueCollocazione = strtoupper($collocazioneBase . '-' . $i);
-
-                    $rfidStmt->execute([$tempRfid]);
-                    $idRfid = $this->db->lastInsertId();
-
-                    $invStmt->execute([$idLibro, $idRfid, $uniqueCollocazione]);
-                }
             }
 
             $this->db->commit();
