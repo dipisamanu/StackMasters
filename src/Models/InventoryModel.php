@@ -15,9 +15,6 @@ class InventoryModel
         $this->db = Database::getInstance()->getConnection();
     }
 
-    /**
-     * Recupera tutte le copie di un libro specifico
-     */
     public function getCopiesByBookId(int $bookId): array
     {
         $sql = "SELECT i.*, r.rfid as codice_rfid
@@ -31,38 +28,39 @@ class InventoryModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Aggiunge una singola copia manuale gestendo l'RFID
-     */
     public function addCopy(int $bookId, string $rfidCode, string $collocazione, string $condizione = 'BUONO'): bool
     {
         try {
             $this->db->beginTransaction();
 
-            // 1. Gestione RFID (Cerca o Crea)
             $rfidCode = trim($rfidCode);
+            $collocazione = strtoupper(trim($collocazione));
 
-            // Cerca se l'RFID esiste gia
+            // Validazione Base
+            if (strlen($rfidCode) < 3) throw new Exception("Il codice RFID è troppo corto.");
+            if (strlen($collocazione) < 2) throw new Exception("La collocazione non è valida.");
+
+            // 1. Gestione RFID
             $stmt = $this->db->prepare("SELECT id_rfid FROM rfid WHERE rfid = ? AND tipo = 'LIBRO'");
             $stmt->execute([$rfidCode]);
             $rfid = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($rfid) {
                 $idRfid = $rfid['id_rfid'];
-                // Controlla se questo RFID e gia assegnato a una copia nell'inventario
+                // Controllo se già usato
                 $check = $this->db->prepare("SELECT id_inventario FROM inventari WHERE id_rfid = ?");
                 $check->execute([$idRfid]);
                 if ($check->fetch()) {
-                    throw new Exception("Questo codice RFID e gia associato a un altro libro fisico.");
+                    throw new Exception("Questo codice RFID è già assegnato a un'altra copia fisica!");
                 }
             } else {
-                // Crea nuovo RFID se non esiste
+                // Crea nuovo RFID
                 $ins = $this->db->prepare("INSERT INTO rfid (rfid, tipo) VALUES (?, 'LIBRO')");
                 $ins->execute([$rfidCode]);
                 $idRfid = $this->db->lastInsertId();
             }
 
-            // 2. Inserisci la copia in Inventario
+            // 2. Inserisci in Inventario
             $sql = "INSERT INTO inventari (id_libro, id_rfid, collocazione, condizione, stato) 
                     VALUES (:id_libro, :id_rfid, :collocazione, :condizione, 'DISPONIBILE')";
 
@@ -70,7 +68,7 @@ class InventoryModel
             $stmt->execute([
                 ':id_libro' => $bookId,
                 ':id_rfid' => $idRfid,
-                ':collocazione' => strtoupper(trim($collocazione)),
+                ':collocazione' => $collocazione,
                 ':condizione' => $condizione
             ]);
 
@@ -81,16 +79,17 @@ class InventoryModel
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
+            // Rilanciamo l'eccezione per il controller
             throw $e;
         }
     }
 
-    /**
-     * Aggiorna i dati di una copia esistente
-     */
     public function updateCopy(int $copyId, string $collocazione, string $condizione, string $stato): bool
     {
-        // Nota: L'RFID non si modifica qui per integrita. Se cambia l'RFID, meglio eliminare e rifare la copia.
+        $collocazione = strtoupper(trim($collocazione));
+
+        if (strlen($collocazione) < 2) throw new Exception("Collocazione non valida.");
+
         $sql = "UPDATE inventari SET 
                 collocazione = :coll, 
                 condizione = :cond, 
@@ -99,29 +98,24 @@ class InventoryModel
 
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
-            ':coll' => strtoupper(trim($collocazione)),
+            ':coll' => $collocazione,
             ':cond' => $condizione,
             ':stato' => $stato,
             ':id' => $copyId
         ]);
     }
 
-    /**
-     * Elimina una copia dall'inventario
-     */
     public function deleteCopy(int $copyId): bool
     {
-        // Controlla se la copia e attualmente in prestito
         $check = $this->db->prepare("SELECT stato FROM inventari WHERE id_inventario = ?");
         $check->execute([$copyId]);
         $row = $check->fetch();
 
         if ($row && $row['stato'] === 'IN_PRESTITO') {
-            throw new Exception("Impossibile eliminare: la copia e attualmente in prestito.");
+            throw new Exception("Impossibile eliminare: la copia è attualmente in prestito.");
         }
 
         $stmt = $this->db->prepare("DELETE FROM inventari WHERE id_inventario = ?");
         return $stmt->execute([$copyId]);
     }
 }
-
