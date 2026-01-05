@@ -1,8 +1,11 @@
 <?php
 /**
- * Dashboard Studente - Versione Pulita
+ * Dashboard Studente - Bottoni in Header
  * File: dashboard/student/index.php
  */
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 require_once '../../src/config/session.php';
 require_once '../../src/config/database.php';
@@ -13,7 +16,7 @@ $db = Database::getInstance()->getConnection();
 $userId = $_SESSION['user_id'];
 $nomeCompleto = $_SESSION['nome'] ?? 'Studente';
 
-// Recupera prestiti
+// Recupera prestiti attivi
 $prestiti = [];
 try {
     $stmt = $db->prepare("
@@ -40,7 +43,7 @@ try {
     $prestiti = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) { }
 
-// Statistiche
+// Calcolo statistiche
 $totale = count($prestiti);
 $scaduti = count(array_filter($prestiti, fn($p) => $p['giorni_rimanenti'] < 0));
 $inScadenza = count(array_filter($prestiti, fn($p) => $p['giorni_rimanenti'] >= 0 && $p['giorni_rimanenti'] <= 3));
@@ -50,21 +53,36 @@ require_once '../../src/Views/layout/header.php';
 
     <div class="container py-5">
 
-        <div class="mb-5 border-bottom pb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h6 class="text-uppercase text-danger fw-bold small mb-1">Area Studente</h6>
-                <h1 class="fw-bold text-dark display-6">Bentornato, <?= htmlspecialchars($nomeCompleto) ?></h1>
+        <div class="mb-5 border-bottom pb-4">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center gap-3">
+
+                <div class="text-center text-lg-start">
+                    <h6 class="text-uppercase text-danger fw-bold small mb-1">Area Studente</h6>
+                    <h1 class="fw-bold text-dark display-6 mb-0">Bentornato, <?= htmlspecialchars($nomeCompleto) ?></h1>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a href="../../public/catalog.php" class="btn btn-danger rounded-pill px-4 shadow-sm fw-bold">
+                        <i class="fas fa-search me-2"></i>Cerca Libro
+                    </a>
+
+                    <a href="generate-card.php" class="btn btn-dark rounded-pill px-4 shadow-sm fw-bold">
+                        <i class="fas fa-qrcode me-2"></i>Tessera
+                    </a>
+
+                    <a href="profile.php" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm fw-bold">
+                        <i class="fas fa-user-cog me-2"></i>Profilo
+                    </a>
+                </div>
+
             </div>
-            <a href="../../public/catalog.php" class="btn btn-danger rounded-pill px-4 shadow-sm">
-                <i class="fas fa-search me-2"></i>Cerca un Libro
-            </a>
         </div>
 
         <div class="row g-4 mb-5">
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
                     <div class="card-body p-4">
-                        <h6 class="text-muted small text-uppercase">Libri in lettura</h6>
+                        <h6 class="text-muted small text-uppercase fw-bold">Libri in lettura</h6>
                         <h2 class="display-5 fw-bold text-primary mb-0"><?= $totale ?></h2>
                     </div>
                 </div>
@@ -72,7 +90,7 @@ require_once '../../src/Views/layout/header.php';
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
                     <div class="card-body p-4">
-                        <h6 class="text-muted small text-uppercase">In Scadenza</h6>
+                        <h6 class="text-muted small text-uppercase fw-bold">In Scadenza</h6>
                         <h2 class="display-5 fw-bold text-warning mb-0"><?= $inScadenza ?></h2>
                     </div>
                 </div>
@@ -80,21 +98,23 @@ require_once '../../src/Views/layout/header.php';
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm h-100 border-start border-4 border-danger">
                     <div class="card-body p-4">
-                        <h6 class="text-muted small text-uppercase">Scaduti</h6>
+                        <h6 class="text-muted small text-uppercase fw-bold">Scaduti</h6>
                         <h2 class="display-5 fw-bold text-danger mb-0"><?= $scaduti ?></h2>
                     </div>
                 </div>
             </div>
         </div>
 
-        <h4 class="fw-bold mb-4"><i class="fas fa-book-reader me-2"></i>I tuoi prestiti attivi</h4>
+        <h4 class="fw-bold mb-4 text-secondary"><i class="fas fa-book-reader me-2"></i>I tuoi prestiti attivi</h4>
 
         <?php if (empty($prestiti)): ?>
-            <div class="text-center py-5 bg-white rounded shadow-sm">
+            <div class="text-center py-5 bg-white rounded shadow-sm border border-light">
                 <div class="mb-3 text-muted opacity-25"><i class="fas fa-book-open fa-4x"></i></div>
-                <h5>Non hai libri in prestito</h5>
-                <p class="text-muted">È il momento perfetto per iniziare una nuova avventura.</p>
-                <a href="../../public/catalog.php" class="btn btn-outline-primary mt-2">Vai al Catalogo</a>
+                <h5 class="fw-bold text-muted">Non hai libri in prestito</h5>
+                <p class="text-muted small mb-3">È il momento perfetto per iniziare una nuova avventura.</p>
+                <a href="../../public/catalog.php" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                    Vai al Catalogo
+                </a>
             </div>
         <?php else: ?>
             <div class="row g-4">
@@ -104,19 +124,23 @@ require_once '../../src/Views/layout/header.php';
                     $statusText = $giorni < 0 ? "Scaduto da " . abs($giorni) . " gg" : ($giorni == 0 ? "Scade oggi" : "Scade tra $giorni gg");
                     ?>
                     <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-sm">
+                        <div class="card h-100 border-0 shadow-sm transition-hover">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between mb-3">
-                                    <span class="badge <?= $statusClass ?> rounded-pill"><?= $statusText ?></span>
-                                    <small class="text-muted"><i class="far fa-calendar me-1"></i> <?= date('d/m', strtotime($p['data_prestito'])) ?></small>
+                                <div class="d-flex justify-content-between mb-3 align-items-center">
+                                    <span class="badge <?= $statusClass ?> rounded-pill px-3"><?= $statusText ?></span>
+                                    <small class="text-muted fw-bold"><i class="far fa-calendar me-1"></i> <?= date('d/m', strtotime($p['data_prestito'])) ?></small>
                                 </div>
-                                <h5 class="card-title fw-bold text-truncate"><?= htmlspecialchars($p['titolo']) ?></h5>
-                                <p class="card-text text-muted small mb-4"><?= htmlspecialchars($p['autore'] ?? 'Autore sconosciuto') ?></p>
+                                <h5 class="card-title fw-bold text-truncate mb-1" title="<?= htmlspecialchars($p['titolo']) ?>">
+                                    <?= htmlspecialchars($p['titolo']) ?>
+                                </h5>
+                                <p class="card-text text-muted small mb-4">
+                                    <i class="fas fa-pen-nib me-1 opacity-50"></i> <?= htmlspecialchars($p['autore'] ?? 'Autore sconosciuto') ?>
+                                </p>
 
                                 <div class="d-grid">
-                                    <button class="btn btn-light btn-sm text-start" disabled>
-                                        <i class="fas fa-clock me-2"></i> Scadenza: <?= date('d/m/Y', strtotime($p['scadenza_prestito'])) ?>
-                                    </button>
+                                    <div class="p-2 bg-light rounded text-center small text-muted border">
+                                        <i class="fas fa-clock me-1 text-danger"></i> Scadenza: <strong><?= date('d/m/Y', strtotime($p['scadenza_prestito'])) ?></strong>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -125,11 +149,12 @@ require_once '../../src/Views/layout/header.php';
             </div>
         <?php endif; ?>
 
-        <div class="mt-5 text-center">
-            <a href="profile.php" class="btn btn-link text-decoration-none text-muted me-3"><i class="fas fa-user-cog me-1"></i> Gestisci Profilo</a>
-            <a href="generate-card.php" class="btn btn-link text-decoration-none text-muted"><i class="fas fa-qrcode me-1"></i> Tessera Digitale</a>
-        </div>
-
     </div>
+
+    <style>
+        /* Effetto hover leggero sulle card dei prestiti */
+        .transition-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .transition-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08)!important; }
+    </style>
 
 <?php require_once '../../src/Views/layout/footer.php'; ?>
