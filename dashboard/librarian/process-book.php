@@ -1,6 +1,6 @@
 <?php
 /**
- * Processo Gestione Libri (Upload File Support)
+ * Processo Gestione Libri (Aggiornato per Soft Delete)
  * File: dashboard/librarian/process-book.php
  */
 
@@ -24,7 +24,6 @@ try {
     }
 
     if ($action === 'create') {
-        // Passa $_FILES per la copertina
         $bookModel->create($_POST, $_FILES);
         $_SESSION['flash_success'] = "Libro aggiunto con successo!";
 
@@ -32,14 +31,14 @@ try {
         $id = $_POST['id_libro'] ?? 0;
         if (!$id) throw new Exception("ID mancante.");
 
-        // Passa $_FILES per la copertina
         $bookModel->update($id, $_POST, $_FILES);
         $_SESSION['flash_success'] = "Libro aggiornato!";
 
     } elseif ($action === 'delete') {
+        // Questa azione ora esegue un SOFT DELETE (Archiviazione)
         $id = $_POST['id_libro'] ?? 0;
         $bookModel->delete($id);
-        $_SESSION['flash_success'] = "Libro eliminato.";
+        $_SESSION['flash_success'] = "Libro archiviato/rimosso dal catalogo.";
     }
 
 } catch (Exception $e) {
@@ -58,16 +57,6 @@ function validateBookData(array $data) {
     }
 
     if (empty(trim($data['titolo']))) throw new Exception("Titolo obbligatorio.");
-    if (mb_strlen($data['titolo']) > 100) throw new Exception("Titolo troppo lungo (max 100).");
-
-    if (empty(trim($data['autore']))) throw new Exception("Autore obbligatorio.");
-
-    $anno = $data['anno'] ?? '';
-    if (!empty($anno)) {
-        if (!is_numeric($anno) || $anno < 1000 || $anno > date('Y')+2) {
-            throw new Exception("Anno non valido.");
-        }
-    }
 
     $isbn = $data['isbn'] ?? '';
     if (!empty($isbn)) {
@@ -76,3 +65,4 @@ function validateBookData(array $data) {
         }
     }
 }
+?>

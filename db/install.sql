@@ -237,6 +237,22 @@ CREATE TABLE notifiche_web
 
 ALTER TABLE libri ADD COLUMN immagine_copertina VARCHAR(255) DEFAULT NULL AFTER numero_pagine;
 
+-- 1. Aggiungiamo il flag per l'archiviazione del libro (Soft Delete)
+ALTER TABLE libri ADD COLUMN cancellato TINYINT(1) DEFAULT 0;
+
+-- 2. Aggiorniamo l'ENUM della tabella inventari per includere i nuovi stati fisici
+ALTER TABLE inventari MODIFY COLUMN stato ENUM('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'PERSO', 'SMARRITO', 'SCARTATO') DEFAULT 'DISPONIBILE';
+
+-- Allarghiamo il titolo a 255 caratteri (era 100)
+ALTER TABLE libri MODIFY COLUMN titolo VARCHAR(255) NOT NULL;
+
+-- Allarghiamo anche l'autore per sicurezza
+ALTER TABLE autori MODIFY COLUMN nome VARCHAR(100);
+ALTER TABLE autori MODIFY COLUMN cognome VARCHAR(100);
+
+-- Assicuriamoci che l'immagine possa contenere URL lunghi
+ALTER TABLE libri MODIFY COLUMN immagine_copertina VARCHAR(500);
+
 -- ===========================
 -- DATI DI ESEMPIO (SEED DATA)
 -- ===========================

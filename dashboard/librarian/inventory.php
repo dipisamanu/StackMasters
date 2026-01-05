@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Inventario (Frontend - Formato A1-01)
+ * Gestione Inventario (Con Stati Smarrito/Scartato)
  * File: dashboard/librarian/inventory.php
  */
 
@@ -45,12 +45,10 @@ require_once '../../src/Views/layout/header.php';
                         <span class="badge bg-light text-dark border font-monospace"><?= htmlspecialchars($book['isbn']) ?></span>
                     </div>
                 </div>
-                <a href="print-labels.php?id_libro=<?= $idLibro ?>" target="_blank" class="btn btn-outline-dark">
-                    <i class="fas fa-print me-2"></i>Stampa Etichette
-                </a>
-                <button class="btn btn-success shadow-sm" onclick="openCopyModal('add')">
-                    <i class="fas fa-plus me-2"></i>Aggiungi Copia
-                </button>
+                <div class="btn-group">
+                    <a href="print-labels.php?id_libro=<?= $idLibro ?>" target="_blank" class="btn btn-outline-dark"><i class="fas fa-print me-2"></i>Stampa Etichette</a>
+                    <button class="btn btn-success shadow-sm" onclick="openCopyModal('add')"><i class="fas fa-plus me-2"></i>Aggiungi Copia</button>
+                </div>
             </div>
         </div>
 
@@ -61,27 +59,27 @@ require_once '../../src/Views/layout/header.php';
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">RFID</th>
-                        <th>Collocazione</th>
-                        <th>Condizione</th>
-                        <th>Stato</th>
-                        <th class="text-end pe-4">Azioni</th>
-                    </tr>
+                    <tr><th class="ps-4">RFID</th><th>Collocazione</th><th>Condizione</th><th>Stato</th><th class="text-end pe-4">Azioni</th></tr>
                     </thead>
                     <tbody>
-                    <?php if (empty($copies)): ?>
-                        <tr><td colspan="5" class="text-center p-5 text-muted">Nessuna copia fisica.</td></tr>
-                    <?php else: ?>
+                    <?php if (empty($copies)): ?><tr><td colspan="5" class="text-center p-5 text-muted">Nessuna copia fisica.</td></tr><?php else: ?>
                         <?php foreach ($copies as $c): ?>
-                            <tr>
-                                <td class="ps-4 font-monospace fw-bold text-primary"><?= htmlspecialchars($c['codice_rfid']) ?></td>
+                            <tr class="<?= ($c['stato'] == 'SMARRITO' || $c['stato'] == 'SCARTATO') ? 'table-danger text-muted' : '' ?>">
+                                <td class="ps-4 font-monospace fw-bold text-primary"><?= htmlspecialchars($c['codice_rfid']??'N/D') ?></td>
                                 <td><span class="badge bg-white text-dark border"><?= htmlspecialchars($c['collocazione']) ?></span></td>
                                 <td><?= htmlspecialchars($c['condizione']) ?></td>
-                                <td><span class="badge bg-<?= $c['stato']=='DISPONIBILE'?'success':'secondary' ?>"><?= $c['stato'] ?></span></td>
+                                <td>
+                                    <?php
+                                    $bg = 'secondary';
+                                    if($c['stato']=='DISPONIBILE') $bg='success';
+                                    if($c['stato']=='SMARRITO') $bg='danger';
+                                    if($c['stato']=='SCARTATO') $bg='dark';
+                                    ?>
+                                    <span class="badge bg-<?= $bg ?>"><?= $c['stato'] ?></span>
+                                </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-light" onclick='openCopyModal("edit", <?= json_encode($c) ?>)'><i class="fas fa-edit"></i></button>
-                                    <form action="process-inventory.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare?');">
+                                    <form action="process-inventory.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare fisicamente? Usa lo stato Scartato se vuoi tenere lo storico.');">
                                         <input type="hidden" name="action" value="delete_copy">
                                         <input type="hidden" name="id_libro" value="<?= $idLibro ?>">
                                         <input type="hidden" name="id_inventario" value="<?= $c['id_inventario'] ?>">
@@ -89,8 +87,7 @@ require_once '../../src/Views/layout/header.php';
                                     </form>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php endforeach; endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -106,10 +103,7 @@ require_once '../../src/Views/layout/header.php';
                 </div>
                 <form action="process-inventory.php" method="POST" id="copyForm">
                     <div class="modal-body">
-                        <?php if ($modalError): ?>
-                            <div class="alert alert-danger"><?= htmlspecialchars($modalError) ?></div>
-                        <?php endif; ?>
-
+                        <?php if ($modalError): ?><div class="alert alert-danger"><?= htmlspecialchars($modalError) ?></div><?php endif; ?>
                         <input type="hidden" name="action" id="formAction" value="add_copy">
                         <input type="hidden" name="id_libro" value="<?= $idLibro ?>">
                         <input type="hidden" name="id_inventario" id="copyId">
@@ -127,7 +121,6 @@ require_once '../../src/Views/layout/header.php';
                                 <input type="text" name="collocazione" id="collocazione" class="form-control text-uppercase" required placeholder="Es. A1-01">
                                 <button type="button" class="btn btn-outline-primary" onclick="suggestLocation()" id="btnSuggest"><i class="fas fa-magic"></i> Auto</button>
                             </div>
-                            <div class="form-text text-muted">Formato: LetteraNumero-Numero (Es. A1-01)</div>
                         </div>
                         <div class="row">
                             <div class="col-6">
@@ -143,7 +136,8 @@ require_once '../../src/Views/layout/header.php';
                                 <select name="stato" id="stato" class="form-select">
                                     <option value="DISPONIBILE">Disponibile</option>
                                     <option value="NON_IN_PRESTITO">Non Prestabile</option>
-                                    <option value="PERSO">Perso</option>
+                                    <option value="SMARRITO">Smarrito</option>
+                                    <option value="SCARTATO">Scartato</option>
                                 </select>
                             </div>
                         </div>
@@ -163,100 +157,50 @@ require_once '../../src/Views/layout/header.php';
             const modalEl = document.getElementById('copyModal');
             if (modalEl) {
                 copyModal = new bootstrap.Modal(modalEl);
-                <?php if (!empty($oldData)): ?>
-                openCopyModal(<?= isset($oldData['id_inventario']) ? "'edit'" : "'add'" ?>, <?= json_encode($oldData) ?>, true);
-                <?php endif; ?>
+                <?php if (!empty($oldData)): ?> openCopyModal(<?= isset($oldData['id_inventario']) ? "'edit'" : "'add'" ?>, <?= json_encode($oldData) ?>, true); <?php endif; ?>
             }
         });
 
         function generateRFID() {
-            const rfidInput = document.getElementById('rfid');
-            if(rfidInput) {
-                rfidInput.value = 'LIB-' + Date.now().toString().slice(-6) + '-' + Math.floor(Math.random()*100);
-            }
+            document.getElementById('rfid').value = 'LIB-' + Date.now().toString().slice(-6) + '-' + Math.floor(Math.random()*100);
         }
 
         function suggestLocation() {
             const btn = document.getElementById('btnSuggest');
             const input = document.getElementById('collocazione');
-
-            if (!btn || !input) return;
-
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            btn.disabled = true;
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled=true;
 
             fetch('ajax-get-location.php')
-                .then(async response => {
-                    const text = await response.text();
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch (e) {
-                        console.error("Risposta non JSON:", text);
-                        throw new Error("Il server ha risposto con dati non validi.");
-                    }
-
-                    if (!data.success) {
-                        throw new Error(data.error || 'Errore sconosciuto');
-                    }
-                    return data;
-                })
+                .then(r => r.json())
                 .then(data => {
-                    input.value = data.location;
-                    input.classList.add('bg-warning', 'bg-opacity-25');
-                    setTimeout(() => input.classList.remove('bg-warning', 'bg-opacity-25'), 500);
+                    if(data.success) {
+                        input.value = data.location;
+                    } else alert("Errore: " + data.error);
                 })
-                .catch(err => {
-                    alert("Errore: " + err.message);
-                })
-                .finally(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                });
+                .catch(e => alert("Errore AJAX."))
+                .finally(() => { btn.innerHTML = orig; btn.disabled=false; });
         }
 
         function openCopyModal(mode, data = null, isOldData = false) {
-            const form = document.getElementById('copyForm');
-            if(!form) return;
-
-            if(!isOldData) form.reset();
-
-            const title = document.getElementById('modalTitle');
-            const action = document.getElementById('formAction');
-            const rfid = document.getElementById('rfid');
-            const coll = document.getElementById('collocazione');
-            const cond = document.getElementById('condizione');
-            const stato = document.getElementById('stato');
-            const copyId = document.getElementById('copyId');
-            const btnGen = document.getElementById('btnGenerate');
-
+            document.getElementById('copyForm').reset();
             if (mode === 'edit') {
-                title.innerText = 'Modifica Copia';
-                action.value = 'update_copy';
-                copyId.value = data.id_inventario;
-
-                rfid.value = isOldData ? data.rfid : data.codice_rfid;
-                rfid.disabled = true;
-                if(btnGen) btnGen.disabled = true;
-
-                coll.value = data.collocazione;
-                cond.value = data.condizione;
-                stato.value = data.stato;
-                stato.disabled = (data.stato === 'IN_PRESTITO');
+                document.getElementById('modalTitle').innerText = 'Modifica Copia';
+                document.getElementById('formAction').value = 'update_copy';
+                document.getElementById('copyId').value = data.id_inventario;
+                document.getElementById('rfid').value = isOldData ? data.rfid : data.codice_rfid;
+                document.getElementById('rfid').disabled = true;
+                document.getElementById('collocazione').value = data.collocazione;
+                document.getElementById('condizione').value = data.condizione;
+                document.getElementById('stato').value = data.stato;
+                // Se è in prestito, non puoi cambiare lo stato manualmente per evitare incongruenze
+                document.getElementById('stato').disabled = (data.stato === 'IN_PRESTITO');
             } else {
-                title.innerText = 'Nuova Copia';
-                action.value = 'add_copy';
-
-                rfid.disabled = false;
-                if(btnGen) btnGen.disabled = false;
-                stato.value = 'DISPONIBILE';
-                stato.disabled = false;
-
-                if(isOldData) {
-                    rfid.value = data.rfid;
-                    coll.value = data.collocazione;
-                }
+                document.getElementById('modalTitle').innerText = 'Nuova Copia';
+                document.getElementById('formAction').value = 'add_copy';
+                document.getElementById('rfid').disabled = false;
+                document.getElementById('stato').value = 'DISPONIBILE';
+                document.getElementById('stato').disabled = false;
             }
             copyModal.show();
         }
