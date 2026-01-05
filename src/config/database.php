@@ -61,3 +61,8 @@ class Database
         return $this->connection;
     }
 }
+
+function getDB(): PDO
+{
+    return Database::getInstance()->getConnection();
+}
