@@ -20,26 +20,26 @@ class Database
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
         $dotenv->load();
 
-        $host = $_ENV['DB_HOST'] ?? 'localhost';
+        $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
         $db_name = $_ENV['DB_NAME'] ?? 'biblioteca_db';
         $username = $_ENV['DB_USER'] ?? 'root';
         $password = $_ENV['DB_PASS'] ?? '';
-        $port = $_ENV['DB_PORT'] ?? '3306';
+        $port = $_ENV['DB_PORT'] ?? '3396';
+        $charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
+        $collation = $_ENV['DB_COLLATION'] ?? 'utf8mb4_unicode_ci';
 
         // Data Source Name
-        $dsn = "mysql:host=$host;port=$port;dbname=$db_name;charset=utf8mb4";
+        $dsn = "mysql:host=$host;port=$port;dbname=$db_name;charset=$charset";
 
         try {
             $this->connection = new PDO($dsn, $username, $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                // RIMOSSO: PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
-                // Questo causava l'errore Deprecated su PHP 8.4+
             ]);
 
             // Imposta il charset manualmente (Compatibile con tutte le versioni PHP)
-            $this->connection->exec("SET NAMES 'utf8mb4'");
+            $this->connection->exec("SET NAMES '$charset' COLLATE '$collation'");
 
         } catch (PDOException $e) {
             die("Errore di Connessione Database: " . $e->getMessage());
@@ -62,6 +62,7 @@ class Database
     }
 }
 
+// Funzione helper per ottenere la connessione PDO
 function getDB(): PDO
 {
     return Database::getInstance()->getConnection();
