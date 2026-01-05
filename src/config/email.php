@@ -29,17 +29,17 @@ class EmailService {
         $this->mailer = new PHPMailer(true);
 
         // Verifica che le variabili d'ambiente siano caricate
-        $requiredVars = ['MAIL_HOST', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_FROM_ADDRESS'];
+        $requiredVars = ['MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_FROM_ADDRESS'];
         foreach ($requiredVars as $var) {
             if (empty($_ENV[$var])) {
                 throw new \Exception("Variabile $var non definita in .env");
             }
         }
 
-        // Configurazione SMTP
+        // Configurazione SMTP usando i campi del nuovo .env
         $this->smtpConfig = [
             'host' => $_ENV['MAIL_HOST'],
-            'port' => (int)($_ENV['MAIL_PORT'] ?? 587),
+            'port' => (int)($_ENV['MAIL_PORT']),
             'encryption' => $_ENV['MAIL_ENCRYPTION'] ?? 'tls',
             'username' => $_ENV['MAIL_USERNAME'],
             'password' => $_ENV['MAIL_PASSWORD'],
@@ -52,15 +52,13 @@ class EmailService {
 
     private function configureMailer() {
         try {
-            // Debug mode (per vedere errori dettagliati)
             if ($this->debug) {
-                $this->mailer->SMTPDebug = 2; // 0 = off, 1 = client, 2 = client and server
+                $this->mailer->SMTPDebug = 2;
                 $this->mailer->Debugoutput = function($str, $level) {
                     error_log("PHPMailer [$level]: $str");
                 };
             }
 
-            // Configurazione SMTP
             $this->mailer->isSMTP();
             $this->mailer->Host = $this->smtpConfig['host'];
             $this->mailer->SMTPAuth = true;
@@ -69,7 +67,6 @@ class EmailService {
             $this->mailer->SMTPSecure = $this->smtpConfig['encryption'];
             $this->mailer->Port = $this->smtpConfig['port'];
 
-            // Impostazioni aggiuntive per Mailtrap
             $this->mailer->SMTPOptions = [
                 'ssl' => [
                     'verify_peer' => false,
@@ -78,7 +75,6 @@ class EmailService {
                 ]
             ];
 
-            // Mittente
             $this->mailer->setFrom($this->smtpConfig['from_email'], $this->smtpConfig['from_name']);
             $this->mailer->CharSet = 'UTF-8';
             $this->mailer->Encoding = 'base64';
@@ -90,21 +86,9 @@ class EmailService {
     }
 
     public function sendVerificationEmail($to, $nome, $token) {
-        // Usa APP_URL dal .env se disponibile, altrimenti usa BASE_URL o costruisci manualmente
-        if (!empty($_ENV['APP_URL'])) {
-            $baseUrl = rtrim($_ENV['APP_URL'], '/');
-        } elseif (defined('BASE_URL')) {
-            $baseUrl = BASE_URL;
-        } else {
-            // Fallback: costruisci URL manualmente
-            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $baseUrl = $protocol . '://' . $host . '/StackMasters';
-        }
+        $baseUrl = $_ENV['APP_URL'] ?? (defined('BASE_URL') ? BASE_URL : 'http://localhost/StackMasters');
+        $verifyUrl = rtrim($baseUrl, '/') . '/public/verify-email.php?token=' . urlencode($token);
 
-        $verifyUrl = $baseUrl . '/public/verify-email.php?token=' . urlencode($token);
-
-        // Log per debug
         error_log("BASE_URL utilizzato: " . $baseUrl);
         error_log("URL Verifica completo: " . $verifyUrl);
 
@@ -116,20 +100,15 @@ class EmailService {
 
     public function send($to, $subject, $body, $altBody = '') {
         try {
-            // Reset destinatari precedenti
             $this->mailer->clearAddresses();
             $this->mailer->clearAttachments();
-
-            // Aggiungi destinatario
             $this->mailer->addAddress($to);
 
-            // Imposta contenuto
             $this->mailer->isHTML(true);
             $this->mailer->Subject = $subject;
             $this->mailer->Body = $body;
             $this->mailer->AltBody = $altBody ?: strip_tags($body);
 
-            // Invia
             $result = $this->mailer->send();
 
             if ($result) {
@@ -148,7 +127,6 @@ class EmailService {
     }
 
     private function getVerificationTemplate($nome, $verifyUrl) {
-        // Template email con stili inline (migliore compatibilità con client email)
         return '
         <!DOCTYPE html>
         <html lang="it">
@@ -161,25 +139,19 @@ class EmailService {
                 <tr>
                     <td align="center">
                         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                            <!-- Header -->
                             <tr>
                                 <td style="background-color: #bf2121; padding: 30px; text-align: center;">
                                     <h1 style="margin: 0; color: #ffffff; font-size: 24px;">📚 Benvenuto nella Biblioteca ITIS Rossi!</h1>
                                 </td>
                             </tr>
-                            
-                            <!-- Content -->
                             <tr>
                                 <td style="padding: 30px;">
                                     <p style="margin: 0 0 15px 0; color: #333333; font-size: 16px; line-height: 1.6;">
                                         Ciao <strong>' . htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') . '</strong>,
                                     </p>
-                                    
                                     <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 1.6;">
                                         Grazie per esserti registrato! Per completare la registrazione e attivare il tuo account, clicca sul pulsante qui sotto:
                                     </p>
-                                    
-                                    <!-- Button -->
                                     <table>
                                         <tr>
                                             <td align="center" style="padding: 20px 0;">
@@ -191,11 +163,9 @@ class EmailService {
                                             </td>
                                         </tr>
                                     </table>
-                                    
                                     <p style="margin: 20px 0 10px 0; color: #333333; font-size: 16px; line-height: 1.6;">
                                         Oppure copia e incolla questo link nel browser:
                                     </p>
-                                    
                                     <div style="background-color: #f8f9fa; padding: 15px; border-left: 3px solid #bf2121; word-break: break-all; margin: 15px 0;">
                                         <a href="' . htmlspecialchars($verifyUrl, ENT_QUOTES, 'UTF-8') . '" 
                                            rel="noreferrer"
@@ -203,18 +173,14 @@ class EmailService {
                                             ' . htmlspecialchars($verifyUrl, ENT_QUOTES, 'UTF-8') . '
                                         </a>
                                     </div>
-                                    
                                     <p style="margin: 20px 0 0 0; color: #333333; font-size: 16px; line-height: 1.6;">
                                         <strong>⚠️ Attenzione:</strong> Questo link scadrà tra 24 ore.
                                     </p>
-                                    
                                     <p style="margin: 15px 0 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
                                         Se non hai effettuato questa registrazione, ignora questa email.
                                     </p>
                                 </td>
                             </tr>
-                            
-                            <!-- Footer -->
                             <tr>
                                 <td style="background-color: #f8f9fa; padding: 20px; text-align: center;">
                                     <p style="margin: 0 0 5px 0; color: #666666; font-size: 14px;">
