@@ -1,53 +1,64 @@
 <?php
-/**
- * Classe Database - Gestione connessione (Singleton)
- * File: src/config/database.php
- */
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
+// Carica .env (se presente) dalla root del progetto
+$projectRoot = dirname(__DIR__, 2);
+if (file_exists($projectRoot . '/.env')) {
+    try {
+        Dotenv::createImmutable($projectRoot)->load();
+    } catch (Exception $e) {
+        throw new Exception("Errore caricamento .env: " . $e->getMessage());
+    }
+}
+function getEnvVar(string $key): string
+{
+    if (!isset($_ENV[$key])) {
+        throw new Exception("Variabile di ambiente '$key' non definita in .env");
+    }
+    return $_ENV[$key];
+}
+
+// Configurazione database da .env
+$dbHost = getEnvVar('DB_HOST');
+$dbName = getEnvVar('DB_NAME');
+$dbUser = getEnvVar('DB_USER');
+$dbPass = getEnvVar('DB_PASS');
+
+// Classe Database con PDO
 class Database
 {
-    private static $instance = null;
-    private $connection;
+    private static ?Database $instance = null;
+    private PDO $pdo;
 
-    // Costruttore privato per il pattern Singleton
     private function __construct()
     {
-        // Carica le variabili d'ambiente
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-        $dotenv->load();
-
-        $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-        $db_name = $_ENV['DB_NAME'] ?? 'biblioteca_db';
-        $username = $_ENV['DB_USER'] ?? 'root';
-        $password = $_ENV['DB_PASS'] ?? '';
-        $port = $_ENV['DB_PORT'] ?? '3396';
-        $charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
-        $collation = $_ENV['DB_COLLATION'] ?? 'utf8mb4_unicode_ci';
-
-        // Data Source Name
-        $dsn = "mysql:host=$host;port=$port;dbname=$db_name;charset=$charset";
+        $dsn = "mysql:host=" . $GLOBALS['dbHost'] . ";dbname=" . $GLOBALS['dbName'] . ";charset=utf8mb4";
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+        ];
 
         try {
-            $this->connection = new PDO($dsn, $username, $password, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]);
-
-            // Imposta il charset manualmente (Compatibile con tutte le versioni PHP)
-            $this->connection->exec("SET NAMES '$charset' COLLATE '$collation'");
-
+            $this->pdo = new PDO($dsn, $GLOBALS['dbUser'], $GLOBALS['dbPass'], $options);
         } catch (PDOException $e) {
-            die("Errore di Connessione Database: " . $e->getMessage());
+            // Log dell'errore in un file invece di mostrarlo a video in produzione
+            error_log("Errore connessione database: " . $e->getMessage());
+
+            // In sviluppo mostra l'errore, in produzione mostra messaggio generico
+            if (defined('DEBUG_MODE') && DEBUG_MODE === true) {
+                throw new Exception("Errore SQL specifico: " . $e->getMessage());
+            } else {
+                throw new Exception("Impossibile connettersi al database. Riprova più tardi.");
+            }
         }
     }
 
-    // Metodo statico per ottenere l'istanza
-    public static function getInstance()
+    public static function getInstance(): ?Database
     {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -55,14 +66,12 @@ class Database
         return self::$instance;
     }
 
-    // Restituisce la connessione PDO
-    public function getConnection()
+    public function getConnection(): PDO
     {
-        return $this->connection;
+        return $this->pdo;
     }
 }
 
-// Funzione helper per ottenere la connessione PDO
 function getDB(): PDO
 {
     return Database::getInstance()->getConnection();
