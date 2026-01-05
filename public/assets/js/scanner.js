@@ -127,5 +127,14 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("book_barcode").focus();
             return;
         }
+
+        // Gestione invio automatico form (SOLO SE ESISTE UN FORM DI LOGIN O RICERCA)
+        const form = document.querySelector('form'); // Prende il primo form della pagina
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Se stiamo scansionando, potremmo voler fare qualcosa qui
+                // Altrimenti lascia il comportamento standard
+            });
+        }
     });
 });

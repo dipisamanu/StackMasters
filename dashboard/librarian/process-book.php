@@ -1,11 +1,12 @@
 <?php
 /**
- * Processo Gestione Libri (Pulito)
+ * Processo Gestione Libri (Conserva i trattini in input, ma valida checksum)
  * File: dashboard/librarian/process-book.php
  */
 
 require_once '../../src/config/session.php';
 require_once '../../src/Models/BookModel.php';
+require_once '../../src/Helpers/IsbnValidator.php';
 
 Session::requireRole('Bibliotecario');
 
@@ -66,9 +67,13 @@ function validateBookData(array $data) {
         }
     }
 
-    $isbn = preg_replace('/[^0-9X]/i', '', $data['isbn'] ?? '');
-    if (!empty($data['isbn']) && strlen($isbn) !== 10 && strlen($isbn) !== 13) {
-        throw new Exception("ISBN deve avere 10 o 13 cifre.");
+    // VALIDAZIONE ISBN CHECKSUM (User Input raw)
+    $isbn = $data['isbn'] ?? '';
+    if (!empty($isbn)) {
+        // IsbnValidator::validate() pulisce da sola i trattini prima di calcolare
+        if (!IsbnValidator::validate($isbn)) {
+            throw new Exception("Codice ISBN non valido (Checksum errato).");
+        }
     }
 }
 ?>
