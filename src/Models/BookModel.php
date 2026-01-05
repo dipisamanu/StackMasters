@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Libri con Immagini
+ * BookModel - Gestione Libri con Soft Delete (Archiviazione)
  * File: src/Models/BookModel.php
  */
 
@@ -21,12 +21,12 @@ class BookModel
     {
         $sql = "SELECT l.*, 
                        GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
-                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro) as copie_totali,
+                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') as copie_totali,
                        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') as copie_disponibili
                 FROM libri l
                 LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
                 LEFT JOIN autori a ON la.id_autore = a.id
-                WHERE l.id_libro = :id
+                WHERE l.id_libro = :id AND l.cancellato = 0
                 GROUP BY l.id_libro";
 
         $stmt = $this->db->prepare($sql);
@@ -43,14 +43,15 @@ class BookModel
     {
         $offset = ($page - 1) * $perPage;
 
+        // Filtriamo per cancellato = 0
         $sql = "SELECT l.*, 
                        GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
-                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro) as copie_totali,
+                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') as copie_totali,
                        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') as copie_disponibili
                 FROM libri l
                 LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
                 LEFT JOIN autori a ON la.id_autore = a.id
-                WHERE 1=1";
+                WHERE l.cancellato = 0";
 
         $params = [];
 
@@ -94,7 +95,7 @@ class BookModel
                 FROM libri l
                 LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
                 LEFT JOIN autori a ON la.id_autore = a.id
-                WHERE 1=1";
+                WHERE l.cancellato = 0";
 
         $params = [];
 
@@ -120,7 +121,6 @@ class BookModel
         try {
             $this->db->beginTransaction();
 
-            // GESTIONE IMMAGINE
             $coverPath = null;
             if (isset($files['copertina']) && $files['copertina']['error'] === 0) {
                 $coverPath = $this->uploadCover($files['copertina']);
@@ -128,8 +128,8 @@ class BookModel
                 $coverPath = $data['copertina_url'];
             }
 
-            $sql = "INSERT INTO libri (titolo, isbn, editore, anno_uscita, descrizione, numero_pagine, immagine_copertina) 
-                    VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine, :img)";
+            $sql = "INSERT INTO libri (titolo, isbn, editore, anno_uscita, descrizione, numero_pagine, immagine_copertina, cancellato) 
+                    VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine, :img, 0)";
 
             $stmt = $this->db->prepare($sql);
 
@@ -172,16 +172,14 @@ class BookModel
         try {
             $this->db->beginTransaction();
 
-            // Recupera immagine vecchia
             $oldBook = $this->getById($id);
+            if (!$oldBook) throw new Exception("Libro non trovato o cancellato.");
+
             $coverPath = $oldBook['immagine_copertina'];
 
-            // Se c'è un nuovo file, caricalo e sostituisci
             if (isset($files['copertina']) && $files['copertina']['error'] === 0) {
                 $coverPath = $this->uploadCover($files['copertina']);
-            }
-            // Se non c'è file ma c'è un URL nuovo dall'API, usa quello
-            elseif (!empty($data['copertina_url'])) {
+            } elseif (!empty($data['copertina_url'])) {
                 $coverPath = $data['copertina_url'];
             }
 
@@ -227,22 +225,33 @@ class BookModel
         }
     }
 
+    /**
+     * SOFT DELETE: Segna il libro come cancellato ma mantiene i dati.
+     */
     public function delete(int $idLibro): bool
     {
         try {
-            $check = $this->db->prepare("SELECT COUNT(*) FROM prestiti p JOIN inventari i ON p.id_inventario = i.id_inventario WHERE i.id_libro = ? AND p.data_restituzione IS NULL");
+            // Controlla SOLO se ci sono prestiti ATTIVI (non ancora restituiti)
+            // Se lo storico esiste (restituiti), non importa, possiamo archiviare il libro.
+            $check = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM prestiti p 
+                JOIN inventari i ON p.id_inventario = i.id_inventario 
+                WHERE i.id_libro = ? AND p.data_restituzione IS NULL
+            ");
             $check->execute([$idLibro]);
-            if ($check->fetchColumn() > 0) throw new Exception("Impossibile eliminare: copie in prestito.");
-
-            $this->db->beginTransaction();
-            foreach(['recensioni', 'prenotazioni', 'libri_autori', 'libri_generi', 'inventari'] as $t) {
-                $this->db->prepare("DELETE FROM $t WHERE id_libro = ?")->execute([$idLibro]);
+            if ($check->fetchColumn() > 0) {
+                throw new Exception("Impossibile archiviare: ci sono copie attualmente in prestito. Attendere la restituzione.");
             }
-            $this->db->prepare("DELETE FROM libri WHERE id_libro = ?")->execute([$idLibro]);
-            $this->db->commit();
+
+            // SOFT DELETE
+            $this->db->prepare("UPDATE libri SET cancellato = 1 WHERE id_libro = ?")->execute([$idLibro]);
+
+            // Opzionale: Possiamo anche segnare tutte le copie come 'SCARTATO' o 'FUORI_CATALOGO'
+            // Ma per ora lasciamole come sono per mantenere lo storico pulito
+
             return true;
         } catch (Exception $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
             throw $e;
         }
     }
@@ -251,7 +260,7 @@ class BookModel
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-        if (!in_array($ext, $allowed)) throw new Exception("Formato immagine non valido (solo JPG, PNG, WEBP).");
+        if (!in_array($ext, $allowed)) throw new Exception("Formato immagine non valido.");
         if ($file['size'] > 2 * 1024 * 1024) throw new Exception("Immagine troppo pesante (max 2MB).");
 
         $targetDir = __DIR__ . '/../../public/uploads/covers/';
