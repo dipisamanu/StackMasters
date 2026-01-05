@@ -78,6 +78,16 @@ class OpenLibraryService
             $descrizione = $info['excerpts'][0]['text'] ?? '';
         }
 
+        $imgUrl = '';
+        if (isset($info['cover']['medium'])) {
+            $imgUrl = $info['cover']['medium'];
+        } elseif (isset($data[$queryKey]['cover']['large'])) { // A volte struttura diversa
+            $imgUrl = $data[$queryKey]['cover']['large'];
+        } else {
+            // Tentativo generico basato su ISBN
+            $imgUrl = "https://covers.openlibrary.org/b/isbn/$cleanIsbn-M.jpg";
+        }
+
         return [
             'titolo' => $info['title'] ?? '',
             'autore' => $autoriStr,
@@ -85,7 +95,8 @@ class OpenLibraryService
             'anno' => $anno,
             'descrizione' => $descrizione,
             'pagine' => $info['number_of_pages'] ?? 0,
-            'isbn' => $cleanIsbn
+            'isbn' => $cleanIsbn,
+            'copertina' => $imgUrl
         ];
     }
 }

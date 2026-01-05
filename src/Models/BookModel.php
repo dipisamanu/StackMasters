@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Fix Missing Column 'copie_totali'
+ * BookModel - Gestione Libri con Immagini
  * File: src/Models/BookModel.php
  */
 
@@ -36,7 +36,6 @@ class BookModel
 
     public function getAll(string $search = '', array $filters = []): array
     {
-        // Usa la paginazione con un limite alto per simulare "tutti" i risultati
         return $this->paginate(1, 1000, $search, $filters);
     }
 
@@ -44,7 +43,6 @@ class BookModel
     {
         $offset = ($page - 1) * $perPage;
 
-        // FIX: Aggiunta la colonna 'copie_totali' mancante
         $sql = "SELECT l.*, 
                        GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
                        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro) as copie_totali,
@@ -59,8 +57,6 @@ class BookModel
         if (!empty($search)) {
             $trimSearch = trim($search);
             $like = "%$trimSearch%";
-
-            // Se la ricerca sembra un ISBN, la puliamo per cercare nel DB
             $cleanSearchIsbn = IsbnValidator::clean($trimSearch);
             $likeIsbn = "%$cleanSearchIsbn%";
 
@@ -119,13 +115,21 @@ class BookModel
         return (int)$stmt->fetchColumn();
     }
 
-    public function create(array $data): bool
+    public function create(array $data, array $files = []): bool
     {
         try {
             $this->db->beginTransaction();
 
-            $sql = "INSERT INTO libri (titolo, isbn, editore, anno_uscita, descrizione, numero_pagine) 
-                    VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine)";
+            // GESTIONE IMMAGINE
+            $coverPath = null;
+            if (isset($files['copertina']) && $files['copertina']['error'] === 0) {
+                $coverPath = $this->uploadCover($files['copertina']);
+            } elseif (!empty($data['copertina_url'])) {
+                $coverPath = $data['copertina_url'];
+            }
+
+            $sql = "INSERT INTO libri (titolo, isbn, editore, anno_uscita, descrizione, numero_pagine, immagine_copertina) 
+                    VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine, :img)";
 
             $stmt = $this->db->prepare($sql);
 
@@ -138,7 +142,8 @@ class BookModel
                 ':editore' => $this->clean($data['editore'] ?? ''),
                 ':anno' => $annoDate,
                 ':descrizione' => $this->clean($data['descrizione'] ?? ''),
-                ':pagine' => !empty($data['pagine']) ? (int)$data['pagine'] : null
+                ':pagine' => !empty($data['pagine']) ? (int)$data['pagine'] : null,
+                ':img' => $coverPath
             ]);
 
             $idLibro = $this->db->lastInsertId();
@@ -153,7 +158,7 @@ class BookModel
         } catch (PDOException $e) {
             $this->db->rollBack();
             if ($e->errorInfo[1] == 1062) {
-                throw new Exception("Un libro con questo ISBN è già presente nella libreria.");
+                throw new Exception("Un libro con questo ISBN è già presente.");
             }
             throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
@@ -162,14 +167,28 @@ class BookModel
         }
     }
 
-    public function update(int $id, array $data): bool
+    public function update(int $id, array $data, array $files = []): bool
     {
         try {
             $this->db->beginTransaction();
 
+            // Recupera immagine vecchia
+            $oldBook = $this->getById($id);
+            $coverPath = $oldBook['immagine_copertina'];
+
+            // Se c'è un nuovo file, caricalo e sostituisci
+            if (isset($files['copertina']) && $files['copertina']['error'] === 0) {
+                $coverPath = $this->uploadCover($files['copertina']);
+            }
+            // Se non c'è file ma c'è un URL nuovo dall'API, usa quello
+            elseif (!empty($data['copertina_url'])) {
+                $coverPath = $data['copertina_url'];
+            }
+
             $sql = "UPDATE libri SET 
                     titolo = :titolo, isbn = :isbn, editore = :editore, 
-                    anno_uscita = :anno, descrizione = :descrizione, numero_pagine = :pagine 
+                    anno_uscita = :anno, descrizione = :descrizione, 
+                    numero_pagine = :pagine, immagine_copertina = :img
                     WHERE id_libro = :id";
 
             $stmt = $this->db->prepare($sql);
@@ -184,6 +203,7 @@ class BookModel
                 ':anno' => $annoDate,
                 ':descrizione' => $this->clean($data['descrizione'] ?? ''),
                 ':pagine' => !empty($data['pagine']) ? (int)$data['pagine'] : null,
+                ':img' => $coverPath,
                 ':id' => $id
             ]);
 
@@ -210,11 +230,7 @@ class BookModel
     public function delete(int $idLibro): bool
     {
         try {
-            $check = $this->db->prepare("
-                SELECT COUNT(*) FROM prestiti p
-                JOIN inventari i ON p.id_inventario = i.id_inventario
-                WHERE i.id_libro = ? AND p.data_restituzione IS NULL
-            ");
+            $check = $this->db->prepare("SELECT COUNT(*) FROM prestiti p JOIN inventari i ON p.id_inventario = i.id_inventario WHERE i.id_libro = ? AND p.data_restituzione IS NULL");
             $check->execute([$idLibro]);
             if ($check->fetchColumn() > 0) throw new Exception("Impossibile eliminare: copie in prestito.");
 
@@ -229,6 +245,24 @@ class BookModel
             if ($this->db->inTransaction()) $this->db->rollBack();
             throw $e;
         }
+    }
+
+    private function uploadCover($file) {
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($ext, $allowed)) throw new Exception("Formato immagine non valido (solo JPG, PNG, WEBP).");
+        if ($file['size'] > 2 * 1024 * 1024) throw new Exception("Immagine troppo pesante (max 2MB).");
+
+        $targetDir = __DIR__ . '/../../public/uploads/covers/';
+        if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+
+        $filename = uniqid('cover_') . '.' . $ext;
+
+        if (move_uploaded_file($file['tmp_name'], $targetDir . $filename)) {
+            return 'uploads/covers/' . $filename;
+        }
+        throw new Exception("Errore durante il caricamento dell'immagine.");
     }
 
     private function linkAuthor(int $idLibro, string $fullName)
