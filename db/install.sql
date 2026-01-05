@@ -7,7 +7,8 @@ CREATE TABLE autori
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(100) NOT NULL,
     cognome              VARCHAR(100) NOT NULL,
-    ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FULLTEXT INDEX idx_ft_autore (nome, cognome)
 );
 
 CREATE TABLE lingue
@@ -53,7 +54,7 @@ CREATE TABLE rfid
 CREATE TABLE libri
 (
     id_libro             INT AUTO_INCREMENT PRIMARY KEY,
-    titolo               VARCHAR(100) NOT NULL,
+    titolo               VARCHAR(255) NOT NULL,
     descrizione          TEXT,
     isbn                 VARCHAR(17) UNIQUE,
     anno_uscita          DATETIME,
@@ -61,13 +62,15 @@ CREATE TABLE libri
     lingua_id            INT,
     lingua_originale_id  INT,
     numero_pagine        INT,
+    immagine_copertina   VARCHAR(500) DEFAULT NULL,
     valore_copertina     DECIMAL(7, 2),
     rating               FLOAT     DEFAULT 0,
     copertina_url        TEXT,
+    cancellato           TINYINT DEFAULT 0,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (lingua_id) REFERENCES Lingue (id),
     FOREIGN KEY (lingua_originale_id) REFERENCES Lingue (id),
-    FULLTEXT INDEX idx_ricerca_libri (titolo, descrizione, editore)
+    FULLTEXT INDEX idx_ricerca_libri (titolo, editore)
 );
 
 CREATE TABLE utenti
@@ -143,7 +146,7 @@ CREATE TABLE inventari
     id_inventario        INT AUTO_INCREMENT PRIMARY KEY,
     id_libro             INT NOT NULL,
     id_rfid              INT UNIQUE,
-    stato                ENUM ('DISPONIBILE','IN_PRESTITO','PRENOTATO','NON_IN_PRESTITO') DEFAULT 'DISPONIBILE',
+    stato                ENUM('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'PERSO', 'SMARRITO', 'SCARTATO') DEFAULT 'DISPONIBILE',
     condizione           ENUM ('BUONO', 'DANNEGGIATO', 'PERSO')                           DEFAULT 'BUONO',
     collocazione         VARCHAR(20),
     ultimo_aggiornamento TIMESTAMP                                                        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -234,24 +237,6 @@ CREATE TABLE notifiche_web
 
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente) ON DELETE CASCADE
 );
-
-ALTER TABLE libri ADD COLUMN immagine_copertina VARCHAR(255) DEFAULT NULL AFTER numero_pagine;
-
--- 1. Aggiungiamo il flag per l'archiviazione del libro (Soft Delete)
-ALTER TABLE libri ADD COLUMN cancellato TINYINT(1) DEFAULT 0;
-
--- 2. Aggiorniamo l'ENUM della tabella inventari per includere i nuovi stati fisici
-ALTER TABLE inventari MODIFY COLUMN stato ENUM('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'PERSO', 'SMARRITO', 'SCARTATO') DEFAULT 'DISPONIBILE';
-
--- Allarghiamo il titolo a 255 caratteri (era 100)
-ALTER TABLE libri MODIFY COLUMN titolo VARCHAR(255) NOT NULL;
-
--- Allarghiamo anche l'autore per sicurezza
-ALTER TABLE autori MODIFY COLUMN nome VARCHAR(100);
-ALTER TABLE autori MODIFY COLUMN cognome VARCHAR(100);
-
--- Assicuriamoci che l'immagine possa contenere URL lunghi
-ALTER TABLE libri MODIFY COLUMN immagine_copertina VARCHAR(500);
 
 -- ===========================
 -- DATI DI ESEMPIO (SEED DATA)
