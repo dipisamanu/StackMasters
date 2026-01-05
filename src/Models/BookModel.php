@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Libri con Soft Delete (Archiviazione)
+ * BookModel - Gestione Libri (Versione Fix Seeder)
  * File: src/Models/BookModel.php
  */
 
@@ -43,7 +43,6 @@ class BookModel
     {
         $offset = ($page - 1) * $perPage;
 
-        // Filtriamo per cancellato = 0
         $sql = "SELECT l.*, 
                        GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
                        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') as copie_totali,
@@ -116,7 +115,10 @@ class BookModel
         return (int)$stmt->fetchColumn();
     }
 
-    public function create(array $data, array $files = []): bool
+    /**
+     * MODIFICATO: Restituisce int (ID del libro creato) invece di bool.
+     */
+    public function create(array $data, array $files = []): int
     {
         try {
             $this->db->beginTransaction();
@@ -146,23 +148,19 @@ class BookModel
                 ':img' => $coverPath
             ]);
 
-            $idLibro = $this->db->lastInsertId();
+            // CATTURIAMO L'ID PRIMA DEL COMMIT
+            $idLibro = (int)$this->db->lastInsertId();
 
             if (!empty($data['autore'])) {
                 $this->linkAuthor($idLibro, $this->clean($data['autore']));
             }
 
             $this->db->commit();
-            return true;
+            return $idLibro; // RITORNA L'ID
 
-        } catch (PDOException $e) {
-            $this->db->rollBack();
-            if ($e->errorInfo[1] == 1062) {
-                throw new Exception("Un libro con questo ISBN è già presente.");
-            }
-            throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
             $this->db->rollBack();
+            // Rilanciamo l'errore per vederlo nel seeder
             throw $e;
         }
     }
@@ -213,26 +211,15 @@ class BookModel
             $this->db->commit();
             return true;
 
-        } catch (PDOException $e) {
-            $this->db->rollBack();
-            if ($e->errorInfo[1] == 1062) {
-                throw new Exception("Impossibile salvare: ISBN già assegnato.");
-            }
-            throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
         }
     }
 
-    /**
-     * SOFT DELETE: Segna il libro come cancellato ma mantiene i dati.
-     */
     public function delete(int $idLibro): bool
     {
         try {
-            // Controlla SOLO se ci sono prestiti ATTIVI (non ancora restituiti)
-            // Se lo storico esiste (restituiti), non importa, possiamo archiviare il libro.
             $check = $this->db->prepare("
                 SELECT COUNT(*) 
                 FROM prestiti p 
@@ -241,15 +228,10 @@ class BookModel
             ");
             $check->execute([$idLibro]);
             if ($check->fetchColumn() > 0) {
-                throw new Exception("Impossibile archiviare: ci sono copie attualmente in prestito. Attendere la restituzione.");
+                throw new Exception("Impossibile archiviare: ci sono copie attualmente in prestito.");
             }
 
-            // SOFT DELETE
             $this->db->prepare("UPDATE libri SET cancellato = 1 WHERE id_libro = ?")->execute([$idLibro]);
-
-            // Opzionale: Possiamo anche segnare tutte le copie come 'SCARTATO' o 'FUORI_CATALOGO'
-            // Ma per ora lasciamole come sono per mantenere lo storico pulito
-
             return true;
         } catch (Exception $e) {
             throw $e;
