@@ -1,6 +1,6 @@
 <?php
 /**
- * AJAX Endpoint - Recupera dati libro da Google Books (Debug Version)
+ * AJAX Endpoint - Recupera dati libro (Google Books + Open Library Fallback)
  * File: dashboard/librarian/ajax-fetch-book.php
  */
 
@@ -15,7 +15,8 @@ try {
     // Percorsi relativi corretti
     $paths = [
         '../../src/config/session.php',
-        '../../src/Services/GoogleBooksService.php'
+        '../../src/Services/GoogleBooksService.php',
+        '../../src/Services/OpenLibraryService.php'
     ];
 
     foreach ($paths as $path) {
@@ -26,12 +27,11 @@ try {
     }
 
     // 1. Controllo Permessi
-    // Gestione flessibile del ruolo (Array o Stringa)
     $roleData = $_SESSION['ruolo_principale'] ?? $_SESSION['role'] ?? null;
     $roleName = is_array($roleData) ? ($roleData['nome'] ?? '') : $roleData;
 
     if (!isset($_SESSION['user_id']) || $roleName !== 'Bibliotecario') {
-        throw new Exception("Accesso negato. Ruolo rilevato: " . htmlspecialchars((string)$roleName));
+        throw new Exception("Accesso negato.");
     }
 
     // 2. Recupero Input
@@ -40,18 +40,28 @@ try {
         throw new Exception("ISBN non fornito.");
     }
 
-    // 3. Chiamata al Servizio
-    $service = new GoogleBooksService();
-    $bookData = $service->fetchByIsbn($isbn);
+    // 3. TENTATIVO 1: Google Books API
+    $gbService = new GoogleBooksService();
+    $bookData = $gbService->fetchByIsbn($isbn);
+    $source = 'Google Books';
+
+    // 4. TENTATIVO 2: Open Library API (Fallback)
+    if (!$bookData) {
+        $olService = new OpenLibraryService();
+        $bookData = $olService->fetchByIsbn($isbn);
+        $source = 'Open Library';
+    }
 
     ob_clean();
 
     if ($bookData) {
+        // Aggiungiamo la fonte ai dati per debug (opzionale, ma utile)
+        $bookData['_source'] = $source;
         echo json_encode(['success' => true, 'data' => $bookData]);
     } else {
         echo json_encode([
             'success' => false,
-            'error' => "Nessun risultato trovato per ISBN: $isbn"
+            'error' => "Nessun risultato trovato per ISBN: $isbn (Cercato su Google e Open Library)"
         ]);
     }
 
