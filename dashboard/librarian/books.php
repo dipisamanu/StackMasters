@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Catalogo Libri (Versione Pulita)
+ * Gestione Catalogo Libri (Con Integrazione Google Books API)
  * File: dashboard/librarian/books.php
  */
 
@@ -163,6 +163,18 @@ require_once '../../src/Views/layout/header.php';
 
                         <div class="row g-3">
                             <div class="col-md-12">
+                                <label class="form-label fw-bold">ISBN (Ricerca Automatica)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-barcode"></i></span>
+                                    <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="Scansiona o digita ISBN (es. 97888...)" onkeypress="handleEnter(event)">
+                                    <button type="button" class="btn btn-primary" id="btnFetch" onclick="fetchBookData()">
+                                        <i class="fas fa-search"></i> Cerca Dati
+                                    </button>
+                                </div>
+                                <div class="form-text">Premi 'Cerca' per compilare automaticamente i campi da Google Books.</div>
+                            </div>
+
+                            <div class="col-md-12">
                                 <label class="form-label fw-bold">Titolo *</label>
                                 <input type="text" name="titolo" id="titolo" class="form-control" required maxlength="100">
                             </div>
@@ -174,15 +186,11 @@ require_once '../../src/Views/layout/header.php';
                                 <label class="form-label">Editore</label>
                                 <input type="text" name="editore" id="editore" class="form-control" maxlength="100">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label">Anno</label>
                                 <input type="number" name="anno" id="anno" class="form-control" min="1400" max="<?= date('Y')+2 ?>" placeholder="YYYY">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">ISBN</label>
-                                <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="10 o 13 cifre">
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label">Pagine</label>
                                 <input type="number" name="pagine" id="pagine" class="form-control" min="1">
                             </div>
@@ -204,18 +212,75 @@ require_once '../../src/Views/layout/header.php';
     <script>
         let bookModal;
         document.addEventListener('DOMContentLoaded', function() {
-            bookModal = new bootstrap.Modal(document.getElementById('bookModal'));
-
-            <?php if (!empty($oldData)): ?>
-            const old = <?= json_encode($oldData) ?>;
-            const mode = old.id_libro ? 'edit' : 'create';
-            openModal(mode, old, true);
-            <?php endif; ?>
+            const modalEl = document.getElementById('bookModal');
+            if(modalEl) {
+                bookModal = new bootstrap.Modal(modalEl);
+                <?php if (!empty($oldData)): ?>
+                const old = <?= json_encode($oldData) ?>;
+                const mode = old.id_libro ? 'edit' : 'create';
+                openModal(mode, old, true);
+                <?php endif; ?>
+            }
         });
+
+        // Funzione per chiamare Google Books via AJAX locale
+        function fetchBookData() {
+            const isbnInput = document.getElementById('isbn');
+            const btn = document.getElementById('btnFetch');
+            const isbn = isbnInput.value.trim();
+
+            if (isbn.length < 10) {
+                alert("Inserisci un ISBN valido (almeno 10 cifre).");
+                return;
+            }
+
+            // UI Feedback
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Attendi...';
+            btn.disabled = true;
+            isbnInput.disabled = true;
+
+            fetch('ajax-fetch-book.php?isbn=' + encodeURIComponent(isbn))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Popola i campi
+                        const book = data.data;
+                        document.getElementById('titolo').value = book.titolo;
+                        document.getElementById('autore').value = book.autore;
+                        document.getElementById('editore').value = book.editore;
+                        document.getElementById('anno').value = book.anno;
+                        document.getElementById('pagine').value = book.pagine;
+                        document.getElementById('descrizione').value = book.descrizione;
+
+                        // Flash di successo visivo
+                        document.getElementById('titolo').classList.add('bg-success', 'bg-opacity-10');
+                        setTimeout(() => document.getElementById('titolo').classList.remove('bg-success', 'bg-opacity-10'), 1000);
+                    } else {
+                        alert("Errore: " + data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Errore di comunicazione col server.");
+                })
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    isbnInput.disabled = false;
+                });
+        }
+
+        // Permette di cercare premendo Invio nel campo ISBN senza inviare il form
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                fetchBookData();
+            }
+        }
 
         function openModal(mode, data = null, isOldData = false) {
             const form = document.getElementById('bookForm');
-
             if(!isOldData) form.reset();
 
             if (mode === 'edit') {
