@@ -1,10 +1,11 @@
 <?php
 /**
- * BookModel - Gestione Libri (Versione Pulita)
+ * BookModel - Fix Missing Column 'copie_totali'
  * File: src/Models/BookModel.php
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../Helpers/IsbnValidator.php';
 
 class BookModel
 {
@@ -19,7 +20,9 @@ class BookModel
     public function getById(int $id)
     {
         $sql = "SELECT l.*, 
-                       GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi
+                       GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
+                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro) as copie_totali,
+                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') as copie_disponibili
                 FROM libri l
                 LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
                 LEFT JOIN autori a ON la.id_autore = a.id
@@ -33,6 +36,15 @@ class BookModel
 
     public function getAll(string $search = '', array $filters = []): array
     {
+        // Usa la paginazione con un limite alto per simulare "tutti" i risultati
+        return $this->paginate(1, 1000, $search, $filters);
+    }
+
+    public function paginate(int $page = 1, int $perPage = 12, string $search = '', array $filters = []): array
+    {
+        $offset = ($page - 1) * $perPage;
+
+        // FIX: Aggiunta la colonna 'copie_totali' mancante
         $sql = "SELECT l.*, 
                        GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
                        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro) as copie_totali,
@@ -47,12 +59,18 @@ class BookModel
         if (!empty($search)) {
             $trimSearch = trim($search);
             $like = "%$trimSearch%";
+
+            // Se la ricerca sembra un ISBN, la puliamo per cercare nel DB
+            $cleanSearchIsbn = IsbnValidator::clean($trimSearch);
+            $likeIsbn = "%$cleanSearchIsbn%";
+
             $sql .= " AND (
-                        l.titolo LIKE :q1 OR l.isbn LIKE :q2 OR l.editore LIKE :q3 
-                        OR CAST(l.anno_uscita AS CHAR) LIKE :q4
-                        OR CONCAT(a.nome, ' ', a.cognome) LIKE :q5 OR a.cognome LIKE :q6
+                        l.titolo LIKE :q1 OR l.isbn LIKE :q2 
+                        OR CONCAT(a.nome, ' ', a.cognome) LIKE :q3
                       )";
-            $params = array_fill_keys([':q1',':q2',':q3',':q4',':q5',':q6'], $like);
+            $params[':q1'] = $like;
+            $params[':q2'] = $likeIsbn;
+            $params[':q3'] = $like;
         }
 
         $sql .= " GROUP BY l.id_libro";
@@ -61,11 +79,44 @@ class BookModel
             $sql .= " HAVING copie_disponibili > 0";
         }
 
-        $sql .= " ORDER BY l.ultimo_aggiornamento DESC";
+        $sql .= " ORDER BY l.ultimo_aggiornamento DESC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function count(string $search = '', array $filters = []): int
+    {
+        $sql = "SELECT COUNT(DISTINCT l.id_libro) as totale 
+                FROM libri l
+                LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+                LEFT JOIN autori a ON la.id_autore = a.id
+                WHERE 1=1";
+
+        $params = [];
+
+        if (!empty($search)) {
+            $trimSearch = trim($search);
+            $like = "%$trimSearch%";
+            $cleanSearchIsbn = IsbnValidator::clean($trimSearch);
+            $likeIsbn = "%$cleanSearchIsbn%";
+
+            $sql .= " AND (l.titolo LIKE :q1 OR l.isbn LIKE :q2 OR CONCAT(a.nome, ' ', a.cognome) LIKE :q3)";
+            $params[':q1'] = $like;
+            $params[':q2'] = $likeIsbn;
+            $params[':q3'] = $like;
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return (int)$stmt->fetchColumn();
     }
 
     public function create(array $data): bool
@@ -77,11 +128,13 @@ class BookModel
                     VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine)";
 
             $stmt = $this->db->prepare($sql);
+
+            $cleanIsbn = IsbnValidator::clean($data['isbn'] ?? '');
             $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
 
             $stmt->execute([
                 ':titolo' => $this->clean($data['titolo']),
-                ':isbn' => $this->clean($data['isbn'] ?? ''),
+                ':isbn' => $cleanIsbn,
                 ':editore' => $this->clean($data['editore'] ?? ''),
                 ':anno' => $annoDate,
                 ':descrizione' => $this->clean($data['descrizione'] ?? ''),
@@ -99,8 +152,8 @@ class BookModel
 
         } catch (PDOException $e) {
             $this->db->rollBack();
-            if ($e->errorInfo[1] == 1062 && strpos(strtolower($e->getMessage()), 'isbn') !== false) {
-                throw new Exception("Un libro con questo ISBN è già presente nella libreria!");
+            if ($e->errorInfo[1] == 1062) {
+                throw new Exception("Un libro con questo ISBN è già presente nella libreria.");
             }
             throw new Exception("Errore Database: " . $e->getMessage());
         } catch (Exception $e) {
@@ -120,11 +173,13 @@ class BookModel
                     WHERE id_libro = :id";
 
             $stmt = $this->db->prepare($sql);
+
+            $cleanIsbn = IsbnValidator::clean($data['isbn'] ?? '');
             $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
 
             $stmt->execute([
                 ':titolo' => $this->clean($data['titolo']),
-                ':isbn' => $this->clean($data['isbn'] ?? ''),
+                ':isbn' => $cleanIsbn,
                 ':editore' => $this->clean($data['editore'] ?? ''),
                 ':anno' => $annoDate,
                 ':descrizione' => $this->clean($data['descrizione'] ?? ''),
@@ -142,7 +197,7 @@ class BookModel
 
         } catch (PDOException $e) {
             $this->db->rollBack();
-            if ($e->errorInfo[1] == 1062 && strpos(strtolower($e->getMessage()), 'isbn') !== false) {
+            if ($e->errorInfo[1] == 1062) {
                 throw new Exception("Impossibile salvare: ISBN già assegnato.");
             }
             throw new Exception("Errore Database: " . $e->getMessage());
@@ -164,16 +219,12 @@ class BookModel
             if ($check->fetchColumn() > 0) throw new Exception("Impossibile eliminare: copie in prestito.");
 
             $this->db->beginTransaction();
-
-            $tables = ['recensioni', 'prenotazioni', 'libri_autori', 'libri_generi', 'inventari'];
-            foreach($tables as $t) {
+            foreach(['recensioni', 'prenotazioni', 'libri_autori', 'libri_generi', 'inventari'] as $t) {
                 $this->db->prepare("DELETE FROM $t WHERE id_libro = ?")->execute([$idLibro]);
             }
             $this->db->prepare("DELETE FROM libri WHERE id_libro = ?")->execute([$idLibro]);
-
             $this->db->commit();
             return true;
-
         } catch (Exception $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             throw $e;

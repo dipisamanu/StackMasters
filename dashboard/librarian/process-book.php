@@ -1,14 +1,11 @@
 <?php
 /**
- * Processo Gestione Libri (Con Validazione ISBN Checksum)
+ * Processo Gestione Libri (Conserva i trattini in input, ma valida checksum)
  * File: dashboard/librarian/process-book.php
  */
 
-use Ottaviodipisa\StackMasters\Helpers\IsbnValidator;
-
 require_once '../../src/config/session.php';
 require_once '../../src/Models/BookModel.php';
-// Includi il nuovo helper (aggiusta il percorso se necessario)
 require_once '../../src/Helpers/IsbnValidator.php';
 
 Session::requireRole('Bibliotecario');
@@ -52,21 +49,17 @@ header('Location: books.php');
 exit;
 
 function validateBookData(array $data) {
-    // 1. Encoding
     foreach ($data as $key => $value) {
         if (is_string($value) && !mb_check_encoding($value, 'UTF-8')) {
             throw new Exception("Caratteri non validi in $key");
         }
     }
 
-    // 2. Titolo
     if (empty(trim($data['titolo']))) throw new Exception("Titolo obbligatorio.");
     if (mb_strlen($data['titolo']) > 100) throw new Exception("Titolo troppo lungo (max 100).");
 
-    // 3. Autore
     if (empty(trim($data['autore']))) throw new Exception("Autore obbligatorio.");
 
-    // 4. Anno
     $anno = $data['anno'] ?? '';
     if (!empty($anno)) {
         if (!is_numeric($anno) || $anno < 1000 || $anno > date('Y')+2) {
@@ -74,12 +67,12 @@ function validateBookData(array $data) {
         }
     }
 
-    // 5. VALIDAZIONE ISBN, 3.3
+    // VALIDAZIONE ISBN CHECKSUM (User Input raw)
     $isbn = $data['isbn'] ?? '';
     if (!empty($isbn)) {
-        // Se l'utente ha inserito qualcosa nel campo ISBN, lo validiamo seriamente
+        // IsbnValidator::validate() pulisce da sola i trattini prima di calcolare
         if (!IsbnValidator::validate($isbn)) {
-            throw new Exception("Codice ISBN non valido (Checksum errato). Controlla di averlo digitato bene.");
+            throw new Exception("Codice ISBN non valido (Checksum errato).");
         }
     }
 }

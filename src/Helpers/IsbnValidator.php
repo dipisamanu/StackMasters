@@ -1,20 +1,27 @@
 <?php
-
-namespace Ottaviodipisa\StackMasters\Helpers;
 /**
- * Helper per la validazione matematica degli ISBN
+ * Helper per la validazione e pulizia degli ISBN
  * File: src/Helpers/IsbnValidator.php
  */
+
 class IsbnValidator
 {
     /**
-     * Valida un ISBN (10 o 13 cifre)
+     * Pulisce l'ISBN rimuovendo trattini, spazi e rendendolo maiuscolo.
+     * Restituisce solo numeri e 'X' finale.
+     */
+    public static function clean(string $isbn): string
+    {
+        // Rimuove tutto tranne numeri e X
+        return strtoupper(preg_replace('/[^0-9X]/i', '', $isbn));
+    }
+
+    /**
+     * Valida un ISBN (10 o 13 cifre) usando il checksum.
      */
     public static function validate(string $isbn): bool
     {
-        // Rimuove trattini e spazi
-        $isbn = preg_replace('/[^0-9X]/i', '', $isbn);
-        $isbn = strtoupper($isbn);
+        $isbn = self::clean($isbn);
 
         if (strlen($isbn) === 10) {
             return self::validate10($isbn);
@@ -22,12 +29,9 @@ class IsbnValidator
             return self::validate13($isbn);
         }
 
-        return false; // Lunghezza errata
+        return false;
     }
 
-    /**
-     * Algoritmo ISBN-10 (Modulo 11)
-     */
     private static function validate10(string $isbn): bool
     {
         if (!preg_match('/^\d{9}[\d|X]$/', $isbn)) return false;
@@ -43,9 +47,6 @@ class IsbnValidator
         return ($sum % 11 === 0);
     }
 
-    /**
-     * Algoritmo ISBN-13 (Modulo 10, pesi 1-3)
-     */
     private static function validate13(string $isbn): bool
     {
         if (!preg_match('/^\d{13}$/', $isbn)) return false;
