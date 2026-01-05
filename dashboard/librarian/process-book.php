@@ -1,6 +1,6 @@
 <?php
 /**
- * Processo Gestione Libri (Conserva i trattini in input, ma valida checksum)
+ * Processo Gestione Libri (Upload File Support)
  * File: dashboard/librarian/process-book.php
  */
 
@@ -24,14 +24,16 @@ try {
     }
 
     if ($action === 'create') {
-        $bookModel->create($_POST);
+        // Passa $_FILES per la copertina
+        $bookModel->create($_POST, $_FILES);
         $_SESSION['flash_success'] = "Libro aggiunto con successo!";
 
     } elseif ($action === 'update') {
         $id = $_POST['id_libro'] ?? 0;
         if (!$id) throw new Exception("ID mancante.");
 
-        $bookModel->update($id, $_POST);
+        // Passa $_FILES per la copertina
+        $bookModel->update($id, $_POST, $_FILES);
         $_SESSION['flash_success'] = "Libro aggiornato!";
 
     } elseif ($action === 'delete') {
@@ -67,13 +69,10 @@ function validateBookData(array $data) {
         }
     }
 
-    // VALIDAZIONE ISBN CHECKSUM (User Input raw)
     $isbn = $data['isbn'] ?? '';
     if (!empty($isbn)) {
-        // IsbnValidator::validate() pulisce da sola i trattini prima di calcolare
         if (!IsbnValidator::validate($isbn)) {
             throw new Exception("Codice ISBN non valido (Checksum errato).");
         }
     }
 }
-?>

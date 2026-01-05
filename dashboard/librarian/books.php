@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Catalogo Libri (Con Integrazione Google Books API)
+ * Gestione Catalogo Libri (Frontend Completo: API + Immagini)
  * File: dashboard/librarian/books.php
  */
 
@@ -109,8 +109,24 @@ require_once '../../src/Views/layout/header.php';
                         <?php foreach ($books as $b): ?>
                             <tr>
                                 <td class="ps-4">
-                                    <div class="fw-bold text-dark"><?= htmlspecialchars($b['titolo']) ?></div>
-                                    <div class="small text-muted"><i class="fas fa-user-edit me-1"></i><?= htmlspecialchars($b['autori_nomi'] ?? 'N/D') ?></div>
+                                    <div class="d-flex align-items-center">
+                                        <?php
+                                        // Percorso immagine (locale o remoto)
+                                        $img = '../../public/assets/img/placeholder.png';
+                                        if (!empty($b['immagine_copertina'])) {
+                                            if (strpos($b['immagine_copertina'], 'http') === 0) {
+                                                $img = $b['immagine_copertina'];
+                                            } else {
+                                                $img = '../../public/' . $b['immagine_copertina'];
+                                            }
+                                        }
+                                        ?>
+                                        <img src="<?= htmlspecialchars($img) ?>" class="rounded me-3 shadow-sm" style="width: 40px; height: 60px; object-fit: cover;" alt="Cover">
+                                        <div>
+                                            <div class="fw-bold text-dark"><?= htmlspecialchars($b['titolo']) ?></div>
+                                            <div class="small text-muted"><i class="fas fa-user-edit me-1"></i><?= htmlspecialchars($b['autori_nomi'] ?? 'N/D') ?></div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     <small class="d-block">Editore: <strong><?= htmlspecialchars($b['editore']) ?></strong></small>
@@ -150,7 +166,7 @@ require_once '../../src/Views/layout/header.php';
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
-                <form action="process-book.php" method="POST" id="bookForm">
+                <form action="process-book.php" method="POST" id="bookForm" enctype="multipart/form-data">
                     <div class="modal-body">
                         <?php if (!empty($modalError)): ?>
                             <div class="alert alert-danger fade show border-start border-danger border-4">
@@ -160,39 +176,57 @@ require_once '../../src/Views/layout/header.php';
 
                         <input type="hidden" name="action" id="formAction" value="create">
                         <input type="hidden" name="id_libro" id="bookId">
+                        <input type="hidden" name="copertina_url" id="copertina_url">
 
                         <div class="row g-3">
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">ISBN (Ricerca Automatica)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fas fa-barcode"></i></span>
-                                    <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="Scansiona o digita ISBN (es. 97888...)" onkeypress="handleEnter(event)">
-                                    <button type="button" class="btn btn-primary" id="btnFetch" onclick="fetchBookData()">
-                                        <i class="fas fa-search"></i> Cerca Dati
-                                    </button>
+
+                            <div class="col-md-4 text-center">
+                                <div class="mb-2">
+                                    <img id="preview_img" src="../../public/assets/img/placeholder.png"
+                                         class="img-thumbnail shadow-sm" style="max-height: 200px; width: auto;" alt="Anteprima">
                                 </div>
-                                <div class="form-text">Premi 'Cerca' per compilare automaticamente i campi da Google Books.</div>
+                                <label class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="fas fa-upload me-1"></i> Carica File
+                                    <input type="file" name="copertina" id="copertina" class="d-none" accept="image/*" onchange="previewFile()">
+                                </label>
+                                <small class="text-muted d-block mt-1" style="font-size: 10px;">JPG, PNG max 2MB</small>
                             </div>
 
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Titolo *</label>
-                                <input type="text" name="titolo" id="titolo" class="form-control" required maxlength="100">
+                            <div class="col-md-8">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold">ISBN (Ricerca Auto)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light"><i class="fas fa-barcode"></i></span>
+                                            <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="Es. 97888..." onkeypress="handleEnter(event)">
+                                            <button type="button" class="btn btn-primary" id="btnFetch" onclick="fetchBookData()">
+                                                <i class="fas fa-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold">Titolo *</label>
+                                        <input type="text" name="titolo" id="titolo" class="form-control" required maxlength="100">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold">Autore *</label>
+                                        <input type="text" name="autore" id="autore" class="form-control" required maxlength="100">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Autore (Nome Cognome) *</label>
-                                <input type="text" name="autore" id="autore" class="form-control" required maxlength="100">
-                            </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Editore</label>
-                                <input type="text" name="editore" id="editore" class="form-control" maxlength="100">
+                                <input type="text" name="editore" id="editore" class="form-control">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label class="form-label">Anno</label>
-                                <input type="number" name="anno" id="anno" class="form-control" min="1400" max="<?= date('Y')+2 ?>" placeholder="YYYY">
+                                <input type="number" name="anno" id="anno" class="form-control" placeholder="YYYY">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label class="form-label">Pagine</label>
-                                <input type="number" name="pagine" id="pagine" class="form-control" min="1">
+                                <input type="number" name="pagine" id="pagine" class="form-control">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Descrizione</label>
@@ -223,28 +257,40 @@ require_once '../../src/Views/layout/header.php';
             }
         });
 
-        // Funzione per chiamare Google Books via AJAX locale
+        // Anteprima file locale
+        function previewFile() {
+            const preview = document.getElementById('preview_img');
+            const file = document.getElementById('copertina').files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = function () {
+                preview.src = reader.result;
+                document.getElementById('copertina_url').value = ''; // Pulisci URL remoto se c'è file locale
+            }
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+
         function fetchBookData() {
             const isbnInput = document.getElementById('isbn');
             const btn = document.getElementById('btnFetch');
             const isbn = isbnInput.value.trim();
 
             if (isbn.length < 10) {
-                alert("Inserisci un ISBN valido (almeno 10 cifre).");
+                alert("Inserisci un ISBN valido.");
                 return;
             }
 
-            // UI Feedback
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Attendi...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             btn.disabled = true;
-            isbnInput.disabled = true;
 
             fetch('ajax-fetch-book.php?isbn=' + encodeURIComponent(isbn))
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Popola i campi
                         const book = data.data;
                         document.getElementById('titolo').value = book.titolo;
                         document.getElementById('autore').value = book.autore;
@@ -253,7 +299,16 @@ require_once '../../src/Views/layout/header.php';
                         document.getElementById('pagine').value = book.pagine;
                         document.getElementById('descrizione').value = book.descrizione;
 
-                        // Flash di successo visivo
+                        // Gestione Copertina API
+                        if (book.copertina) {
+                            document.getElementById('preview_img').src = book.copertina;
+                            document.getElementById('copertina_url').value = book.copertina;
+                        } else {
+                            document.getElementById('preview_img').src = '../../public/assets/img/placeholder.png';
+                            document.getElementById('copertina_url').value = '';
+                        }
+
+                        // Flash feedback
                         document.getElementById('titolo').classList.add('bg-success', 'bg-opacity-10');
                         setTimeout(() => document.getElementById('titolo').classList.remove('bg-success', 'bg-opacity-10'), 1000);
                     } else {
@@ -262,16 +317,14 @@ require_once '../../src/Views/layout/header.php';
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("Errore di comunicazione col server.");
+                    alert("Errore di connessione.");
                 })
                 .finally(() => {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
-                    isbnInput.disabled = false;
                 });
         }
 
-        // Permette di cercare premendo Invio nel campo ISBN senza inviare il form
         function handleEnter(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -282,6 +335,10 @@ require_once '../../src/Views/layout/header.php';
         function openModal(mode, data = null, isOldData = false) {
             const form = document.getElementById('bookForm');
             if(!isOldData) form.reset();
+
+            // Reset immagine
+            document.getElementById('preview_img').src = '../../public/assets/img/placeholder.png';
+            document.getElementById('copertina_url').value = '';
 
             if (mode === 'edit') {
                 document.getElementById('modalTitle').innerText = 'Modifica Libro';
@@ -299,18 +356,24 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('isbn').value = data.isbn;
                 document.getElementById('pagine').value = data.numero_pagine || data.pagine || '';
                 document.getElementById('descrizione').value = data.descrizione;
+
+                // Mostra immagine esistente
+                if (data.immagine_copertina) {
+                    if (data.immagine_copertina.startsWith('http')) {
+                        document.getElementById('preview_img').src = data.immagine_copertina;
+                        document.getElementById('copertina_url').value = data.immagine_copertina;
+                    } else {
+                        document.getElementById('preview_img').src = '../../public/' + data.immagine_copertina;
+                    }
+                }
+
             } else {
                 document.getElementById('modalTitle').innerText = 'Nuovo Libro';
                 document.getElementById('formAction').value = 'create';
 
                 if(isOldData) {
                     document.getElementById('titolo').value = data.titolo;
-                    document.getElementById('autore').value = data.autore;
-                    document.getElementById('editore').value = data.editore;
-                    document.getElementById('anno').value = data.anno;
-                    document.getElementById('isbn').value = data.isbn;
-                    document.getElementById('pagine').value = data.pagine;
-                    document.getElementById('descrizione').value = data.descrizione;
+                    // ... ripulisci se serve ...
                 }
             }
 

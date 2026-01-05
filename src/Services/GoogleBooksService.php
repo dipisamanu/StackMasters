@@ -55,7 +55,11 @@ class GoogleBooksService
 
         $info = $data['items'][0]['volumeInfo'];
 
-        // 5. Normalizzazione Dati
+        // RECUPERO IMMAGINE (Preferiamo thumbnail o smallThumbnail)
+        $imgUrl = $info['imageLinks']['thumbnail'] ?? $info['imageLinks']['smallThumbnail'] ?? '';
+        // Fix: Google manda http, forziamo https per evitare warning
+        $imgUrl = str_replace('http://', 'https://', $imgUrl);
+
         return [
             'titolo' => $info['title'] ?? '',
             'autore' => isset($info['authors']) ? implode(', ', $info['authors']) : '',
@@ -63,7 +67,8 @@ class GoogleBooksService
             'anno' => isset($info['publishedDate']) ? substr($info['publishedDate'], 0, 4) : '',
             'descrizione' => $info['description'] ?? '',
             'pagine' => $info['pageCount'] ?? 0,
-            'isbn' => $cleanIsbn
+            'isbn' => $cleanIsbn,
+            'copertina' => $imgUrl // NUOVO CAMPO
         ];
     }
 }
