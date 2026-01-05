@@ -235,6 +235,8 @@ CREATE TABLE notifiche_web
     FOREIGN KEY (id_utente) REFERENCES Utenti (id_utente) ON DELETE CASCADE
 );
 
+ALTER TABLE libri ADD COLUMN immagine_copertina VARCHAR(255) DEFAULT NULL AFTER numero_pagine;
+
 -- ===========================
 -- DATI DI ESEMPIO (SEED DATA)
 -- ===========================

@@ -45,7 +45,12 @@ require_once '../../src/Views/layout/header.php';
                         <span class="badge bg-light text-dark border font-monospace"><?= htmlspecialchars($book['isbn']) ?></span>
                     </div>
                 </div>
-                <button class="btn btn-success shadow-sm" onclick="openCopyModal('add')"><i class="fas fa-plus me-2"></i>Aggiungi Copia</button>
+                <a href="print-labels.php?id_libro=<?= $idLibro ?>" target="_blank" class="btn btn-outline-dark">
+                    <i class="fas fa-print me-2"></i>Stampa Etichette
+                </a>
+                <button class="btn btn-success shadow-sm" onclick="openCopyModal('add')">
+                    <i class="fas fa-plus me-2"></i>Aggiungi Copia
+                </button>
             </div>
         </div>
 
