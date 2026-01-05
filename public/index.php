@@ -197,9 +197,9 @@ require_once '../src/Views/layout/header.php';
                         <div class="mt-5">
                             <a href="<?php
                             $role = Session::getMainRole();
-                            if ($role === 'Admin') echo 'dashboard/admin/';
-                            elseif ($role === 'Bibliotecario') echo 'dashboard/librarian/';
-                            else echo 'dashboard/student/';
+                            if ($role === 'Admin') echo '../dashboard/admin/';
+                            elseif ($role === 'Bibliotecario') echo '../dashboard/librarian/';
+                            else echo '../dashboard/student/';
                             ?>" class="btn btn-hero-base btn-hero-primary">
                                 <i class="fas fa-tachometer-alt me-2" aria-hidden="true"></i> Vai alla Dashboard
                             </a>

@@ -1,107 +1,102 @@
 <?php
-// src/Views/layout/header.php
+/**
+ * Layout Header - Navbar di Sistema
+ * File: src/Views/layout/header.php
+ */
 
-// Recupera la configurazione sessione se non c'è (per avere BASE_URL)
 if (session_status() === PHP_SESSION_NONE) {
-    // Tenta di caricare session.php risalendo le cartelle se necessario
-    $paths = [
-            __DIR__ . '/../../config/session.php',
-            $_SERVER['DOCUMENT_ROOT'] . '/StackMasters/src/config/session.php'
-    ];
-    foreach ($paths as $path) {
-        if (file_exists($path)) {
-            require_once $path;
-            break;
-        }
-    }
+    session_start();
 }
 
-// Fallback di sicurezza per BASE_URL se session.php non viene caricato
-if (!defined('BASE_URL')) {
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
-    define('BASE_URL', $protocol . '://' . $host . '/StackMasters/public');
-}
+// Calcolo path dinamico per assets
+$scriptPath = $_SERVER['SCRIPT_NAME'];
+$basePath = 'assets/';
+$rootUrl = './';
 
-// Recupera dati utente per la navbar
-$userName = $_SESSION['user_name'] ?? 'Utente';
-$userRole = $_SESSION['roles'][0]['nome'] ?? 'Guest';
+if (strpos($scriptPath, '/dashboard/') !== false) {
+    $basePath = '../../public/assets/';
+    $rootUrl = '../../public/';
+} elseif (strpos($scriptPath, '/public/') !== false) {
+    $basePath = 'assets/';
+    $rootUrl = './';
+} else {
+    $basePath = 'public/assets/';
+    $rootUrl = 'public/';
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biblioteca ITIS Rossi</title>
-
-    <link rel="icon" href="<?= BASE_URL ?>/assets/img/itisrossi.png">
-
+    <title>BiblioSystem</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?= $basePath ?>css/style.css">
 
     <style>
-        /* Override colori per tema ITIS Rossi */
-        :root {
-            --primary-red: #bf2121;
-            --primary-dark: #931b1b;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh; display: flex; flex-direction: column; }
+        .content-wrapper { flex: 1; }
+        .navbar-brand { font-weight: 700; }
 
-        body {
-            background-color: #f8f9fa;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+        /* FIX Z-INDEX: position relative è fondamentale per far funzionare z-index */
+        .navbar {
+            position: relative;
+            z-index: 9999;
         }
-
-        /* Navbar personalizzata */
-        .navbar-custom {
-            background: linear-gradient(135deg, #9f3232 0%, #b57070 100%);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .navbar-brand { font-weight: bold; color: white !important; }
-        .nav-link { color: rgba(255,255,255,0.9) !important; }
-        .nav-link:hover { color: white !important; }
-
-        /* Footer sticky */
-        main { flex: 1; }
     </style>
 </head>
 <body>
 
-<?php if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true): ?>
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <img src="<?= BASE_URL ?>/assets/img/itisrossi.png" width="30" height="30" class="d-inline-block align-top" alt="">
-                Biblioteca Rossi
-            </a>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="<?= $rootUrl ?>index.php">
+            <i class="fas fa-book-reader me-2 text-danger"></i>BiblioSystem
+        </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <?php if ($userRole === 'Bibliotecario'): ?>
-                        <li class="nav-item"><a class="nav-link" href="<?= BASE_URL ?>/dashboard/librarian/index.php">Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="<?= BASE_URL ?>/dashboard/librarian/books.php">Libri</a></li>
-                    <?php elseif ($userRole === 'Admin'): ?>
-                        <li class="nav-item"><a class="nav-link" href="<?= BASE_URL ?>/dashboard/admin/index.php">Admin Panel</a></li>
-                    <?php else: ?>
-                        <li class="nav-item"><a class="nav-link" href="<?= BASE_URL ?>/dashboard/student/index.php">I miei Prestiti</a></li>
-                    <?php endif; ?>
-                </ul>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="<?= $rootUrl ?>index.php">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= $rootUrl ?>catalog.php"><i class="fas fa-search me-1"></i>Catalogo</a></li>
+            </ul>
 
-                <div class="d-flex align-items-center">
-                    <span class="text-white me-3"><i class="fas fa-user-circle"></i> <?= htmlspecialchars($userName) ?></span>
-                    <a href="<?= BASE_URL ?>/logout.php" class="btn btn-outline-light btn-sm">Esci</a>
-                </div>
-            </div>
+            <ul class="navbar-nav align-items-center">
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i> <?= htmlspecialchars($_SESSION['nome'] ?? 'Utente') ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <?php
+                            $roleData = $_SESSION['ruolo_principale'] ?? $_SESSION['role'] ?? '';
+                            $role = is_array($roleData) ? ($roleData['nome'] ?? '') : $roleData;
+
+                            $dash = match($role) {
+                                'Bibliotecario' => 'dashboard/librarian/index.php',
+                                'Admin' => 'dashboard/admin/index.php',
+                                default => 'dashboard/student/index.php'
+                            };
+                            // Fix path relativo
+                            $finalDash = (strpos($scriptPath, '/dashboard/') !== false) ? $rootUrl . '../' . $dash : $rootUrl . '../' . $dash;
+                            if($rootUrl == './') $finalDash = '../' . $dash;
+                            ?>
+                            <li><h6 class="dropdown-header text-uppercase small"><?= htmlspecialchars($role) ?></h6></li>
+                            <li><a class="dropdown-item" href="<?= $finalDash ?>"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="<?= $rootUrl ?>logout.php"><i class="fas fa-sign-out-alt me-2"></i>Esci</a></li>
+                        </ul>
+                    </li>
+                <?php else: ?>
+                    <li class="nav-item ms-2"><a href="<?= $rootUrl ?>login.php" class="btn btn-outline-light btn-sm rounded-pill">Accedi</a></li>
+                <?php endif; ?>
+            </ul>
         </div>
-    </nav>
-<?php endif; ?>
+    </div>
+</nav>
 
-<main>
+<div class="content-wrapper">
