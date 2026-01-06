@@ -56,6 +56,7 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                 </div>
             </div>
 
+            <!-- MODIFICA: Selezione esplicita tra Prestito e Restituzione -->
             <div class="col-md-4">
                 <div class="card shadow-sm h-100 border-top border-4 border-success">
                     <div class="card-body text-center">
@@ -63,8 +64,16 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                             <i class="fas fa-hand-holding-book"></i>
                         </div>
                         <h5 class="card-title">Prestiti & Restituzioni</h5>
-                        <p class="card-text text-muted">Registra l'uscita e il rientro dei libri tramite scansione RFID o manuale.</p>
-                        <a href="#" class="btn btn-outline-success w-100 disabled">In Arrivo</a>
+                        <p class="card-text text-muted mb-4">Registra l'uscita e il rientro dei libri tramite scansione RFID o manuale.</p>
+
+                        <div class="d-grid gap-2">
+                            <a href="new_loan.php" class="btn btn-success font-weight-bold">
+                                <i class="fas fa-arrow-up mr-2"></i>Nuovo Prestito
+                            </a>
+                            <a href="returns.php" class="btn btn-outline-success font-weight-bold">
+                                <i class="fas fa-arrow-down mr-2"></i>Registra Restituzione
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
