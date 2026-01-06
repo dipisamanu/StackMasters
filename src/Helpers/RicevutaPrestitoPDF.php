@@ -1,121 +1,123 @@
 <?php
+
 namespace Ottaviodipisa\StackMasters\Helpers;
 
 use TCPDF;
 
 class RicevutaPrestitoPDF
 {
-    public static function genera(array $dati): void
+    /**
+     * Genera la ricevuta di prestito e la salva sul server.
+     * @param array $dati Contiene 'utente', 'libri', 'data_operazione'
+     * @return string Nome del file PDF generato
+     */
+    public static function genera(array $dati): string
     {
-        $utente = $dati['details']['utente'];
-        $copia  = $dati['details']['copia'];
+        // Estrazione dati sicura
+        $utente = $dati['utente'] ?? null;
+        $libri  = $dati['libri'] ?? [];
+        $dataOp = $dati['data_operazione'] ?? date('d/m/Y H:i');
 
+        if (!$utente) {
+            return "";
+        }
+
+        // Inizializzazione TCPDF
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('StackMasters LMS');
         $pdf->SetAuthor('Biblioteca');
-        $pdf->SetTitle('Ricevuta Prestito #' . $utente['id_utente']);
+        $pdf->SetTitle('Ricevuta Prestito #' . ($utente['id_utente'] ?? '0'));
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-
+        $pdf->SetMargins(15, 45, 15); // Margini per non sovrapporsi all'header rosso
         $pdf->AddPage();
 
-        /* ================= HEADER ROSSO ================= */
-        $pdf->SetFillColor(220, 53, 69); // #dc3545
+        /* ================= HEADER ESTETICO ================= */
+        $pdf->SetFillColor(191, 33, 33); // Rosso ITIS Rossi (#bf2121)
         $pdf->Rect(0, 0, 210, 35, 'F');
-
         $pdf->SetTextColor(255, 255, 255);
         $pdf->SetFont('helvetica', 'B', 20);
         $pdf->SetY(12);
-        $pdf->Cell(0, 10, 'RICEVUTA PRESTITO', 0, 1, 'C');
+        $pdf->Cell(0, 10, 'RICEVUTA DI PRESTITO', 0, 1, 'C');
 
-        $pdf->Ln(15);
-
-        /* ================= CONTENUTO ================= */
+        /* ================= CONTENUTO HTML ================= */
         $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetFont('helvetica', '', 12);
+        $pdf->SetFont('helvetica', '', 11);
+
+        // Generazione righe tabella libri
+        $rowsHtml = '';
+        foreach ($libri as $libro) {
+            $titolo = htmlspecialchars($libro['titolo']);
+            $scadenza = date('d/m/Y', strtotime($libro['scadenza']));
+            $rowsHtml .= '
+            <tr>
+                <td style="border: 1px solid #ddd; width: 15%; text-align: center;">' . $libro['id_inventario'] . '</td>
+                <td style="border: 1px solid #ddd; width: 60%;">' . $titolo . '</td>
+                <td style="border: 1px solid #ddd; width: 25%; text-align: center; font-weight: bold; color: #bf2121;">' . $scadenza . '</td>
+            </tr>';
+        }
 
         $html = '
         <style>
-            h3 {
-                color: #dc3545;
-                border-bottom: 2px solid #dc3545;
-                padding-bottom: 4px;
-            }
-            table {
-                width: 100%;
-            }
-            td {
-                padding: 6px;
-            }
-            .label {
-                font-weight: bold;
-                width: 35%;
-            }
-            .box {
-                border: 1px solid #e5e7eb;
-                background-color: #f9fafb;
-            }
+            .section-title { color: #bf2121; font-weight: bold; font-size: 14pt; border-bottom: 1px solid #eee; }
+            .info-table td { padding: 4px; }
+            .items-table th { background-color: #f8f9fa; font-weight: bold; text-align: center; border: 1px solid #ddd; }
         </style>
 
-        <h3>DATI UTENTE</h3>
-        <table class="box" cellpadding="4">
-            <tr>
-                <td class="label">Nome</td>
-                <td>' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td>
-            </tr>
-            <tr>
-                <td class="label">ID Utente</td>
-                <td>' . $utente['id_utente'] . '</td>
-            </tr>
+        <br><br>
+        <h4 class="section-title">DETTAGLI UTENTE</h4>
+        <table class="info-table">
+            <tr><td><b>Nominativo:</b></td><td>' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
+            <tr><td><b>Codice Fiscale:</b></td><td>' . htmlspecialchars($utente['cf'] ?? 'N/D') . '</td></tr>
+            <tr><td><b>Data Operazione:</b></td><td>' . $dataOp . '</td></tr>
         </table>
 
-        <br>
-
-        <h3>DATI LIBRO</h3>
-        <table class="box" cellpadding="4">
-            <tr>
-                <td class="label">Titolo</td>
-                <td>' . htmlspecialchars($copia['titolo']) . '</td>
-            </tr>
-            <tr>
-                <td class="label">Autori</td>
-                <td>' . htmlspecialchars($copia['autori'] ?? '-') . '</td>
-            </tr>
-            <tr>
-                <td class="label">ID Copia</td>
-                <td>' . $copia['id_inventario'] . '</td>
-            </tr>
+        <br><br>
+        <h4 class="section-title">VOLUMI IN PRESTITO</h4>
+        <table cellpadding="5" class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">ID</th>
+                    <th style="width: 60%;">Titolo Libro</th>
+                    <th style="width: 25%;">Scadenza</th>
+                </tr>
+            </thead>
+            <tbody>
+                ' . $rowsHtml . '
+            </tbody>
         </table>
 
-        <br>
-
-        <h3>DETTAGLI PRESTITO</h3>
-        <table class="box" cellpadding="4">
-            <tr>
-                <td class="label">Data Scadenza</td>
-                <td><b style="color:#dc3545;">' . $dati['details']['data_scadenza'] . '</b></td>
-            </tr>
-        </table>
+        <br><br>
+        <p style="font-size: 9pt; color: #666; font-style: italic;">
+            Si ricorda di restituire i volumi entro la data indicata. 
+            In caso di smarrimento o danneggiamento verranno applicate le sanzioni previste dal regolamento.
+        </p>
         ';
-
-        if (!empty($dati['details']['messaggio_prenotazione'])) {
-            $html .= '
-            <br>
-            <p style="color:#6b7280; font-style:italic;">
-                ' . htmlspecialchars($dati['details']['messaggio_prenotazione']) . '
-            </p>';
-        }
 
         $pdf->writeHTML($html, true, false, true, false, '');
 
         /* ================= FOOTER ================= */
-        $pdf->SetY(-35);
-        $pdf->SetFont('helvetica', 'I', 10);
-        $pdf->SetTextColor(75, 85, 99);
-        $pdf->Cell(0, 6, 'Biblioteca - StackMasters Library Management System', 0, 1, 'C');
-        $pdf->Cell(0, 6, 'Firma Bibliotecario: _______________________________', 0, 1, 'R');
+        $pdf->SetY(-40);
+        $pdf->SetFont('helvetica', 'I', 9);
+        $pdf->SetTextColor(120, 120, 120);
+        $pdf->Cell(0, 5, 'StackMasters Library Management System - Ricevuta generata automaticamente', 0, 1, 'C');
+        $pdf->Ln(5);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 10, 'Firma Bibliotecario: _______________________________', 0, 1, 'R');
 
-        $pdf->Output('ricevuta_prestito.pdf', 'I');
-        exit;
+        // Salvataggio fisico del file
+        $fileName = "ricevuta_" . ($utente['id_utente'] ?? '0') . "_" . time() . ".pdf";
+        $path = __DIR__ . "/../../public/assets/docs/" . $fileName;
+
+        // Assicuriamoci che la cartella esista
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
+        }
+
+        // 'F' salva il file sul disco invece di inviarlo al buffer di uscita
+        $pdf->Output($path, 'F');
+
+        return $fileName;
     }
 }

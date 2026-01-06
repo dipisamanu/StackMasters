@@ -1,10 +1,11 @@
 <?php
 /**
- * AJAX Endpoint - Recupera dati libro (Google Books + Open Library Fallback)
+ * AJAX Endpoint - Recupera dati libro dal Database locale (Versione Semplificata)
  * File: dashboard/librarian/ajax-fetch-book.php
+ * Supporta: Scansione Barcode (ID Inventario o ISBN)
  */
 
-// Silenzia output HTML
+// Silenzia output HTML per evitare errori JSON
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
@@ -12,56 +13,73 @@ ob_start();
 header('Content-Type: application/json');
 
 try {
-    // Percorsi relativi corretti
-    $paths = [
-        '../../src/config/session.php',
-        '../../src/Services/GoogleBooksService.php',
-        '../../src/Services/OpenLibraryService.php'
-    ];
+    // 1. Inclusione Configurazione e Sessione
+    require_once '../../src/config/session.php';
+    require_once '../../src/config/database.php';
 
-    foreach ($paths as $path) {
-        if (!file_exists($path)) {
-            throw new Exception("File di sistema mancante: $path");
-        }
-        require_once $path;
+    // 2. Controllo Permessi
+    if (!isset($_SESSION['user_id'])) {
+        throw new Exception("Sessione scaduta o non valida.");
     }
 
-    // 1. Controllo Permessi
-    $roleData = $_SESSION['ruolo_principale'] ?? $_SESSION['role'] ?? null;
-    $roleName = is_array($roleData) ? ($roleData['nome'] ?? '') : $roleData;
-
-    if (!isset($_SESSION['user_id']) || $roleName !== 'Bibliotecario') {
-        throw new Exception("Accesso negato.");
+    // 3. Recupero Input (ID Inventario o ISBN)
+    $code = trim($_GET['id'] ?? '');
+    if (empty($code)) {
+        throw new Exception("Codice identificativo mancante.");
     }
 
-    // 2. Recupero Input
-    $isbn = $_GET['isbn'] ?? '';
-    if (empty($isbn)) {
-        throw new Exception("ISBN non fornito.");
-    }
+    // 4. Connessione al DB
+    $db = Database::getInstance()->getConnection();
 
-    // 3. TENTATIVO 1: Google Books API
-    $gbService = new GoogleBooksService();
-    $bookData = $gbService->fetchByIsbn($isbn);
-    $source = 'Google Books';
+    /**
+     * QUERY CORRETTA:
+     * Usiamo due segnaposti diversi (:id e :isbn) per lo stesso valore $code
+     * per evitare l'errore SQLSTATE[HY093] su configurazioni PDO con emulazione disattivata.
+     */
+    $sql = "SELECT 
+                i.id_inventario, 
+                i.stato, 
+                i.collocazione, 
+                i.condizione,
+                l.titolo, 
+                l.immagine_copertina,
+                l.isbn,
+                GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori
+            FROM inventari i
+            JOIN libri l ON i.id_libro = l.id_libro
+            LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+            LEFT JOIN autori a ON la.id_autore = a.id
+            WHERE i.id_inventario = :id 
+               OR l.isbn = :isbn
+            GROUP BY i.id_inventario
+            LIMIT 1";
 
-    // 4. TENTATIVO 2: Open Library API (Fallback)
-    if (!$bookData) {
-        $olService = new OpenLibraryService();
-        $bookData = $olService->fetchByIsbn($isbn);
-        $source = 'Open Library';
-    }
+    $stmt = $db->prepare($sql);
+    // Passiamo lo stesso valore a entrambi i parametri
+    $stmt->execute([
+        'id'   => $code,
+        'isbn' => $code
+    ]);
+
+    $book = $stmt->fetch(PDO::FETCH_ASSOC);
 
     ob_clean();
 
-    if ($bookData) {
-        // Aggiungiamo la fonte ai dati per debug (opzionale, ma utile)
-        $bookData['_source'] = $source;
-        echo json_encode(['success' => true, 'data' => $bookData]);
+    if ($book) {
+        echo json_encode([
+            'success' => true,
+            'id_inventario' => $book['id_inventario'],
+            'titolo' => $book['titolo'],
+            'autori' => $book['autori'],
+            'stato' => $book['stato'],
+            'collocazione' => $book['collocazione'],
+            'immagine_copertina' => $book['immagine_copertina'] ?: '../../public/assets/img/placeholder.png',
+            'isbn' => $book['isbn']
+        ]);
     } else {
         echo json_encode([
             'success' => false,
-            'error' => "Nessun risultato trovato per ISBN: $isbn (Cercato su Google e Open Library)"
+            'error' => "Nessun libro trovato con codice: $code"
         ]);
     }
 
