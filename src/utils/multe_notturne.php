@@ -1,17 +1,17 @@
 <?php
 /**
- * Script Cron per il calcolo automatico delle multe sui prestiti scaduti
- * Adattato allo schema database biblioteca_db
- *
- * Esecuzione: ogni notte alle 02:00
- * Crontab: 0 2 * * *
+ * Script Cron per il calcolo automatico delle multe
+ * Esecuzione: php CalcolaMulteCron.php
  */
 
-namespace Ottaviodipisa\StackMasters\Utils\MulteNotturne;
+namespace Ottaviodipisa\StackMasters\Utils\m;
 
+// 1. Caricamento Autoload e Ambiente
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use PDO;
+use PDOException;
+use Exception;
 use Dotenv\Dotenv;
 
 class CalcolaMulteCron
@@ -19,263 +19,164 @@ class CalcolaMulteCron
     private PDO $db;
     private string $logFile;
 
-    // Configurazione multe
+    // Costanti di configurazione
     private const GIORNI_TOLLERANZA = 3;
     private const IMPORTO_GIORNALIERO = 0.50;
-    private const SCONTO_UTENTI_AFFIDABILI = 0.10; // 10%
+    private const SCONTO_UTENTI_AFFIDABILI = 0.10;
     private const SOGLIA_PRESTITI_AFFIDABILE = 20;
 
     public function __construct()
     {
-        // Carica le variabili d'ambiente
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-        $dotenv->load();
+        $this->inizializzaAmbiente();
+        $this->connettiDatabase();
+        $this->setupLog();
+    }
 
-        // Carica la configurazione del database
-        $config = require __DIR__ . '/../config/database.php';
+    private function inizializzaAmbiente(): void
+    {
+        if (file_exists(__DIR__ . '/../../.env')) {
+            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+            $dotenv->load();
+        }
+    }
+
+    private function connettiDatabase(): void
+    {
+        // Recupero parametri da ENV (coerente con i file di ieri)
+        $host = $_ENV['DB_HOST'];
+        $dbname = $_ENV['DB_NAME'];
+        $user = $_ENV['DB_USER'];
+        $pass = $_ENV['DB_PASS'] ;
 
         try {
             $this->db = new PDO(
-                "mysql:host={$config['host']};dbname={$config['dbname']};charset=utf8mb4",
-                $config['user'],
-                $config['password'],
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+                "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+                $user,
+                $pass,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]
             );
-        } catch (\PDOException $e) {
-            die("Errore connessione DB: " . $e->getMessage());
+        } catch (PDOException $e) {
+            $this->log("ERRORE CONNESSIONE: " . $e->getMessage(), 'CRITICAL');
+            die("Exit: Database non raggiungibile.\n");
         }
+    }
 
-        // Setup log
-        $logDir = __DIR__ . '/../logs/';
-        if (!is_dir($logDir)) mkdir($logDir, 0755, true);
-        $this->logFile = $logDir . 'multe_' . date('Y-m-d') . '.log';
-
-        $this->log("=== AVVIO CALCOLO MULTE NOTTURNO ===");
-        $this->log("Data/Ora: " . date('Y-m-d H:i:s'));
+    private function setupLog(): void
+    {
+        $logDir = __DIR__ . '/../../logs/';
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        $this->logFile = $logDir . 'cron_multe_' . date('Y-m-d') . '.log';
     }
 
     public function esegui(): void
     {
+        $this->log("--- Inizio Processo Notturno ---");
+
         try {
             $this->db->beginTransaction();
 
-            $prestitiScaduti = $this->trovaPrestitiScaduti();
-            $this->log("Trovati " . count($prestitiScaduti) . " prestiti scaduti");
+            $prestiti = $this->getPrestitiScaduti();
 
-            if (empty($prestitiScaduti)) {
-                $this->log("Nessun prestito scaduto da processare");
+            if (empty($prestiti)) {
+                $this->log("Nessun prestito scaduto oggi.");
                 $this->db->commit();
                 return;
             }
 
-            $risultati = $this->calcolaERegistraMulte($prestitiScaduti);
-            $this->bloccaUtentiInRitardo($prestitiScaduti);
+            $contatori = [
+                'processati' => 0,
+                'nuove' => 0,
+                'aggiornate' => 0,
+                'totale_euro' => 0
+            ];
+
+            foreach ($prestiti as $p) {
+                $res = $this->elaboraSingoloPrestito($p);
+                $contatori['processati']++;
+                if ($res['tipo'] === 'creata') $contatori['nuove']++;
+                if ($res['tipo'] === 'aggiornata') $contatori['aggiornate']++;
+                $contatori['totale_euro'] += $res['importo'];
+            }
 
             $this->db->commit();
-            $this->logRiepilogo($risultati);
-            $this->inviaNotifiche($risultati);
+            $this->log("FINE: Processati {$contatori['processati']} record. Totale maturato: €{$contatori['totale_euro']}");
 
-        } catch (\Exception $e) {
-            $this->db->rollBack();
-            $this->log("ERRORE CRITICO: " . $e->getMessage(), 'ERROR');
-            $this->log("Stack trace: " . $e->getTraceAsString(), 'ERROR');
-        }
-    }
-
-    private function trovaPrestitiScaduti(): array
-    {
-        $query = "
-            SELECT 
-                p.id_prestito,
-                p.id_utente,
-                p.id_inventario,
-                p.scadenza_prestito,
-                p.data_prestito,
-                u.nome,
-                u.cognome,
-                u.email,
-                l.titolo,
-                l.id_libro,
-                DATEDIFF(CURDATE(), p.scadenza_prestito) AS giorni_ritardo,
-                ur.prestiti_tot
-            FROM Prestiti p
-            INNER JOIN Utenti u ON p.id_utente = u.id_utente
-            INNER JOIN Inventari i ON p.id_inventario = i.id_inventario
-            INNER JOIN Libri l ON i.id_libro = l.id_libro
-            LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente
-            WHERE p.data_restituzione IS NULL
-              AND p.scadenza_prestito < CURDATE()
-            ORDER BY p.scadenza_prestito ASC
-        ";
-
-        $stmt = $this->db->query($query);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    private function calcolaERegistraMulte(array $prestiti): array
-    {
-        $risultati = [
-            'totale_processati' => 0,
-            'nuove_multe' => 0,
-            'multe_aggiornate' => 0,
-            'importo_totale_maturato' => 0,
-            'errori' => 0,
-            'dettagli' => []
-        ];
-
-        foreach ($prestiti as $prestito) {
-            try {
-                $risultati['totale_processati']++;
-                $giorniRitardo = (int)$prestito['giorni_ritardo'];
-                $utenteId = $prestito['id_utente'];
-                $prestitoId = $prestito['id_prestito'];
-
-                if ($giorniRitardo <= self::GIORNI_TOLLERANZA) {
-                    $this->log("Prestito {$prestitoId}: ancora in tolleranza ({$giorniRitardo} giorni)", 'DEBUG');
-                    continue;
-                }
-
-                $giorniMulta = $giorniRitardo - self::GIORNI_TOLLERANZA;
-                $importoBase = $giorniMulta * self::IMPORTO_GIORNALIERO;
-
-                $prestitiCompletati = (int)($prestito['prestiti_tot'] ?? 0);
-                $sconto = ($prestitiCompletati >= self::SOGLIA_PRESTITI_AFFIDABILE)
-                    ? $importoBase * self::SCONTO_UTENTI_AFFIDABILI
-                    : 0;
-
-                $importoFinale = round($importoBase - $sconto, 2);
-
-                $multaEsistente = $this->trovaMultaOggi($utenteId, $giorniMulta);
-
-                if ($multaEsistente) {
-                    $this->aggiornaMulta($multaEsistente['id_multa'], $importoFinale, $giorniMulta);
-                    $risultati['multe_aggiornate']++;
-                    $azione = 'aggiornata';
-                } else {
-                    $this->creaMulta($utenteId, $giorniMulta, $importoFinale, $prestito['titolo']);
-                    $risultati['nuove_multe']++;
-                    $azione = 'creata';
-                }
-
-                $risultati['importo_totale_maturato'] += $importoFinale;
-                $risultati['dettagli'][] = [
-                    'utente_id' => $utenteId,
-                    'email' => $prestito['email'],
-                    'nome' => $prestito['nome'] . ' ' . $prestito['cognome'],
-                    'libro' => $prestito['titolo'],
-                    'giorni_ritardo' => $giorniRitardo,
-                    'importo' => $importoFinale,
-                    'azione' => $azione
-                ];
-
-                $this->log("Prestito {$prestitoId}: multa {$azione} - €{$importoFinale} ({$giorniMulta} giorni)");
-
-            } catch (\Exception $e) {
-                $risultati['errori']++;
-                $this->log("Errore prestito {$prestitoId}: " . $e->getMessage(), 'ERROR');
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
             }
-        }
-
-        return $risultati;
-    }
-
-    private function trovaMultaOggi(int $utenteId, int $giorni): ?array
-    {
-        $stmt = $this->db->prepare("
-            SELECT id_multa, importo
-            FROM Multe
-            WHERE id_utente = ?
-              AND causa = 'RITARDO'
-              AND giorni = ?
-              AND DATE(data_creazione) = CURDATE()
-            ORDER BY data_creazione DESC
-            LIMIT 1
-        ");
-        $stmt->execute([$utenteId, $giorni]);
-        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
-    }
-
-    private function aggiornaMulta(int $multaId, float $nuovoImporto, int $giorniRitardo): void
-    {
-        $stmt = $this->db->prepare("
-            UPDATE Multe SET importo = ?, giorni = ? WHERE id_multa = ?
-        ");
-        $stmt->execute([$nuovoImporto, $giorniRitardo, $multaId]);
-    }
-
-    private function creaMulta(int $utenteId, int $giorni, float $importo, string $titoloLibro): void
-    {
-        $commento = "Ritardo restituzione libro: {$titoloLibro}";
-        $stmt = $this->db->prepare("
-            INSERT INTO Multe (id_utente, giorni, importo, causa, commento, data_creazione)
-            VALUES (?, ?, ?, 'RITARDO', ?, NOW())
-        ");
-        $stmt->execute([$utenteId, $giorni, $importo, $commento]);
-    }
-
-    private function bloccaUtentiInRitardo(array $prestiti): void
-    {
-        $utentiDaBloccare = [];
-        foreach ($prestiti as $prestito) {
-            if ((int)$prestito['giorni_ritardo'] > self::GIORNI_TOLLERANZA) {
-                $utentiDaBloccare[] = $prestito['id_utente'];
-            }
-        }
-        $utentiDaBloccare = array_unique($utentiDaBloccare);
-        if (empty($utentiDaBloccare)) return;
-
-        $dataBloccofino = date('Y-m-d H:i:s', strtotime('+1 year'));
-        $placeholders = implode(',', array_fill(0, count($utentiDaBloccare), '?'));
-        $params = array_merge([$dataBloccofino], $utentiDaBloccare);
-
-        $stmt = $this->db->prepare("
-            UPDATE Utenti
-            SET blocco_account_fino_al = ?
-            WHERE id_utente IN ({$placeholders})
-              AND (blocco_account_fino_al IS NULL OR blocco_account_fino_al < NOW())
-        ");
-        $stmt->execute($params);
-        $this->log("Bloccati {$stmt->rowCount()} utenti con prestiti in ritardo");
-    }
-
-    private function inviaNotifiche(array $risultati): void
-    {
-        foreach ($risultati['dettagli'] as $dettaglio) {
-            $giorniRitardo = $dettaglio['giorni_ritardo'];
-            if ($giorniRitardo >= 4 && $giorniRitardo <= 7) $tipo = 'PRIMO_AVVISO';
-            elseif ($giorniRitardo >= 8 && $giorniRitardo <= 14) $tipo = 'SECONDO_AVVISO';
-            else $tipo = 'COMUNICAZIONE_FORMALE';
-
-            $this->log("Email {$tipo} per: {$dettaglio['email']} - Multa: €{$dettaglio['importo']}");
+            $this->log("ERRORE DURANTE L'ESECUZIONE: " . $e->getMessage(), 'ERROR');
         }
     }
 
-    private function logRiepilogo(array $risultati): void
+    private function getPrestitiScaduti(): array
     {
-        $this->log("=== RIEPILOGO ELABORAZIONE ===");
-        $this->log("Prestiti processati: {$risultati['totale_processati']}");
-        $this->log("Nuove multe create: {$risultati['nuove_multe']}");
-        $this->log("Multe aggiornate: {$risultati['multe_aggiornate']}");
-        $this->log("Importo totale maturato: €" . number_format($risultati['importo_totale_maturato'], 2));
-        $this->log("Errori: {$risultati['errori']}");
-        $this->log("=== ELABORAZIONE COMPLETATA ===\n");
+        // Query ottimizzata con PDO
+        $sql = "SELECT p.*, u.nome, u.email, ur.prestiti_tot, l.titolo
+                FROM Prestiti p
+                JOIN Utenti u ON p.id_utente = u.id_utente
+                JOIN Inventari i ON p.id_inventario = i.id_inventario
+                JOIN Libri l ON i.id_libro = l.id_libro
+                LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente
+                WHERE p.data_restituzione IS NULL 
+                AND p.scadenza_prestito < CURDATE()";
+
+        return $this->db->query($sql)->fetchAll();
     }
 
-    private function log(string $message, string $level = 'INFO'): void
+    private function elaboraSingoloPrestito(array $p): array
     {
-        $line = "[" . date('Y-m-d H:i:s') . "] [{$level}] {$message}\n";
-        file_put_contents($this->logFile, $line, FILE_APPEND);
-        echo $line;
+        $oggi = new \DateTime();
+        $scadenza = new \DateTime($p['scadenza_prestito']);
+        $diff = $oggi->diff($scadenza)->days;
+
+        if ($diff <= self::GIORNI_TOLLERANZA) {
+            return ['tipo' => 'skip', 'importo' => 0];
+        }
+
+        $giorniEffettivi = $diff - self::GIORNI_TOLLERANZA;
+        $importo = $giorniEffettivi * self::IMPORTO_GIORNALIERO;
+
+        // Applica sconto se utente affidabile
+        if (($p['prestiti_tot'] ?? 0) >= self::SOGLIA_PRESTITI_AFFIDABILE) {
+            $importo -= ($importo * self::SCONTO_UTENTI_AFFIDABILI);
+        }
+
+        // Controllo se esiste già una multa per oggi (evita duplicati se il cron gira 2 volte)
+        $stmt = $this->db->prepare("SELECT id_multa FROM Multe WHERE id_utente = ? AND DATE(data_creazione) = CURDATE() AND causa = 'RITARDO'");
+        $stmt->execute([$p['id_utente']]);
+        $esistente = $stmt->fetch();
+
+        if ($esistente) {
+            $upd = $this->db->prepare("UPDATE Multe SET importo = ?, giorni = ? WHERE id_multa = ?");
+            $upd->execute([$importo, $giorniEffettivi, $esistente['id_multa']]);
+            return ['tipo' => 'aggiornata', 'importo' => $importo];
+        } else {
+            $ins = $this->db->prepare("INSERT INTO Multe (id_utente, importo, giorni, causa, data_creazione) VALUES (?, ?, ?, 'RITARDO', NOW())");
+            $ins->execute([$p['id_utente'], $importo, $giorniEffettivi]);
+            return ['tipo' => 'creata', 'importo' => $importo];
+        }
+    }
+
+    private function log(string $msg, string $level = 'INFO'): void
+    {
+        $date = date('Y-m-d H:i:s');
+        $formattato = "[$date] [$level] $msg" . PHP_EOL;
+        file_put_contents($this->logFile, $formattato, FILE_APPEND);
+        echo $formattato; // Utile per il debug manuale da terminale
     }
 }
 
-// =====================================================================
-// ESECUZIONE SCRIPT
-// =====================================================================
+// === BOOTSTRAP ESECUZIONE ===
 if (php_sapi_name() !== 'cli') {
-    die("Questo script può essere eseguito solo da command line.\n");
+    die("Accesso negato. Solo CLI.");
 }
 
 $cron = new CalcolaMulteCron();
 $cron->esegui();
-exit(0);
