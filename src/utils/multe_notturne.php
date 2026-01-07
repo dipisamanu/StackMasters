@@ -4,7 +4,7 @@
  * Esecuzione: php CalcolaMulteCron.php
  */
 
-namespace Ottaviodipisa\StackMasters\Utils\m;
+namespace Ottaviodipisa\StackMasters\utils\MulteNotturne;
 
 // 1. Caricamento Autoload e Ambiente
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -67,7 +67,7 @@ class CalcolaMulteCron
 
     private function setupLog(): void
     {
-        $logDir = __DIR__ . '/../../logs/';
+        $logDir = __DIR__ . '/../logs/';
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
