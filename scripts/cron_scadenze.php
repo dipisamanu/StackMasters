@@ -1,15 +1,17 @@
 <?php
-// FILE: scripts/cron_scadenze.php
+/**
+ * CRON JOB: Controllo Scadenze (Esecuzione giornaliera)
+ * Invia preavvisi (3 giorni prima) e avvisi di ritardo (scaduto ieri).
+ */
 
 use Ottaviodipisa\StackMasters\Core\Database;
+use Ottaviodipisa\StackMasters\Models\NotificationManager;
 use Dotenv\Dotenv;
 
-// 1. BOOTSTRAP: Carichiamo Composer e Variabili d'Ambiente
-// __DIR__ è la cartella 'scripts'. Saliamo di un livello per trovare 'vendor'
+// 1. Caricamento dipendenze
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// Carichiamo il file .env dalla root del progetto (se esiste)
-// La tua classe Database HA BISOGNO di $_ENV popolato
+// 2. Caricamento variabili d'ambiente (.env)
 if (file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
     $dotenv->load();
@@ -18,57 +20,77 @@ if (file_exists(__DIR__ . '/../.env')) {
 try {
     echo "--- [START] Controllo scadenze: " . date('Y-m-d H:i:s') . " ---\n";
 
-    // 2. CONNESSIONE TRAMITE LA TUA CLASSE SINGLETON
-    // Non usiamo più new PDO(), ma chiamiamo la tua istanza
+    $notify = new NotificationManager();
     $pdo = Database::getInstance()->getConnection();
 
-} catch (Exception $e) {
-    die("Errore Critico: " . $e->getMessage());
-}
+    // -----------------------------------------------------------
+    // A. PREAVVISO (3 giorni alla scadenza - Epic 8.2)
+    // -----------------------------------------------------------
+    $sqlPre = "SELECT P.id_utente, L.titolo, P.scadenza_prestito 
+               FROM Prestiti P 
+               JOIN Inventari I ON P.id_inventario = I.id_inventario
+               JOIN Libri L ON I.id_libro = L.id_libro
+               WHERE P.data_restituzione IS NULL 
+               AND DATE(P.scadenza_prestito) = DATE(NOW() + INTERVAL 3 DAY)";
 
-// -----------------------------------------------------------
-// DA QUI IN POI LA LOGICA È IDENTICA A PRIMA
-// -----------------------------------------------------------
-
-// A. PREAVVISO (3 giorni alla scadenza)
-$sql = "SELECT P.id_utente, L.titolo, U.nome 
-        FROM Prestiti P
-        JOIN Inventari I ON P.id_inventario = I.id_inventario
-        JOIN Libri L ON I.id_libro = L.id_libro
-        JOIN Utenti U ON P.id_utente = U.id_utente
-        WHERE DATEDIFF(P.scadenza_prestito, NOW()) = 3 AND P.data_restituzione IS NULL";
-
-$stmt = $pdo->query($sql);
-while ($row = $stmt->fetch()) {
-    creaNotifica($pdo, $row['id_utente'], 'INFO', 'Promemoria Scadenza',
-        "Ciao {$row['nome']}, il libro '{$row['titolo']}' scade tra 3 giorni.");
-    echo " > Preavviso creato per utente {$row['id_utente']}\n";
-}
-
-// B. RITARDO (Scaduto ieri)
-$sql = "SELECT P.id_utente, L.titolo, U.nome 
-        FROM Prestiti P
-        JOIN Inventari I ON P.id_inventario = I.id_inventario
-        JOIN Libri L ON I.id_libro = L.id_libro
-        JOIN Utenti U ON P.id_utente = U.id_utente
-        WHERE DATEDIFF(NOW(), P.scadenza_prestito) = 1 AND P.data_restituzione IS NULL";
-
-$stmt = $pdo->query($sql);
-while ($row = $stmt->fetch()) {
-    creaNotifica($pdo, $row['id_utente'], 'WARNING', 'Prestito Scaduto',
-        "Attenzione {$row['nome']}, '{$row['titolo']}' è scaduto! Restituiscilo subito.");
-    echo " > Ritardo segnalato per utente {$row['id_utente']}\n";
-}
-
-// Funzione Helper (Resta uguale)
-function creaNotifica($pdo, $id_utente, $tipo, $titolo, $messaggio) {
-    $check = $pdo->prepare("SELECT id_notifica FROM Notifiche_Web WHERE id_utente = ? AND titolo = ? AND DATE(data_creazione) = CURDATE()");
-    $check->execute([$id_utente, $titolo]);
-
-    if($check->rowCount() == 0) {
-        $sql = "INSERT INTO Notifiche_Web (id_utente, tipo, titolo, messaggio, stato_email) VALUES (?, ?, ?, ?, 'DA_INVIARE')";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id_utente, $tipo, $titolo, $messaggio]);
+    foreach ($pdo->query($sqlPre) as $row) {
+        $notify->send(
+            $row['id_utente'],
+            NotificationManager::TYPE_REMINDER,
+            NotificationManager::URGENCY_LOW, // Bassa urgenza (rispetta quiet hours)
+            "Scadenza Imminente",
+            "Il libro '{$row['titolo']}' scade il " . date('d/m/Y', strtotime($row['scadenza_prestito'])),
+            "/dashboard/student/index.php"
+        );
+        echo " > Preavviso inviato a Utente ID: {$row['id_utente']}\n";
     }
+
+    // -----------------------------------------------------------
+    // B. RITARDO (Scaduto ieri - Epic 8.3)
+    // -----------------------------------------------------------
+    $sqlLate = "SELECT P.id_utente, L.titolo 
+                FROM Prestiti P 
+                JOIN Inventari I ON P.id_inventario = I.id_inventario
+                JOIN Libri L ON I.id_libro = L.id_libro
+                WHERE P.data_restituzione IS NULL 
+                AND DATE(P.scadenza_prestito) = DATE(NOW() - INTERVAL 1 DAY)";
+
+    foreach ($pdo->query($sqlLate) as $row) {
+        $notify->send(
+            $row['id_utente'],
+            NotificationManager::TYPE_REMINDER,
+            NotificationManager::URGENCY_HIGH, // Alta urgenza (ignora quiet hours)
+            "PRESTITO SCADUTO",
+            "Il prestito di '{$row['titolo']}' è scaduto ieri. Restituiscilo subito per evitare multe.",
+            "/dashboard/student/index.php"
+        );
+        echo " > Avviso ritardo inviato a Utente ID: {$row['id_utente']}\n";
+    }
+
+    // -----------------------------------------------------------
+    // C. ESCALATION GRAVE (Ritardo > 14 giorni - Epic 8.5)
+    // -----------------------------------------------------------
+    $sqlEscalation = "SELECT P.id_utente, L.titolo 
+                      FROM Prestiti P 
+                      JOIN Inventari I ON P.id_inventario = I.id_inventario
+                      JOIN Libri L ON I.id_libro = L.id_libro
+                      WHERE P.data_restituzione IS NULL 
+                      AND DATE(P.scadenza_prestito) = DATE(NOW() - INTERVAL 14 DAY)";
+
+    foreach ($pdo->query($sqlEscalation) as $row) {
+        $notify->send(
+            $row['id_utente'],
+            NotificationManager::TYPE_REMINDER,
+            NotificationManager::URGENCY_HIGH, // Altissima priorità
+            "⚠️ ULTIMO AVVISO: Grave Ritardo",
+            "Il libro '{$row['titolo']}' è scaduto da 2 settimane. L'account è sospeso e sono in corso azioni amministrative. Restituisci subito il volume.",
+            "/dashboard/student/index.php"
+        );
+        echo " > Escalation inviata a Utente ID: {$row['id_utente']}\n";
+    }
+
+    echo "--- [END] Controllo completato ---\n";
+
+} catch (Exception $e) {
+    echo "ERRORE CRITICO: " . $e->getMessage() . "\n";
 }
-echo "--- [END] Controllo terminato ---\n";
