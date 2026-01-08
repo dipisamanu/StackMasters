@@ -4,7 +4,9 @@
 namespace Ottaviodipisa\StackMasters\Services;
 use Database;
 use PDO;
+use Exception;
 
+use Ottaviodipisa\StackMasters\Models\NotificationManager;
 /**
  * LoanService - Gestisce tutta la logica di business per prestiti e restituzioni
  * Adattato allo schema database biblioteca_db
@@ -12,7 +14,7 @@ use PDO;
 class LoanService
 {
     private PDO $db;
-
+    private NotificationManager $notifier;
     // Configurazione multe
     private const GIORNI_TOLLERANZA = 3;
     private const IMPORTO_MULTA_GIORNALIERA = 0.50;
@@ -24,6 +26,8 @@ class LoanService
     {
         try {
             $this->db = Database::getInstance()->getConnection();
+
+            $this->notifier = new NotificationManager();
         } catch (Exception $e) {
             // Gestione degli errori
             throw new Exception("Errore durante l'inizializzazione del controller: " . $e->getMessage());
@@ -43,7 +47,7 @@ class LoanService
         $this->db->beginTransaction();
 
         try {
-            // 1. RECUPERA DATI UTENTE E LIBRO
+            // 1. RECUPERA DATI UTENTE E LIBRO (Queste righe sono FONDAMENTALI per evitare l'errore)
             $utente = $this->getUtenteCompleto($utenteId);
             if (!$utente) {
                 throw new Exception("Utente non trovato (ID: {$utenteId})");
@@ -91,8 +95,22 @@ class LoanService
             // 11. COMMIT TRANSAZIONE
             $this->db->commit();
 
-            // 12. INVIO EMAIL CONFERMA (fuori dalla transazione)
-            $this->inviaEmailConferma($utente, $copia, $dataScadenza, $prestitoId);
+
+            try {
+
+                $this->notifier->send(
+                    $utenteId,
+                    NotificationManager::TYPE_INFO,
+                    NotificationManager::URGENCY_LOW,
+                    "Prestito Confermato",
+                    "Hai preso in prestito '{$copia['titolo']}'. Scadenza prevista: " . date('d/m/Y', strtotime($dataScadenza)),
+                    "/dashboard/student/index.php"
+                );
+            } catch (Exception $e) {
+                error_log("Errore invio notifica prestito: " . $e->getMessage());
+            }
+
+
 
             return [
                 'status' => 'success',
@@ -104,8 +122,11 @@ class LoanService
                     'messaggio_prenotazione' => $messaggioPrenotazione
                 ]
             ];
+
         } catch (Exception $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             throw $e;
         }
     }
@@ -170,7 +191,8 @@ class LoanService
             if ($prenotazioneSuccessiva) {
                 $this->assegnaPrenotazione($prenotazioneSuccessiva['id_prenotazione'], $inventarioId);
                 $this->aggiornaStatoCopia($inventarioId, 'PRENOTATO');
-                $this->inviaNotificaDisponibilita($prenotazioneSuccessiva);
+                // Nota: $this->inviaNotificaDisponibilita() inviava solo email.
+                // Il nuovo NotificationManager gestirà anche la campanella (vedi sotto).
                 $messaggi[] = "📢 Libro riservato per: {$prenotazioneSuccessiva['nome']} {$prenotazioneSuccessiva['cognome']} (48h)";
             } else {
                 $messaggi[] = "✅ Libro disponibile per nuovi prestiti";
@@ -185,7 +207,43 @@ class LoanService
             // 11. COMMIT TRANSAZIONE
             $this->db->commit();
 
-            // 12. INVIO EMAIL RICEVUTA RESTITUZIONE
+            // -------------------------------------------------------------------------
+            // NOVITÀ EPIC 8: SISTEMA NOTIFICHE (Post-Commit)
+            // -------------------------------------------------------------------------
+            // Usiamo un try-catch separato per non bloccare il flusso se le notifiche falliscono
+            try {
+                // A. Notifica per chi RESTITUISCE (Se c'è multa o ritardo)
+                if ($multaTotale > 0 || $giorniRitardo > 0) {
+                    $this->notifier->send(
+                        $prestito['id_utente'],
+                        NotificationManager::TYPE_REMINDER,
+                        NotificationManager::URGENCY_HIGH, // Urgente: Multe
+                        "Restituzione Registrata (Con Addebiti)",
+                        "Libro restituito. Sono stati rilevati {$giorniRitardo} giorni di ritardo o danni. Totale addebitato: €" . number_format($multaTotale, 2),
+                        "/dashboard/student/index.php" // Link per vedere dettagli/multe
+                    );
+                }
+
+                // B. Notifica per chi PRENOTA (Se il libro è passato al prossimo)
+                if ($prenotazioneSuccessiva) {
+                    // Recuperiamo ID utente dalla prenotazione successiva
+                    $nextUserId = $prenotazioneSuccessiva['id_utente'];
+
+                    $this->notifier->send(
+                        $nextUserId,
+                        NotificationManager::TYPE_INFO,
+                        NotificationManager::URGENCY_LOW, // Bassa urgenza notturna
+                        "Il libro che aspettavi è disponibile!",
+                        "È arrivato il tuo turno. Hai 48 ore per passare in biblioteca a ritirarlo.",
+                        "/dashboard/student/index.php"
+                    );
+                }
+            } catch (Exception $e) {
+                error_log("[WARNING] Errore invio notifiche restituzione: " . $e->getMessage());
+            }
+            // -------------------------------------------------------------------------
+
+            // 12. INVIO EMAIL RICEVUTA RESTITUZIONE (Tuo vecchio metodo, opzionale se usi notifier)
             $this->inviaEmailRestituzione($prestito, $multaTotale);
 
             return [
@@ -200,7 +258,6 @@ class LoanService
             throw $e;
         }
     }
-
     // =====================================================================
     // METODI DI CONTROLLO PRELIMINARE
     // =====================================================================
