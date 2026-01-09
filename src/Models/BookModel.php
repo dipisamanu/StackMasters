@@ -281,4 +281,25 @@ class BookModel
     private function clean($str) {
         return strip_tags(trim($str ?? ''));
     }
+    // ... aggiungi questo metodo alla classe BookModel esistente ...
+
+    /**
+     * Recupera i dettagli di un libro partendo dall'ID di una copia fisica (inventario).
+     * Utilizzato per il feedback visivo durante la scansione al bancone.
+     */
+    public function getByInventarioId(int $inventarioId)
+    {
+        $sql = "SELECT l.*, i.id_inventario, i.stato, i.condizione, i.collocazione,
+                   GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi
+            FROM inventari i
+            JOIN libri l ON i.id_libro = l.id_libro
+            LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+            LEFT JOIN autori a ON la.id_autore = a.id
+            WHERE i.id_inventario = :iid
+            GROUP BY i.id_inventario";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':iid' => $inventarioId]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
 }

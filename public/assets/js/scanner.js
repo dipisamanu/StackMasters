@@ -18,7 +18,7 @@ const BOOK_REGEX = /^(?:\d{13}|(?=.*[A-Z])[A-Z0-9]{6,20})$/i;
 // STATO SCANNER
 // =======================================================
 let buffer = "";
-let lastKeyTime = 0;
+let lastKeyTime = Date.now();
 
 // =======================================================
 // AUDIO FEEDBACK
