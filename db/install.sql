@@ -7,7 +7,8 @@ CREATE TABLE autori
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     nome                 VARCHAR(100) NOT NULL,
     cognome              VARCHAR(100) NOT NULL,
-    ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FULLTEXT INDEX idx_ft_autore (nome, cognome)
 );
 
 CREATE TABLE lingue
@@ -53,7 +54,7 @@ CREATE TABLE rfid
 CREATE TABLE libri
 (
     id_libro             INT AUTO_INCREMENT PRIMARY KEY,
-    titolo               VARCHAR(100) NOT NULL,
+    titolo               VARCHAR(255) NOT NULL,
     descrizione          TEXT,
     isbn                 VARCHAR(17) UNIQUE,
     anno_uscita          DATETIME,
@@ -61,9 +62,11 @@ CREATE TABLE libri
     lingua_id            INT,
     lingua_originale_id  INT,
     numero_pagine        INT,
+    immagine_copertina   VARCHAR(500) DEFAULT NULL,
     valore_copertina     DECIMAL(7, 2),
     rating               FLOAT     DEFAULT 0,
     copertina_url        TEXT,
+    cancellato           TINYINT DEFAULT 0,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (lingua_id) REFERENCES lingue (id),
     FOREIGN KEY (lingua_originale_id) REFERENCES lingue (id)
@@ -72,7 +75,7 @@ CREATE TABLE libri
 CREATE TABLE utenti
 (
     id_utente               INT AUTO_INCREMENT PRIMARY KEY,
-    cf                      VARCHAR(20) UNIQUE    NOT NULL, -- Modificato da CHAR(16) a VARCHAR(20)
+    cf                      VARCHAR(20) UNIQUE    NOT NULL,
     nome                    VARCHAR(100)       NOT NULL,
     cognome                 VARCHAR(100)       NOT NULL,
     email                   VARCHAR(255)       NOT NULL,
@@ -142,7 +145,7 @@ CREATE TABLE inventari
     id_inventario        INT AUTO_INCREMENT PRIMARY KEY,
     id_libro             INT NOT NULL,
     id_rfid              INT UNIQUE,
-    stato                ENUM ('DISPONIBILE','IN_PRESTITO','PRENOTATO','NON_IN_PRESTITO') DEFAULT 'DISPONIBILE',
+    stato                ENUM('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'PERSO', 'SMARRITO', 'SCARTATO') DEFAULT 'DISPONIBILE',
     condizione           ENUM ('BUONO', 'DANNEGGIATO', 'PERSO')                           DEFAULT 'BUONO',
     collocazione         VARCHAR(20),
     ultimo_aggiornamento TIMESTAMP                                                        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -217,9 +220,7 @@ CREATE TABLE logs_audit
     FOREIGN KEY (id_utente) REFERENCES utenti (id_utente) ON DELETE SET NULL
 );
 
--- AGGIUNTA TABELLA STORICO NOTIFICHE --
-
--- TABELLA NOTIFICHE_WEB
+-- TABELLA STORICO NOTIFICHE
 CREATE TABLE notifiche_web
 (
     id_notifica      INT AUTO_INCREMENT PRIMARY KEY,
@@ -228,13 +229,8 @@ CREATE TABLE notifiche_web
     titolo           VARCHAR(100) NOT NULL,
     messaggio        TEXT NOT NULL,
     link_azione      VARCHAR(255), -- Rimane per creare link diretti nella pagina Archivio e nell'email
-
-    -- Gestione Archivio Web
     letto            BOOLEAN DEFAULT FALSE,
-
-    -- Gestione Email
     stato_email      ENUM ('NON_RICHIESTA', 'DA_INVIARE', 'INVIATA', 'FALLITA') DEFAULT 'DA_INVIARE',
-
     data_creazione   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     data_invio_email TIMESTAMP NULL,
 

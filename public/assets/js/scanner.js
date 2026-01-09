@@ -1,132 +1,187 @@
-// /public/assets/js/scanner.js
+/**
+ * scanner.js - Supporto Duale: Scanner HID (Veloce) e Inserimento Manuale (Lento)
+ * Ottimizzato per test senza hardware.
+ */
 
 let buffer = "";
-let lastKeyTime = 0;
+let lastKeyTime = Date.now();
 
-// Regex
+// Regex per il riconoscimento dei formati
 const CF_REGEX = /^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/i;
-// Codice libro: EAN13 o codice interno alfanumerico minimo 3 caratteri
-const BOOK_REGEX = /^(\d{13}|[A-Z0-9]{3,})$/i;
+const BOOK_REGEX = /^(?:\d{1,13}|[A-Z0-9-]{3,})$/i;
 
-// Funzioni helper per icona
-function setBarcodeIcon(el, state) {
-    const icon = el.parentElement.querySelector(".barcode-icon");
-    if (!icon) return;
+document.addEventListener("DOMContentLoaded", () => {
+    const userInp = document.getElementById("user_barcode");
+    const bookInp = document.getElementById("book_barcode");
 
-    icon.classList.remove("text-gray-400", "text-green-500", "text-red-500");
-    if (state === "ok") icon.classList.add("text-green-500");
-    else if (state === "error") icon.classList.add("text-red-500");
-    else icon.classList.add("text-gray-400");
-}
+    /**
+     * 1. GESTIONE MANUALE (TAB / CLICK FUORI)
+     * Quando finisci di scrivere e passi al campo successivo
+     */
+    if (userInp) {
+        userInp.addEventListener("blur", () => {
+            if (userInp.value.trim().length > 0) {
+                processInput(userInp.value.trim(), "user");
+            }
+        });
+    }
 
-// Alert blocco
-function forceError(msg) {
-    alert(msg); // BLOCCANTE
-}
+    if (bookInp) {
+        bookInp.addEventListener("blur", () => {
+            if (bookInp.value.trim().length > 0) {
+                processInput(bookInp.value.trim(), "book");
+            }
+        });
+    }
+});
 
-// Scanner veloce
+/**
+ * 2. GESTIONE TASTIERA (INVIO / SCANNER)
+ */
 document.addEventListener("keydown", function (e) {
     const now = Date.now();
 
-    // Se la digitazione è veloce → scanner
-    if (now - lastKeyTime < 40) {
+    // Logica Buffer per Scanner HID (molto veloce)
+    if (now - lastKeyTime < 50) {
         if (e.key !== "Enter") buffer += e.key;
     } else {
         if (e.key !== "Enter") buffer = e.key;
     }
     lastKeyTime = now;
 
-    // Scanner invia Enter alla fine
+    // Quando viene premuto INVIO (sia da tastiera che da scanner)
     if (e.key === "Enter") {
-        e.preventDefault();
-        if (buffer.length > 2) {
-            processBarcode(buffer.trim().toUpperCase());
+        const input = (buffer.length > 1 ? buffer : document.activeElement.value).trim().toUpperCase();
+
+        if (input.length > 0) {
+            // Se siamo nei campi di input, blocca l'invio del form e processa il codice
+            if (document.activeElement.id === "user_barcode" || document.activeElement.id === "book_barcode") {
+                e.preventDefault();
+                processInput(input);
+            }
         }
         buffer = "";
     }
 });
 
-// Process barcode
-function processBarcode(code) {
+/**
+ * Funzione Centrale di Elaborazione
+ */
+async function processInput(code, forceType = null) {
     const userInp = document.getElementById("user_barcode");
     const bookInp = document.getElementById("book_barcode");
+    const codeUpper = code.toUpperCase();
 
-    // --- Codice Fiscale ---
-    if (CF_REGEX.test(code)) {
-        userInp.value = code;
-        userInp.classList.add("border-green-500", "bg-green-50");
-        setBarcodeIcon(userInp, "ok");
-        bookInp.focus();
+    // Se il focus è sull'utente o se il codice è un CF
+    if (forceType === "user" || document.activeElement === userInp || CF_REGEX.test(codeUpper)) {
+        userInp.value = codeUpper;
+        const success = await fetchUserInfo(codeUpper, userInp);
+        // Se l'utente è valido, sposta il cursore sul libro automaticamente
+        if (success && bookInp) bookInp.focus();
         return;
     }
 
-    // --- Codice Libro ---
-    if (BOOK_REGEX.test(code)) {
-        bookInp.value = code;
-        bookInp.classList.add("border-green-500", "bg-green-50");
-        setBarcodeIcon(bookInp, "ok");
+    // Se il focus è sul libro
+    if (forceType === "book" || document.activeElement === bookInp) {
+        await addBookToList(codeUpper, bookInp);
+        return;
+    }
+}
+
+/**
+ * AJAX - Ricerca Utente
+ */
+async function fetchUserInfo(code, inputElement) {
+    const infoDiv = document.getElementById('user-info-display');
+
+    // Applica stile base per il bordo
+    inputElement.classList.remove('border-green-500', 'border-red-500', 'bg-green-50', 'bg-red-50');
+    inputElement.classList.add('border-2');
+
+    try {
+        const res = await fetch(`ajax-fetch-user.php?code=${code}`);
+        const data = await res.json();
+
+        if (data.success) {
+            inputElement.classList.add('border-green-500', 'bg-green-50');
+            infoDiv.innerHTML = `
+                <div class="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-xl shadow-sm animate-fade-in">
+                    <div class="h-12 w-12 bg-green-600 rounded-full flex items-center justify-center text-white text-xl">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div>
+                        <p class="font-black text-green-900 leading-none">${data.nome} ${data.cognome}</p>
+                        <p class="text-[10px] text-green-700 uppercase font-black mt-1 tracking-widest">${data.ruolo}</p>
+                    </div>
+                </div>`;
+            return true;
+        } else {
+            inputElement.classList.add('border-red-500', 'bg-red-50');
+            infoDiv.innerHTML = `
+                <div class="p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <i class="fas fa-user-times"></i> Utente non trovato (ID: ${code})
+                </div>`;
+            return false;
+        }
+    } catch (e) {
+        console.error("Errore Fetch Utente");
+        return false;
+    }
+}
+
+/**
+ * AJAX - Ricerca Libro e Lista
+ */
+async function addBookToList(code, inputElement) {
+    inputElement.classList.remove('border-green-500', 'border-red-500', 'bg-green-50', 'bg-red-50');
+    inputElement.classList.add('border-2');
+
+    // Evita duplicati nella lista corrente
+    if (document.querySelector(`input[name="book_ids[]"][value="${code}"]`)) {
+        showStatus("Libro già aggiunto", "error");
         return;
     }
 
-    // --- Errore ---
-    setBarcodeIcon(userInp, "error");
-    setBarcodeIcon(bookInp, "error");
-    forceError(
-        "❌ CODICE NON VALIDO\n\n" +
-        "Il codice scannerizzato non è né:\n" +
-        "- un Codice Fiscale valido\n" +
-        "- un Codice Libro valido (EAN13 o codice interno minimo 3 caratteri)"
-    );
-}
+    try {
+        const res = await fetch(`ajax-fetch-book.php?id=${code}`);
+        const data = await res.json();
 
-// Validazione input manuale
-function checkFieldLogic(el, type) {
-    const val = el.value.trim().toUpperCase();
-    if (!val) return;
+        if (data.success) {
+            inputElement.classList.add('border-green-500', 'bg-green-50');
+            inputElement.value = ""; // Pulisce solo se ha successo
 
-    if (type === "user") {
-        if (!CF_REGEX.test(val)) {
-            forceError("❌ Codice Fiscale NON valido");
-            el.value = "";
-            el.focus();
-            setBarcodeIcon(el, "error");
-            return;
+            const list = document.getElementById('scanned-books-list');
+            const row = document.createElement('div');
+            row.className = "book-entry flex items-center justify-between p-4 bg-white border-b hover:bg-slate-50 transition-all border-l-4 border-l-green-500 mb-1";
+            row.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <img src="${data.immagine_copertina}" class="h-12 w-9 object-cover rounded shadow-sm border border-slate-100">
+                    <div>
+                        <p class="text-sm font-black text-slate-800 uppercase leading-tight">${data.titolo}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">ID: ${data.id_inventario} | POS: ${data.collocazione}</p>
+                    </div>
+                </div>
+                <input type="hidden" name="book_ids[]" value="${data.id_inventario}">
+                <button type="button" onclick="this.parentElement.remove()" class="h-8 w-8 text-slate-300 hover:text-red-500 transition-all">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            list.appendChild(row);
+            showStatus("Libro pronto per il prestito", "success");
+        } else {
+            inputElement.classList.add('border-red-500', 'bg-red-50');
+            showStatus("Copia non trovata", "error");
         }
-        setBarcodeIcon(el, "ok");
-        document.getElementById("book_barcode").focus();
-    }
-
-    if (type === "book") {
-        if (!BOOK_REGEX.test(val)) {
-            forceError("❌ Codice Libro NON valido");
-            el.value = "";
-            el.focus();
-            setBarcodeIcon(el, "error");
-            return;
-        }
-        setBarcodeIcon(el, "ok");
+    } catch (e) {
+        console.error("Errore Fetch Libro");
     }
 }
 
-// Blocca submit se dati non validi
-document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("loan-form");
-    form.addEventListener("submit", (e) => {
-        const user = document.getElementById("user_barcode").value.trim();
-        const book = document.getElementById("book_barcode").value.trim();
-
-        if (!CF_REGEX.test(user)) {
-            e.preventDefault();
-            forceError("Inserire un Codice Fiscale valido");
-            document.getElementById("user_barcode").focus();
-            return;
-        }
-
-        if (!BOOK_REGEX.test(book)) {
-            e.preventDefault();
-            forceError("Inserire un codice libro valido (EAN13 o codice interno minimo 3 caratteri)");
-            document.getElementById("book_barcode").focus();
-            return;
-        }
-    });
-});
+function showStatus(msg, type) {
+    const status = document.getElementById('scan-status');
+    if (!status) return;
+    status.innerText = msg;
+    status.className = `fixed bottom-8 right-8 p-4 rounded-xl shadow-2xl text-white font-bold transition-all duration-300 z-50 pointer-events-none ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+    status.style.opacity = '1';
+    setTimeout(() => { status.style.opacity = '0'; }, 2500);
+}

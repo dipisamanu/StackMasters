@@ -9,43 +9,42 @@ $projectRoot = dirname(__DIR__, 2);
 if (file_exists($projectRoot . '/.env')) {
     try {
         Dotenv::createImmutable($projectRoot)->load();
-    } catch (\Throwable $e) {
-        throw new \Exception("Errore caricamento .env: " . $e->getMessage());
+    } catch (Exception $e) {
+        throw new Exception("Errore caricamento .env: " . $e->getMessage());
     }
+}
+function getEnvVar(string $key): string
+{
+    if (!isset($_ENV[$key])) {
+        throw new Exception("Variabile di ambiente '$key' non definita in .env");
+    }
+    return $_ENV[$key];
 }
 
 // Configurazione database da .env
-if (empty($_ENV['DB_HOST'])) {
-    throw new \Exception("Variabile DB_HOST non definita in .env");
-}
-if (empty($_ENV['DB_DATABASE'])) {
-    throw new \Exception("Variabile DB_DATABASE non definita in .env");
-}
-if (empty($_ENV['DB_USERNAME'])) {
-    throw new \Exception("Variabile DB_USERNAME non definita in .env");
-}
-
-$dbHost = $_ENV['DB_HOST'];
-$dbName = $_ENV['DB_DATABASE'];
-$dbUser = $_ENV['DB_USERNAME'];
-$dbPass = $_ENV['DB_PASSWORD'];
-$dbCharset = $_ENV['DB_CHARSET'];
+$dbHost = getEnvVar('DB_HOST');
+$dbName = getEnvVar('DB_NAME');
+$dbUser = getEnvVar('DB_USER');
+$dbPass = getEnvVar('DB_PASS');
 
 // Classe Database con PDO
-class Database {
-    private static $instance = null;
-    private $connection;
+class Database
+{
+    private static ?Database $instance = null;
+    private PDO $pdo;
 
-    private function __construct() {
-        $dsn = "mysql:host=" . $GLOBALS['dbHost'] . ";dbname=" . $GLOBALS['dbName'] . ";charset=" . $GLOBALS['dbCharset'];
+    private function __construct()
+    {
+        $dsn = "mysql:host=" . $GLOBALS['dbHost'] . ";dbname=" . $GLOBALS['dbName'] . ";charset=utf8mb4";
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
         ];
 
         try {
-            $this->connection = new PDO($dsn, $GLOBALS['dbUser'], $GLOBALS['dbPass'], $options);
+            $this->pdo = new PDO($dsn, $GLOBALS['dbUser'], $GLOBALS['dbPass'], $options);
         } catch (PDOException $e) {
             // Log dell'errore in un file invece di mostrarlo a video in produzione
             error_log("Errore connessione database: " . $e->getMessage());
@@ -59,17 +58,21 @@ class Database {
         }
     }
 
-    public static function getInstance() {
+    public static function getInstance(): ?Database
+    {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    public function getConnection() {
-        return $this->connection;
+    public function getConnection(): PDO
+    {
+        return $this->pdo;
     }
 }
-function getDB() {
+
+function getDB(): PDO
+{
     return Database::getInstance()->getConnection();
 }
