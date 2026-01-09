@@ -46,7 +46,7 @@ try {
     // 3. Verifica Token valido e non scaduto
     $stmt = $db->prepare("
         SELECT id_utente 
-        FROM Utenti 
+        FROM utenti 
         WHERE token = ? 
         AND scadenza_verifica > NOW()
         LIMIT 1
@@ -64,7 +64,7 @@ try {
     $newPasswordHash = password_hash($password, PASSWORD_DEFAULT);
 
     $update = $db->prepare("
-        UPDATE Utenti 
+        UPDATE utenti 
         SET 
             password = ?,
             token = NULL,

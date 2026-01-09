@@ -9,9 +9,9 @@ if (!defined('BASE_URL')) {
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $script = $_SERVER['SCRIPT_FILENAME'];
-    $public = strpos($script, '/public/') !== false ? '/public' : (strpos($script, '/dashboard/') !== false ? '/dashboard' : '');
+    $public = str_contains($script, '/public/') ? '/public' : (str_contains($script, '/dashboard/') ? '/dashboard' : '');
 
-    define('BASE_URL', $protocol . '://' . $host . (strpos($host, ':') === false ? '' : '') . '/StackMasters');
+    define('BASE_URL', $protocol . '://' . $host . '/StackMasters');
 }
 
 // Configurazione sessione sicura
