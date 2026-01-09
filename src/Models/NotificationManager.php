@@ -106,4 +106,34 @@ class NotificationManager {
         if ($start > $end) return ($now >= $start || $now < $end);
         return ($now >= $start && $now < $end);
     }
+
+    /**
+     * Recupera le ultime notifiche per l'utente (per la campanella)
+     */
+    public function getUserNotifications(int $userId, int $limit = 10): array {
+        $stmt = $this->pdo->prepare("SELECT * FROM Notifiche_Web WHERE id_utente = ? ORDER BY data_creazione DESC LIMIT ?");
+        // Bind diretto per evitare problemi con LIMIT in PDO
+        $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+        $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Conta quante notifiche non sono ancora state lette (per il badge rosso)
+     */
+    public function getUnreadCount(int $userId): int {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Notifiche_Web WHERE id_utente = ? AND letto = 0");
+        $stmt->execute([$userId]);
+        return $stmt->fetchColumn();
+    }
+
+    /**
+     * Segna una notifica come letta
+     */
+    public function markAsRead(int $notificaId, int $userId): bool {
+        $stmt = $this->pdo->prepare("UPDATE Notifiche_Web SET letto = 1 WHERE id_notifica = ? AND id_utente = ?");
+        return $stmt->execute([$notificaId, $userId]);
+    }
+
 }

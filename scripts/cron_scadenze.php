@@ -1,27 +1,37 @@
 <?php
 /**
- * CRON JOB: Controllo Scadenze (Esecuzione giornaliera)
- * Invia preavvisi (3 giorni prima) e avvisi di ritardo (scaduto ieri).
+ * CRON JOB: Controllo Scadenze
+ * Esecuzione: php scripts/cron_scadenze.php
  */
 
-use Ottaviodipisa\StackMasters\Core\Database;
 use Ottaviodipisa\StackMasters\Models\NotificationManager;
 use Dotenv\Dotenv;
 
-// 1. Caricamento dipendenze
+// 1. Caricamento Autoloader Composer
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// 2. Caricamento variabili d'ambiente (.env)
+// 2. Caricamento Variabili Ambiente
 if (file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-    $dotenv->load();
+    try {
+        $dotenv = Dotenv::createUnsafeImmutable(__DIR__ . '/../');
+        $dotenv->safeLoad();
+    } catch (Exception $e) {
+        echo "Warning .env: " . $e->getMessage() . "\n";
+    }
 }
+
+// 3. IMPORTANTE: Inclusione manuale della classe Database
+// Dato che è globale e fuori dallo standard PSR-4, va richiesta esplicitamente.
+require_once __DIR__ . '/../src/config/database.php';
 
 try {
     echo "--- [START] Controllo scadenze: " . date('Y-m-d H:i:s') . " ---\n";
 
+    // 4. Istanza Database (con \ davanti per indicare che è globale)
+    $pdo = \Database::getInstance()->getConnection();
+
+    // 5. Istanza NotificationManager
     $notify = new NotificationManager();
-    $pdo = Database::getInstance()->getConnection();
 
     // -----------------------------------------------------------
     // A. PREAVVISO (3 giorni alla scadenza - Epic 8.2)
@@ -37,7 +47,7 @@ try {
         $notify->send(
             $row['id_utente'],
             NotificationManager::TYPE_REMINDER,
-            NotificationManager::URGENCY_LOW, // Bassa urgenza (rispetta quiet hours)
+            NotificationManager::URGENCY_LOW,
             "Scadenza Imminente",
             "Il libro '{$row['titolo']}' scade il " . date('d/m/Y', strtotime($row['scadenza_prestito'])),
             "/dashboard/student/index.php"
@@ -59,34 +69,12 @@ try {
         $notify->send(
             $row['id_utente'],
             NotificationManager::TYPE_REMINDER,
-            NotificationManager::URGENCY_HIGH, // Alta urgenza (ignora quiet hours)
+            NotificationManager::URGENCY_HIGH,
             "PRESTITO SCADUTO",
             "Il prestito di '{$row['titolo']}' è scaduto ieri. Restituiscilo subito per evitare multe.",
             "/dashboard/student/index.php"
         );
         echo " > Avviso ritardo inviato a Utente ID: {$row['id_utente']}\n";
-    }
-
-    // -----------------------------------------------------------
-    // C. ESCALATION GRAVE (Ritardo > 14 giorni - Epic 8.5)
-    // -----------------------------------------------------------
-    $sqlEscalation = "SELECT P.id_utente, L.titolo 
-                      FROM Prestiti P 
-                      JOIN Inventari I ON P.id_inventario = I.id_inventario
-                      JOIN Libri L ON I.id_libro = L.id_libro
-                      WHERE P.data_restituzione IS NULL 
-                      AND DATE(P.scadenza_prestito) = DATE(NOW() - INTERVAL 14 DAY)";
-
-    foreach ($pdo->query($sqlEscalation) as $row) {
-        $notify->send(
-            $row['id_utente'],
-            NotificationManager::TYPE_REMINDER,
-            NotificationManager::URGENCY_HIGH, // Altissima priorità
-            "⚠️ ULTIMO AVVISO: Grave Ritardo",
-            "Il libro '{$row['titolo']}' è scaduto da 2 settimane. L'account è sospeso e sono in corso azioni amministrative. Restituisci subito il volume.",
-            "/dashboard/student/index.php"
-        );
-        echo " > Escalation inviata a Utente ID: {$row['id_utente']}\n";
     }
 
     echo "--- [END] Controllo completato ---\n";

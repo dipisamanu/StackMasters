@@ -1,35 +1,49 @@
 <?php
 // FILE: public/api/get_notifiche.php
+
+// 1. Includiamo i file di configurazione
+require_once __DIR__ . '/../../src/config/database.php';
+require_once __DIR__ . '/../../src/Models/NotificationManager.php';
+// Se hai session.php, includilo, altrimenti usa session_start qui sotto
+if (file_exists(__DIR__ . '/../../src/config/session.php')) {
+    require_once __DIR__ . '/../../src/config/session.php';
+} else {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+}
+
 header('Content-Type: application/json');
 
-// Carichiamo l'autoloader anche qui per usare la classe Database
-require_once __DIR__ . '/../../vendor/autoload.php';
-use Ottaviodipisa\StackMasters\Core\Database;
-use Dotenv\Dotenv;
-
-session_start();
-
-// Verifica Login
+// 2. Controllo Utente Loggato
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false]);
+    echo json_encode(['success' => false, 'error' => 'Non loggato']);
     exit;
 }
 
-// Carica .env
-if (file_exists(__DIR__ . '/../../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-    $dotenv->load();
-}
-
 try {
-    $pdo = Database::getInstance()->getConnection();
+    // 3. Usiamo il Manager per recuperare le notifiche
+    $notify = new \Ottaviodipisa\StackMasters\Models\NotificationManager();
 
-    // Prendi notifiche NON lette
-    $stmt = $pdo->prepare("SELECT * FROM Notifiche_Web WHERE id_utente = ? AND letto = 0 ORDER BY data_creazione DESC");
-    $stmt->execute([$_SESSION['user_id']]);
-    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // SE È UNA POST (Click sulla notifica) -> Segna come letta
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (isset($input['id'])) {
+            $notify->markAsRead($input['id'], $_SESSION['user_id']);
+            echo json_encode(['success' => true]);
+        }
+    }
+    // SE È UNA GET (Polling automatico) -> Scarica lista
+    else {
+        // Scarica le ultime 10 notifiche
+        $list = $notify->getUserNotifications($_SESSION['user_id'], 10);
+        // Conta solo quelle non lette per il badge
+        $count = $notify->getUnreadCount($_SESSION['user_id']);
 
-    echo json_encode(['success' => true, 'count' => count($data), 'data' => $data]);
+        echo json_encode([
+            'success' => true,
+            'notifications' => $list,
+            'unread' => $count
+        ]);
+    }
 
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
