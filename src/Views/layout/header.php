@@ -67,6 +67,34 @@ if (strpos($scriptPath, '/dashboard/') !== false) {
 
             <ul class="navbar-nav align-items-center">
                 <?php if (isset($_SESSION['user_id'])): ?>
+
+                    <li class="nav-item dropdown me-3">
+                        <a class="nav-link hidden-arrow position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell fa-lg text-secondary"></i>
+                            <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">
+                                0
+                            </span>
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="notificationDropdown" id="notification-list" style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li><h6 class="dropdown-header text-uppercase text-muted small fw-bold">Centro Notifiche</h6></li>
+                            <li><hr class="dropdown-divider my-0"></li>
+                            <li class="text-center py-3 text-muted small">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Caricamento...
+                            </li>
+                        </ul>
+                    </li>
+
+                    <script>
+                        // 1. Definiamo la radice del PROGETTO (dove ci sono le cartelle public, dashboard, src...)
+                        // NOTA: Togliamo "/public" da qui perché le dashboard sono fuori da public
+                        const WEB_ROOT = "/StackMasters";
+
+                        // 2. Definiamo il percorso dell'API (che invece È dentro public)
+                        const NOTIFICATION_API_PATH = "/StackMasters/public/api/get_notifiche.php";
+                    </script>
+
+                    <script src="<?= $rootUrl ?>assets/js/notification.js"></script>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i> <?= htmlspecialchars($_SESSION['nome'] ?? 'Utente') ?>
