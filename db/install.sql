@@ -237,6 +237,53 @@ CREATE TABLE notifiche_web
     FOREIGN KEY (id_utente) REFERENCES utenti (id_utente) ON DELETE CASCADE
 );
 
+
+-- ===========================
+-- STORED PROCEDURES
+-- ===========================
+
+DROP PROCEDURE IF EXISTS CercaLibri;
+
+DELIMITER //
+
+CREATE PROCEDURE CercaLibri(
+    IN p_query VARCHAR(255),
+    IN p_limit INT,
+    IN p_offset INT
+)
+BEGIN
+    SELECT
+        l.id_libro,
+        l.titolo,
+        l.immagine_copertina,
+        l.isbn,
+        l.anno_uscita,
+        GROUP_CONCAT(CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori,
+
+        -- Calcolo Rilevanza
+        (MATCH(l.titolo) AGAINST(p_query IN BOOLEAN MODE) * 2) +
+        (MAX(MATCH(a.nome, a.cognome) AGAINST(p_query IN BOOLEAN MODE))) AS rilevanza
+
+    FROM libri l
+             LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+             LEFT JOIN autori a ON la.id_autore = a.id
+
+    WHERE
+        l.cancellato = 0
+      AND (
+        MATCH(l.titolo) AGAINST(p_query IN BOOLEAN MODE)
+            OR
+        MATCH(a.nome, a.cognome) AGAINST(p_query IN BOOLEAN MODE)
+        )
+
+    GROUP BY l.id_libro
+    ORDER BY rilevanza DESC
+    LIMIT p_limit OFFSET p_offset;
+END //
+
+DELIMITER ;
+
+
 -- ===========================
 -- DATI DI ESEMPIO (SEED DATA)
 -- ===========================
