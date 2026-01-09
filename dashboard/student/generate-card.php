@@ -28,10 +28,10 @@ try {
             r.durata_prestito,
             r.limite_prestiti,
             COALESCE(rf.rfid, 'N/A') as rfid_code
-        FROM Utenti u
-        LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente
-        LEFT JOIN Ruoli r ON ur.id_ruolo = r.id_ruolo
-        LEFT JOIN RFID rf ON u.id_rfid = rf.id_rfid
+        FROM utenti u
+        LEFT JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente
+        LEFT JOIN ruoli r ON ur.id_ruolo = r.id_ruolo
+        LEFT JOIN rfid rf ON u.id_rfid = rf.id_rfid
         WHERE u.id_utente = ?
         ORDER BY r.priorita ASC
         LIMIT 1
@@ -46,7 +46,7 @@ try {
     // Log generazione tessera
     try {
         $db->prepare("
-            INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+            INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
             VALUES (?, 'GENERA_TESSERA', 'Tessera generata', INET_ATON(?))
         ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
     } catch (Exception $e) {

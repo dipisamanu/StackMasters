@@ -23,12 +23,12 @@ try {
             r.durata_prestito,
             r.limite_prestiti,
             COALESCE(rf.rfid, 'Non assegnato') as rfid_code
-        FROM Utenti u
-        LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente AND ur.id_ruolo = (
-            SELECT id_ruolo FROM Utenti_Ruoli WHERE id_utente = u.id_utente ORDER BY id_ruolo LIMIT 1
+        FROM utenti u
+        LEFT JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente AND ur.id_ruolo = (
+            SELECT id_ruolo FROM utenti_ruoli WHERE id_utente = u.id_utente ORDER BY id_ruolo LIMIT 1
         )
-        LEFT JOIN Ruoli r ON ur.id_ruolo = r.id_ruolo
-        LEFT JOIN RFID rf ON u.id_rfid = rf.id_rfid
+        LEFT JOIN ruoli r ON ur.id_ruolo = r.id_ruolo
+        LEFT JOIN rfid rf ON u.id_rfid = rf.id_rfid
         WHERE u.id_utente = ?
         LIMIT 1
     ");
@@ -50,7 +50,7 @@ try {
             COUNT(*) as totale_prestiti,
             SUM(CASE WHEN data_restituzione IS NULL THEN 1 ELSE 0 END) as prestiti_attivi,
             SUM(CASE WHEN data_restituzione IS NOT NULL THEN 1 ELSE 0 END) as prestiti_completati
-        FROM Prestiti
+        FROM prestiti
         WHERE id_utente = ?
     ");
     $stmtStats->execute([$userId]);
@@ -64,8 +64,8 @@ try {
 try {
     $stmtBadges = $db->prepare("
         SELECT b.nome, b.descrizione, b.icona_url, ub.data_conseguimento
-        FROM Utenti_Badge ub
-        JOIN Badge b ON ub.id_badge = b.id_badge
+        FROM utenti_badge ub
+        JOIN badge b ON ub.id_badge = b.id_badge
         WHERE ub.id_utente = ?
         ORDER BY ub.data_conseguimento DESC
     ");

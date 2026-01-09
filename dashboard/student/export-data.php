@@ -28,7 +28,7 @@ try {
             livello_xp,
             data_creazione,
             ultimo_aggiornamento
-        FROM Utenti
+        FROM utenti
         WHERE id_utente = ?
     ");
     $stmtUser->execute([$userId]);
@@ -37,8 +37,8 @@ try {
     // 2. Ruoli
     $stmtRuoli = $db->prepare("
         SELECT r.nome, r.durata_prestito, r.limite_prestiti, ur.prestiti_tot, ur.streak_restituzioni
-        FROM Utenti_Ruoli ur
-        JOIN Ruoli r ON ur.id_ruolo = r.id_ruolo
+        FROM utenti_ruoli ur
+        JOIN ruoli r ON ur.id_ruolo = r.id_ruolo
         WHERE ur.id_utente = ?
     ");
     $stmtRuoli->execute([$userId]);
@@ -47,8 +47,8 @@ try {
     // 3. Badge
     $stmtBadge = $db->prepare("
         SELECT b.nome, b.descrizione, ub.data_conseguimento
-        FROM Utenti_Badge ub
-        JOIN Badge b ON ub.id_badge = b.id_badge
+        FROM utenti_badge ub
+        JOIN badge b ON ub.id_badge = b.id_badge
         WHERE ub.id_utente = ?
     ");
     $stmtBadge->execute([$userId]);
@@ -64,9 +64,9 @@ try {
             p.scadenza_prestito,
             p.data_restituzione,
             i.collocazione
-        FROM Prestiti p
-        JOIN Inventari i ON p.id_inventario = i.id_inventario
-        JOIN Libri l ON i.id_libro = l.id_libro
+        FROM prestiti p
+        JOIN inventari i ON p.id_inventario = i.id_inventario
+        JOIN libri l ON i.id_libro = l.id_libro
         WHERE p.id_utente = ?
         ORDER BY p.data_prestito DESC
     ");
@@ -82,8 +82,8 @@ try {
             pr.data_richiesta,
             pr.data_disponibilita,
             pr.scadenza_ritiro
-        FROM Prenotazioni pr
-        JOIN Libri l ON pr.id_libro = l.id_libro
+        FROM prenotazioni pr
+        JOIN libri l ON pr.id_libro = l.id_libro
         WHERE pr.id_utente = ?
         ORDER BY pr.data_richiesta DESC
     ");
@@ -100,7 +100,7 @@ try {
             commento,
             data_creazione,
             data_pagamento
-        FROM Multe
+        FROM multe
         WHERE id_utente = ?
         ORDER BY data_creazione DESC
     ");
@@ -115,8 +115,8 @@ try {
             r.voto,
             r.descrizione,
             r.data_creazione
-        FROM Recensioni r
-        JOIN Libri l ON r.id_libro = l.id_libro
+        FROM recensioni r
+        JOIN libri l ON r.id_libro = l.id_libro
         WHERE r.id_utente = ?
         ORDER BY r.data_creazione DESC
     ");
@@ -130,7 +130,7 @@ try {
             dettagli,
             INET_NTOA(ip_address) as ip_address,
             timestamp
-        FROM Logs_Audit
+        FROM logs_audit
         WHERE id_utente = ?
         ORDER BY timestamp DESC
         LIMIT 100
@@ -148,7 +148,7 @@ try {
             stato_email,
             data_creazione,
             data_invio_email
-        FROM Notifiche_Web
+        FROM notifiche_web
         WHERE id_utente = ?
         ORDER BY data_creazione DESC
         LIMIT 50
@@ -198,7 +198,7 @@ try {
     // Log export
     try {
         $db->prepare("
-            INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+            INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
             VALUES (?, 'EXPORT_DATI', 'Export dati personali richiesto', INET_ATON(?))
         ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
     } catch (Exception $e) {
