@@ -8,7 +8,7 @@ TO DO:
 daje daje daje che il 6 deve arrivare
 - sistemare il fatto che in catalogo inventario bibliotecario tasto ricerca
 - sistemare la ricerca di isbn 
-- rfid dev'essere unico e non modificabile
+- rfid dev'essere unico e non modificabile e deve coincidere con il libro.id
 - vedere le condizioni in cui è stato prestato il libro quando ritiro
 - quando c'è il tasto vieni a ritirarlo, schiaccia pulsante e mostra il percorso dalla 
 - in librarian/index.php sistemare il tasto in mezzo e collegare con lo scanner correttamente
