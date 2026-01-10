@@ -10,7 +10,7 @@ $userId = Session::getUserId();
 
 // Recupera dati attuali
 try {
-    $stmt = $db->prepare("SELECT * FROM Utenti WHERE id_utente = ?");
+    $stmt = $db->prepare("SELECT * FROM utenti WHERE id_utente = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Verifica se email già usata da altro utente
             try {
-                $stmtCheck = $db->prepare("SELECT id_utente FROM Utenti WHERE email = ? AND id_utente != ?");
+                $stmtCheck = $db->prepare("SELECT id_utente FROM utenti WHERE email = ? AND id_utente != ?");
                 $stmtCheck->execute([$email, $userId]);
                 if ($stmtCheck->fetch()) {
                     $errors[] = "Email già in uso da un altro utente";
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             try {
                 $stmtUpdate = $db->prepare("
-                    UPDATE Utenti 
+                    UPDATE utenti 
                     SET email = ?, 
                         comune_nascita = ?, 
                         notifiche_attive = ?,
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Log modifica
                 try {
                     $db->prepare("
-                        INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+                        INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
                         VALUES (?, 'MODIFICA_PROFILO', 'Profilo aggiornato', INET_ATON(?))
                     ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
                 } catch (Exception $e) {

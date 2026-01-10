@@ -32,7 +32,7 @@ try {
     }
 
     // 2. Cerca l'utente
-    $stmt = $db->prepare("SELECT id_utente, nome, cognome, email, email_verificata FROM Utenti WHERE LOWER(email) = LOWER(?) LIMIT 1");
+    $stmt = $db->prepare("SELECT id_utente, nome, cognome, email, email_verificata FROM utenti WHERE LOWER(email) = LOWER(?) LIMIT 1");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -61,7 +61,7 @@ try {
     $expiryTime = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
     // 6. Aggiornamento DB
-    $stmt = $db->prepare("UPDATE Utenti SET token = ?, scadenza_verifica = ? WHERE id_utente = ?");
+    $stmt = $db->prepare("UPDATE utenti SET token = ?, scadenza_verifica = ? WHERE id_utente = ?");
     $stmt->execute([$tokenHash, $expiryTime, $user['id_utente']]);
 
     // 7. Costruzione Link e Messaggio

@@ -91,8 +91,8 @@ class LibrarianController
     {
         $stmt = $this->db->prepare("
             SELECT id_utente
-            FROM Utenti
-            WHERE codice_fiscale = ?
+            FROM utenti
+            WHERE cf = ?
             LIMIT 1
         ");
         $stmt->execute([$cf]);
@@ -106,8 +106,8 @@ class LibrarianController
         // supporta EAN13 / inventario interno
         $stmt = $this->db->prepare("
             SELECT i.id_inventario
-            FROM Inventari i
-            LEFT JOIN Libri l ON i.id_libro = l.id_libro
+            FROM inventari i
+            LEFT JOIN libri l ON i.id_libro = l.id_libro
             WHERE i.codice_inventario = ?
                OR l.isbn = ?
             LIMIT 1

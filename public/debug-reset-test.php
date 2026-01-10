@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db = getDB();
 
         // Cerca utente
-        $stmt = $db->prepare("SELECT id_utente FROM Utenti WHERE email = ?");
+        $stmt = $db->prepare("SELECT id_utente FROM utenti WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $expiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
             // Aggiorna DB
-            $upd = $db->prepare("UPDATE Utenti SET token = ?, scadenza_verifica = ? WHERE id_utente = ?");
+            $upd = $db->prepare("UPDATE utenti SET token = ?, scadenza_verifica = ? WHERE id_utente = ?");
             $upd->execute([$tokenDb, $expiry, $user['id_utente']]);
 
             // Genera Link

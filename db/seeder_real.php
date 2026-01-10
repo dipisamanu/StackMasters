@@ -86,16 +86,6 @@ try {
     $db = Database::getInstance()->getConnection();
 
     // ---------------------------------------------------------
-    // 0. FIX DB (Autori)
-    // ---------------------------------------------------------
-    try {
-        $db->exec("ALTER TABLE libri MODIFY COLUMN titolo VARCHAR(255) NOT NULL");
-        $db->exec("ALTER TABLE autori MODIFY COLUMN nome VARCHAR(100)");
-        $db->exec("ALTER TABLE autori MODIFY COLUMN cognome VARCHAR(100)");
-        $db->exec("ALTER TABLE libri MODIFY COLUMN immagine_copertina VARCHAR(500) DEFAULT NULL");
-    } catch(Exception $e) {}
-
-    // ---------------------------------------------------------
     // 1. PULIZIA
     // ---------------------------------------------------------
     echo "<h3>1. Pulizia Database...</h3>";

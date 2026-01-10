@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Verifica password attuale
         try {
-            $stmt = $db->prepare("SELECT password FROM Utenti WHERE id_utente = ?");
+            $stmt = $db->prepare("SELECT password FROM utenti WHERE id_utente = ?");
             $stmt->execute([$userId]);
             $hashedPassword = $stmt->fetchColumn();
 
@@ -62,13 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $newHash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
 
-                $stmtUpdate = $db->prepare("UPDATE Utenti SET password = ? WHERE id_utente = ?");
+                $stmtUpdate = $db->prepare("UPDATE utenti SET password = ? WHERE id_utente = ?");
                 $stmtUpdate->execute([$newHash, $userId]);
 
                 // Log
                 try {
                     $db->prepare("
-                        INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+                        INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
                         VALUES (?, 'MODIFICA_PASSWORD', 'Password cambiata', INET_ATON(?))
                     ")->execute([$userId, $_SERVER['REMOTE_ADDR']]);
                 } catch (Exception $e) {

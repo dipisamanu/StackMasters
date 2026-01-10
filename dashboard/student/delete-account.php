@@ -23,7 +23,7 @@ $step = $_GET['step'] ?? '1';
 try {
     $stmt = $db->prepare("
         SELECT nome, cognome, email, cf
-        FROM Utenti
+        FROM utenti
         WHERE id_utente = ?
     ");
     $stmt->execute([$userId]);
@@ -41,7 +41,7 @@ try {
 try {
     $stmtPrestiti = $db->prepare("
         SELECT COUNT(*) as prestiti_attivi
-        FROM Prestiti
+        FROM prestiti
         WHERE id_utente = ? AND data_restituzione IS NULL
     ");
     $stmtPrestiti->execute([$userId]);
@@ -55,7 +55,7 @@ try {
 try {
     $stmtMulte = $db->prepare("
         SELECT COUNT(*) as multe_non_pagate, COALESCE(SUM(importo), 0) as importo_totale
-        FROM Multe
+        FROM multe
         WHERE id_utente = ? AND data_pagamento IS NULL
     ");
     $stmtMulte->execute([$userId]);
@@ -81,7 +81,7 @@ if ($step === '2' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Verifica password
     try {
-        $stmtPw = $db->prepare("SELECT password FROM Utenti WHERE id_utente = ?");
+        $stmtPw = $db->prepare("SELECT password FROM utenti WHERE id_utente = ?");
         $stmtPw->execute([$userId]);
         $hashedPassword = $stmtPw->fetchColumn();
 
@@ -114,7 +114,7 @@ if ($step === '2' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // Log finale prima dell'eliminazione
             try {
                 $db->prepare("
-                    INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+                    INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
                     VALUES (?, 'CANCELLAZIONE_ACCOUNT', ?, INET_ATON(?))
                 ")->execute([
                         $userId,
@@ -126,31 +126,31 @@ if ($step === '2' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // 1. Elimina badge
-            $db->prepare("DELETE FROM Utenti_Badge WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("DELETE FROM utenti_badge WHERE id_utente = ?")->execute([$userId]);
 
             // 2. Elimina ruoli
-            $db->prepare("DELETE FROM Utenti_Ruoli WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("DELETE FROM utenti_ruoli WHERE id_utente = ?")->execute([$userId]);
 
             // 3. Elimina recensioni
-            $db->prepare("DELETE FROM Recensioni WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("DELETE FROM recensioni WHERE id_utente = ?")->execute([$userId]);
 
             // 4. Elimina prenotazioni
-            $db->prepare("DELETE FROM Prenotazioni WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("DELETE FROM prenotazioni WHERE id_utente = ?")->execute([$userId]);
 
             // 5. Elimina multe pagate
-            $db->prepare("DELETE FROM Multe WHERE id_utente = ? AND data_pagamento IS NOT NULL")->execute([$userId]);
+            $db->prepare("DELETE FROM multe WHERE id_utente = ? AND data_pagamento IS NOT NULL")->execute([$userId]);
 
             // 6. Elimina prestiti completati
-            $db->prepare("DELETE FROM Prestiti WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("DELETE FROM prestiti WHERE id_utente = ?")->execute([$userId]);
 
             // 7. Elimina notifiche
-            $db->prepare("DELETE FROM Notifiche_Web WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("DELETE FROM notifiche_web WHERE id_utente = ?")->execute([$userId]);
 
             // 8. Anonimizza log audit
-            $db->prepare("UPDATE Logs_Audit SET id_utente = NULL WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("UPDATE logs_audit SET id_utente = NULL WHERE id_utente = ?")->execute([$userId]);
 
             // 9. Elimina l'utente
-            $db->prepare("DELETE FROM Utenti WHERE id_utente = ?")->execute([$userId]);
+            $db->prepare("DELETE FROM utenti WHERE id_utente = ?")->execute([$userId]);
 
             $db->commit();
 

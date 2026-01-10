@@ -17,7 +17,7 @@ if (empty($token) || strlen($token) !== 32) {
         // Cerca utente con questo token
         $stmt = $db->prepare("
             SELECT id_utente, nome, email, email_verificata, scadenza_verifica 
-            FROM Utenti 
+            FROM utenti 
             WHERE token = ? 
             LIMIT 1
         ");
@@ -34,7 +34,7 @@ if (empty($token) || strlen($token) !== 32) {
         } else {
             // Tutto OK - Verifica l'account
             $stmtUpdate = $db->prepare("
-                UPDATE Utenti 
+                UPDATE utenti 
                 SET email_verificata = TRUE, 
                     token = NULL, 
                     scadenza_verifica = NULL 
@@ -47,7 +47,7 @@ if (empty($token) || strlen($token) !== 32) {
 
             // Log dell'evento (AZIONE CORRETTA)
             $stmtLog = $db->prepare("
-                INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address) 
+                INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
                 VALUES (?, 'VERIFICA_EMAIL', ?, INET_ATON(?))
             ");
             $stmtLog->execute([

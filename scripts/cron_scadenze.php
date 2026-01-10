@@ -37,9 +37,9 @@ try {
     // A. PREAVVISO (3 giorni alla scadenza - Epic 8.2)
     // -----------------------------------------------------------
     $sqlPre = "SELECT P.id_utente, L.titolo, P.scadenza_prestito 
-               FROM Prestiti P 
-               JOIN Inventari I ON P.id_inventario = I.id_inventario
-               JOIN Libri L ON I.id_libro = L.id_libro
+               FROM prestiti P 
+               JOIN inventari I ON P.id_inventario = I.id_inventario
+               JOIN libri L ON I.id_libro = L.id_libro
                WHERE P.data_restituzione IS NULL 
                AND DATE(P.scadenza_prestito) = DATE(NOW() + INTERVAL 3 DAY)";
 
@@ -59,9 +59,9 @@ try {
     // B. RITARDO (Scaduto ieri - Epic 8.3)
     // -----------------------------------------------------------
     $sqlLate = "SELECT P.id_utente, L.titolo 
-                FROM Prestiti P 
-                JOIN Inventari I ON P.id_inventario = I.id_inventario
-                JOIN Libri L ON I.id_libro = L.id_libro
+                FROM prestiti P 
+                JOIN inventari I ON P.id_inventario = I.id_inventario
+                JOIN libri L ON I.id_libro = L.id_libro
                 WHERE P.data_restituzione IS NULL 
                 AND DATE(P.scadenza_prestito) = DATE(NOW() - INTERVAL 1 DAY)";
 

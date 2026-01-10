@@ -40,7 +40,7 @@ class NotificationManager {
      */
     public function send(int $id_utente, string $category, string $urgency, string $titolo, string $messaggio, string $link = null): bool {
         // 1. Recupera i dati dell'utente e le sue preferenze
-        $stmt = $this->pdo->prepare("SELECT email, nome, notifiche_attive, quiet_hours_start, quiet_hours_end FROM Utenti WHERE id_utente = ?");
+        $stmt = $this->pdo->prepare("SELECT email, nome, notifiche_attive, quiet_hours_start, quiet_hours_end FROM utenti WHERE id_utente = ?");
         $stmt->execute([$id_utente]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -70,9 +70,9 @@ class NotificationManager {
         if (strpos(strtolower($titolo), 'confermato') !== false || strpos(strtolower($titolo), 'pronto') !== false) $visualType = 'SUCCESS';
 
         // 4. Inserisci la notifica nel Database
-        $sql = "INSERT INTO Notifiche_Web 
-                (id_utente, tipo, categoria, titolo, messaggio, link_azione, stato_email, data_creazione) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+        $sql = "INSERT INTO notifiche_web 
+                (id_utente, tipo, titolo, messaggio, link_azione, stato_email, data_creazione) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())";
 
         $this->pdo->prepare($sql)->execute([$id_utente, $visualType, $category, $titolo, $messaggio, $link, $statoEmail]);
         $notificaId = $this->pdo->lastInsertId();
@@ -93,7 +93,7 @@ class NotificationManager {
             $sent = $this->emailService->send($email, $subject, $body);
 
             $status = $sent ? 'INVIATA' : 'FALLITA';
-            $stmt = $this->pdo->prepare("UPDATE Notifiche_Web SET stato_email = ?, data_invio_email = NOW() WHERE id_notifica = ?");
+            $stmt = $this->pdo->prepare("UPDATE notifiche_web SET stato_email = ?, data_invio_email = NOW() WHERE id_notifica = ?");
             $stmt->execute([$status, $id]);
         } catch (Exception $e) {
             error_log("NotificationManager Error: " . $e->getMessage());
@@ -111,7 +111,7 @@ class NotificationManager {
      * Recupera le ultime notifiche per l'utente (per la campanella)
      */
     public function getUserNotifications(int $userId, int $limit = 10): array {
-        $stmt = $this->pdo->prepare("SELECT * FROM Notifiche_Web WHERE id_utente = ? ORDER BY data_creazione DESC LIMIT ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM notifiche_web WHERE id_utente = ? ORDER BY data_creazione DESC LIMIT ?");
         // Bind diretto per evitare problemi con LIMIT in PDO
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $stmt->bindValue(2, $limit, PDO::PARAM_INT);
@@ -123,7 +123,7 @@ class NotificationManager {
      * Conta quante notifiche non sono ancora state lette (per il badge rosso)
      */
     public function getUnreadCount(int $userId): int {
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Notifiche_Web WHERE id_utente = ? AND letto = 0");
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM notifiche_web WHERE id_utente = ? AND letto = 0");
         $stmt->execute([$userId]);
         return $stmt->fetchColumn();
     }
@@ -132,7 +132,7 @@ class NotificationManager {
      * Segna una notifica come letta
      */
     public function markAsRead(int $notificaId, int $userId): bool {
-        $stmt = $this->pdo->prepare("UPDATE Notifiche_Web SET letto = 1 WHERE id_notifica = ? AND id_utente = ?");
+        $stmt = $this->pdo->prepare("UPDATE notifiche_web SET letto = 1 WHERE id_notifica = ? AND id_utente = ?");
         return $stmt->execute([$notificaId, $userId]);
     }
 

@@ -113,7 +113,7 @@ if (!empty($codiceFiscale)) {
 // 6. Verifica se email o CF già esistenti
 if (empty($errors)) {
     try {
-        $stmt = $db->prepare("SELECT id_utente FROM Utenti WHERE email = ? OR cf = ?");
+        $stmt = $db->prepare("SELECT id_utente FROM utenti WHERE email = ? OR cf = ?");
         $stmt->execute([$email, $codiceFiscale]);
         if ($stmt->fetch()) {
             $errors[] = "Email o Codice Fiscale già registrati nel sistema";
@@ -153,7 +153,7 @@ try {
 
     // 4. Inserisci utente
     $sql = "
-        INSERT INTO Utenti 
+        INSERT INTO utenti 
         (cf, nome, cognome, email, password, data_nascita, sesso, comune_nascita, 
          token, email_verificata, scadenza_verifica, consenso_privacy)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 1)
@@ -185,7 +185,7 @@ try {
     error_log("Utente inserito con ID: $userId");
 
     // 5. Assegna ruolo "Studente"
-    $stmtRuolo = $db->prepare("SELECT id_ruolo FROM Ruoli WHERE nome = 'Studente' LIMIT 1");
+    $stmtRuolo = $db->prepare("SELECT id_ruolo FROM ruoli WHERE nome = 'Studente' LIMIT 1");
     $stmtRuolo->execute();
     $ruoloStudente = $stmtRuolo->fetch();
 
@@ -195,13 +195,13 @@ try {
 
     error_log("Ruolo Studente trovato: " . $ruoloStudente['id_ruolo']);
 
-    $stmtAssegna = $db->prepare("INSERT INTO Utenti_Ruoli (id_utente, id_ruolo) VALUES (?, ?)");
+    $stmtAssegna = $db->prepare("INSERT INTO utenti_ruoli (id_utente, id_ruolo) VALUES (?, ?)");
     $stmtAssegna->execute([$userId, $ruoloStudente['id_ruolo']]);
     error_log("Ruolo assegnato");
 
     // 6. INSERISCI LOG REGISTRAZIONE (CORRETTO)
     $db->prepare("
-        INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address)
+        INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
         VALUES (?, 'CREAZIONE_UTENTE', ?, INET_ATON(?))
     ")->execute([
         $userId,

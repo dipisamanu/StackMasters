@@ -119,11 +119,11 @@ class CalcolaMulteCron
     {
         // Query ottimizzata con PDO
         $sql = "SELECT p.*, u.nome, u.email, ur.prestiti_tot, l.titolo
-                FROM Prestiti p
-                JOIN Utenti u ON p.id_utente = u.id_utente
-                JOIN Inventari i ON p.id_inventario = i.id_inventario
-                JOIN Libri l ON i.id_libro = l.id_libro
-                LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente
+                FROM prestiti p
+                JOIN utenti u ON p.id_utente = u.id_utente
+                JOIN inventari i ON p.id_inventario = i.id_inventario
+                JOIN libri l ON i.id_libro = l.id_libro
+                LEFT JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente
                 WHERE p.data_restituzione IS NULL 
                 AND p.scadenza_prestito < CURDATE()";
 
@@ -149,16 +149,16 @@ class CalcolaMulteCron
         }
 
         // Controllo se esiste già una multa per oggi (evita duplicati se il cron gira 2 volte)
-        $stmt = $this->db->prepare("SELECT id_multa FROM Multe WHERE id_utente = ? AND DATE(data_creazione) = CURDATE() AND causa = 'RITARDO'");
+        $stmt = $this->db->prepare("SELECT id_multa FROM multe WHERE id_utente = ? AND DATE(data_creazione) = CURDATE() AND causa = 'RITARDO'");
         $stmt->execute([$p['id_utente']]);
         $esistente = $stmt->fetch();
 
         if ($esistente) {
-            $upd = $this->db->prepare("UPDATE Multe SET importo = ?, giorni = ? WHERE id_multa = ?");
+            $upd = $this->db->prepare("UPDATE multe SET importo = ?, giorni = ? WHERE id_multa = ?");
             $upd->execute([$importo, $giorniEffettivi, $esistente['id_multa']]);
             return ['tipo' => 'aggiornata', 'importo' => $importo];
         } else {
-            $ins = $this->db->prepare("INSERT INTO Multe (id_utente, importo, giorni, causa, data_creazione) VALUES (?, ?, ?, 'RITARDO', NOW())");
+            $ins = $this->db->prepare("INSERT INTO multe (id_utente, importo, giorni, causa, data_creazione) VALUES (?, ?, ?, 'RITARDO', NOW())");
             $ins->execute([$p['id_utente'], $importo, $giorniEffettivi]);
             return ['tipo' => 'creata', 'importo' => $importo];
         }

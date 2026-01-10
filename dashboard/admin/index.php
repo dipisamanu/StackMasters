@@ -33,17 +33,17 @@ if (!$userId) {
 // Recupera statistiche
 try {
     // Totale utenti
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Utenti");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM utenti");
     $stmt->execute();
     $totalUtenti = $stmt->fetchColumn();
 
     // Totale libri
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Libri");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM libri");
     $stmt->execute();
     $totalLibri = $stmt->fetchColumn();
 
     // Prestiti attivi
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Prestiti WHERE data_restituzione IS NULL");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM prestiti WHERE data_restituzione IS NULL");
     $stmt->execute();
     $presitiAttivi = $stmt->fetchColumn();
 

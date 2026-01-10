@@ -25,8 +25,8 @@ try {
 $logFile = __DIR__ . '/../logs/email_simulate.txt';
 
 // Query: Prendi le email da inviare (Limit 20 per sicurezza)
-$sql = "SELECT N.*, U.email, U.nome FROM Notifiche_Web N
-        JOIN Utenti U ON N.id_utente = U.id_utente
+$sql = "SELECT N.*, U.email, U.nome FROM notifiche_web N
+        JOIN utenti U ON N.id_utente = U.id_utente
         WHERE N.stato_email = 'DA_INVIARE' LIMIT 20";
 
 $stmt = $pdo->query($sql);
@@ -45,7 +45,7 @@ while ($row = $stmt->fetch()) {
 
     // --- AGGIORNAMENTO DB ---
     // Segniamo come INVIATA per non spedirla due volte
-    $upd = $pdo->prepare("UPDATE Notifiche_Web SET stato_email = 'INVIATA', data_invio_email = NOW() WHERE id_notifica = ?");
+    $upd = $pdo->prepare("UPDATE notifiche_web SET stato_email = 'INVIATA', data_invio_email = NOW() WHERE id_notifica = ?");
     $upd->execute([$row['id_notifica']]);
 
     $count++;
