@@ -24,7 +24,7 @@ class UserModel
         // 1. Cerca utente
         $sql = "SELECT id_utente, nome, cognome, email, password, email_verificata, 
                        tentativi_login_falliti, blocco_account_fino_al 
-                FROM Utenti 
+                FROM utenti 
                 WHERE email = :email 
                 LIMIT 1";
 
@@ -50,12 +50,12 @@ class UserModel
             if ($attempts >= 5) {
                 // Blocca per 15 minuti
                 $blockUntil = date('Y-m-d H:i:s', time() + 900);
-                $upd = $this->db->prepare("UPDATE Utenti SET tentativi_login_falliti = ?, blocco_account_fino_al = ? WHERE id_utente = ?");
+                $upd = $this->db->prepare("UPDATE utenti SET tentativi_login_falliti = ?, blocco_account_fino_al = ? WHERE id_utente = ?");
                 $upd->execute([$attempts, $blockUntil, $user['id_utente']]);
                 return "Troppi tentativi falliti. Account bloccato per 15 minuti.";
             } else {
                 // Incrementa contatore
-                $upd = $this->db->prepare("UPDATE Utenti SET tentativi_login_falliti = ? WHERE id_utente = ?");
+                $upd = $this->db->prepare("UPDATE utenti SET tentativi_login_falliti = ? WHERE id_utente = ?");
                 $upd->execute([$attempts, $user['id_utente']]);
                 $rimasti = 5 - $attempts;
                 return "Credenziali non valide. Tentativi rimasti: $rimasti";
@@ -68,7 +68,7 @@ class UserModel
         }
 
         // 5. Login OK: Reset tentativi
-        $upd = $this->db->prepare("UPDATE Utenti SET tentativi_login_falliti = 0, blocco_account_fino_al = NULL WHERE id_utente = ?");
+        $upd = $this->db->prepare("UPDATE utenti SET tentativi_login_falliti = 0, blocco_account_fino_al = NULL WHERE id_utente = ?");
         $upd->execute([$user['id_utente']]);
 
         // Rimuovi la password per sicurezza
@@ -87,8 +87,8 @@ class UserModel
     {
         // Query originale
         $sql = "SELECT r.id_ruolo, r.nome, r.priorita, r.durata_prestito, r.limite_prestiti
-                FROM Ruoli r
-                INNER JOIN Utenti_Ruoli ur ON r.id_ruolo = ur.id_ruolo
+                FROM ruoli r
+                INNER JOIN utenti_ruoli ur ON r.id_ruolo = ur.id_ruolo
                 WHERE ur.id_utente = ?
                 ORDER BY r.priorita ASC";
 
@@ -98,13 +98,13 @@ class UserModel
 
         // Se vuoto, logica di riparazione originale
         if (empty($ruoli)) {
-            $stmtDef = $this->db->prepare("SELECT * FROM Ruoli WHERE nome = 'Studente' LIMIT 1");
+            $stmtDef = $this->db->prepare("SELECT * FROM ruoli WHERE nome = 'Studente' LIMIT 1");
             $stmtDef->execute();
             $defaultRole = $stmtDef->fetch(PDO::FETCH_ASSOC);
 
             if ($defaultRole) {
                 // Inserisce nel DB
-                $ins = $this->db->prepare("INSERT INTO Utenti_Ruoli (id_utente, id_ruolo) VALUES (?, ?)");
+                $ins = $this->db->prepare("INSERT INTO utenti_ruoli (id_utente, id_ruolo) VALUES (?, ?)");
                 $ins->execute([$userId, $defaultRole['id_ruolo']]);
 
                 // Imposta l'array di ritorno
@@ -121,7 +121,7 @@ class UserModel
     public function logAudit(int $userId, string $action, string $details): void
     {
         try {
-            $sql = "INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address) 
+            $sql = "INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
                     VALUES (?, ?, ?, INET_ATON(?))";
             $this->db->prepare($sql)->execute([$userId, $action, $details, $_SERVER['REMOTE_ADDR'] ?? '']);
         } catch (Exception $e) {

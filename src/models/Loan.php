@@ -257,8 +257,8 @@ class Loan
                 LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
                 LEFT JOIN autori a ON la.id_autore = a.id
                 WHERE p.id_utente = ? AND p.data_restituzione IS NULL
-                GROUP BY p.id_prestito
-                ORDER BY p.scadenza_prestito ASC";
+                GROUP BY p.scadenza_prestito
+                ORDER BY p.scadenza_prestito";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$utenteId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -269,7 +269,7 @@ class LoanService
     {
         $query = "
             SELECT SUM(importo) as totale_multe
-            FROM Multe
+            FROM multe
             WHERE id_utente = ? AND data_pagamento IS NULL
         ";
 
@@ -304,7 +304,7 @@ class LoanService
 
         $query = "
             SELECT COUNT(*) as prestiti_attivi
-            FROM Prestiti
+            FROM prestiti
             WHERE id_utente = ? AND data_restituzione IS NULL
         ";
 
@@ -345,7 +345,7 @@ class LoanService
     {
         $query = "
             SELECT *
-            FROM Prenotazioni
+            FROM prenotazioni
             WHERE id_utente = ?
               AND id_libro = ?
               AND copia_libro IS NOT NULL
@@ -372,7 +372,7 @@ class LoanService
     private function creaPrestito(int $utenteId, int $inventarioId, string $dataScadenza): int
     {
         $query = "
-            INSERT INTO Prestiti (id_utente, id_inventario, data_prestito, scadenza_prestito)
+            INSERT INTO prestiti (id_utente, id_inventario, data_prestito, scadenza_prestito)
             VALUES (?, ?, NOW(), ?)
         ";
 
@@ -395,7 +395,7 @@ class LoanService
      */
     private function aggiornaStatoCopia(int $inventarioId, string $nuovoStato, ?string $condizione = null): void
     {
-        $query = "UPDATE Inventari SET stato = ?";
+        $query = "UPDATE inventari SET stato = ?";
         $params = [$nuovoStato];
 
         if ($condizione !== null) {
@@ -416,7 +416,7 @@ class LoanService
     private function incrementaPrestitiUtente(int $utenteId, int $ruoloId): void
     {
         $query = "
-            UPDATE Utenti_Ruoli
+            UPDATE utenti_ruoli
             SET prestiti_tot = prestiti_tot + 1
             WHERE id_utente = ? AND id_ruolo = ?
         ";
@@ -431,7 +431,7 @@ class LoanService
     private function completaPrenotazione(int $prenotazioneId): void
     {
         $query = "
-            UPDATE Prenotazioni
+            UPDATE prenotazioni
             SET copia_libro = NULL,
                 data_disponibilita = NULL,
                 scadenza_ritiro = NULL
@@ -470,11 +470,11 @@ class LoanService
                 u.nome, u.cognome, u.email,
                 l.id_libro, l.titolo,
                 ur.id_ruolo
-            FROM Prestiti p
-            INNER JOIN Utenti u ON p.id_utente = u.id_utente
-            INNER JOIN Inventari i ON p.id_inventario = i.id_inventario
-            INNER JOIN Libri l ON i.id_libro = l.id_libro
-            LEFT JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente
+            FROM prestiti p
+            INNER JOIN utenti u ON p.id_utente = u.id_utente
+            INNER JOIN inventari i ON p.id_inventario = i.id_inventario
+            INNER JOIN libri l ON i.id_libro = l.id_libro
+            LEFT JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente
             WHERE p.id_inventario = ?
               AND p.data_restituzione IS NULL
             LIMIT 1
@@ -522,7 +522,7 @@ class LoanService
     private function registraMulta(int $utenteId, ?int $giorni, float $importo, string $causa, ?string $commento): void
     {
         $query = "
-            INSERT INTO Multe (id_utente, giorni, importo, causa, commento, data_creazione)
+            INSERT INTO multe (id_utente, giorni, importo, causa, commento, data_creazione)
             VALUES (?, ?, ?, ?, ?, NOW())
         ";
 
@@ -535,7 +535,7 @@ class LoanService
      */
     private function completaPrestito(int $prestitoId): void
     {
-        $query = "UPDATE Prestiti SET data_restituzione = NOW() WHERE id_prestito = ?";
+        $query = "UPDATE prestiti SET data_restituzione = NOW() WHERE id_prestito = ?";
         $stmt = $this->db->prepare($query);
         $stmt->execute([$prestitoId]);
     }
@@ -546,7 +546,7 @@ class LoanService
     private function incrementaStreakRestituzioni(int $utenteId, int $ruoloId): void
     {
         $query = "
-            UPDATE Utenti_Ruoli
+            UPDATE utenti_ruoli
             SET streak_restituzioni = streak_restituzioni + 1
             WHERE id_utente = ? AND id_ruolo = ?
         ";
@@ -561,7 +561,7 @@ class LoanService
     private function resetStreakRestituzioni(int $utenteId, int $ruoloId): void
     {
         $query = "
-            UPDATE Utenti_Ruoli
+            UPDATE utenti_ruoli
             SET streak_restituzioni = 0
             WHERE id_utente = ? AND id_ruolo = ?
         ";
@@ -588,9 +588,9 @@ class LoanService
                 r.limite_prestiti,
                 ur.prestiti_tot,
                 ur.streak_restituzioni
-            FROM Utenti u
-            INNER JOIN Utenti_Ruoli ur ON u.id_utente = ur.id_utente
-            INNER JOIN Ruoli r ON ur.id_ruolo = r.id_ruolo
+            FROM utenti u
+            INNER JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente
+            INNER JOIN ruoli r ON ur.id_ruolo = r.id_ruolo
             WHERE u.id_utente = ?
             ORDER BY r.priorita ASC
             LIMIT 1
@@ -611,10 +611,10 @@ class LoanService
                 i.*,
                 l.id_libro, l.titolo, l.valore_copertina,
                 GROUP_CONCAT(CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori
-            FROM Inventari i
-            INNER JOIN Libri l ON i.id_libro = l.id_libro
-            LEFT JOIN Libri_Autori la ON l.id_libro = la.id_libro
-            LEFT JOIN Autori a ON la.id_autore = a.id
+            FROM inventari i
+            INNER JOIN libri l ON i.id_libro = l.id_libro
+            LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+            LEFT JOIN autori a ON la.id_autore = a.id
             WHERE i.id_inventario = ?
             GROUP BY i.id_inventario
         ";
@@ -633,8 +633,8 @@ class LoanService
             SELECT 
                 p.*,
                 u.nome, u.cognome, u.email
-            FROM Prenotazioni p
-            INNER JOIN Utenti u ON p.id_utente = u.id_utente
+            FROM prenotazioni p
+            INNER JOIN utenti u ON p.id_utente = u.id_utente
             WHERE p.id_libro = ?
               AND p.copia_libro IS NULL
               AND p.scadenza_ritiro IS NULL
@@ -656,7 +656,7 @@ class LoanService
         $scadenzaRiserva = date('Y-m-d H:i:s', strtotime('+' . self::ORE_RISERVA_PRENOTAZIONE . ' hours'));
 
         $query = "
-            UPDATE Prenotazioni
+            UPDATE prenotazioni
             SET copia_libro = ?,
                 data_disponibilita = ?,
                 scadenza_ritiro = ?
@@ -672,7 +672,7 @@ class LoanService
      */
     private function calcolaCostoDanno(int $libroId): float
     {
-        $query = "SELECT valore_copertina FROM Libri WHERE id_libro = ?";
+        $query = "SELECT valore_copertina FROM libri WHERE id_libro = ?";
         $stmt = $this->db->prepare($query);
         $stmt->execute([$libroId]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -687,7 +687,7 @@ class LoanService
     {
         $query = "
             SELECT COUNT(*) as prestiti_in_ritardo
-            FROM Prestiti
+            FROM prestiti
             WHERE id_utente = ?
               AND data_restituzione IS NULL
               AND scadenza_prestito < NOW()
@@ -699,7 +699,7 @@ class LoanService
 
         // Se non ha più prestiti in ritardo, rimuove il blocco
         if ((int)$result['prestiti_in_ritardo'] === 0) {
-            $query = "UPDATE Utenti SET blocco_account_fino_al = NULL WHERE id_utente = ?";
+            $query = "UPDATE utenti SET blocco_account_fino_al = NULL WHERE id_utente = ?";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$utenteId]);
         }
@@ -723,7 +723,7 @@ class LoanService
         }
 
         $query = "
-            INSERT INTO Logs_Audit (id_utente, azione, dettagli, ip_address, ipv6, timestamp)
+            INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address, ipv6, timestamp)
             VALUES (?, ?, ?, ?, ?, NOW())
         ";
 
@@ -750,4 +750,3 @@ class LoanService
         // TODO: Implementare con EmailService
     }
 }
-
