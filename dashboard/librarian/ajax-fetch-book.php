@@ -31,11 +31,6 @@ try {
     // 4. Connessione al DB
     $db = Database::getInstance()->getConnection();
 
-    /**
-     * QUERY CORRETTA:
-     * Usiamo due segnaposti diversi (:id e :isbn) per lo stesso valore $code
-     * per evitare l'errore SQLSTATE[HY093] su configurazioni PDO con emulazione disattivata.
-     */
     $sql = "SELECT 
                 i.id_inventario, 
                 i.stato, 

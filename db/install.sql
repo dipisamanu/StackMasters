@@ -8,7 +8,7 @@ CREATE TABLE autori
     nome                 VARCHAR(100) NOT NULL,
     cognome              VARCHAR(100) NOT NULL,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FULLTEXT INDEX idx_ft_autore (nome, cognome)
+    FULLTEXT INDEX idx_autore (nome, cognome)
 );
 
 CREATE TABLE lingue
@@ -69,7 +69,9 @@ CREATE TABLE libri
     cancellato           TINYINT DEFAULT 0,
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (lingua_id) REFERENCES lingue (id),
-    FOREIGN KEY (lingua_originale_id) REFERENCES lingue (id)
+    FOREIGN KEY (lingua_originale_id) REFERENCES lingue (id),
+    FULLTEXT INDEX idx_titolo (titolo),
+    FULLTEXT INDEX idx_editore (editore)
 );
 
 CREATE TABLE utenti
@@ -147,6 +149,7 @@ CREATE TABLE inventari
     id_rfid              INT UNIQUE,
     stato                ENUM('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'PERSO', 'SMARRITO', 'SCARTATO') DEFAULT 'DISPONIBILE',
     condizione           ENUM ('BUONO', 'DANNEGGIATO', 'PERSO')                           DEFAULT 'BUONO',
+    condizione_originale ENUM ('BUONO', 'DANNEGGIATO', 'PERSO')                           DEFAULT 'BUONO',
     collocazione         VARCHAR(20),
     ultimo_aggiornamento TIMESTAMP                                                        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_libro) REFERENCES libri (id_libro),
@@ -242,42 +245,60 @@ CREATE TABLE notifiche_web
 -- STORED PROCEDURES
 -- ===========================
 
-DROP PROCEDURE IF EXISTS CercaLibri;
 
 DELIMITER //
 
+DROP PROCEDURE IF EXISTS CercaLibri //
+
 CREATE PROCEDURE CercaLibri(
     IN p_query VARCHAR(255),
+    IN p_solo_disponibili BOOLEAN,
     IN p_limit INT,
     IN p_offset INT
 )
 BEGIN
+    DECLARE v_search_query VARCHAR(255);
+    -- se input vuoto
+    IF p_query IS NOT NULL AND p_query != '' THEN
+        SET v_search_query = p_query;
+    END IF;
+    -- query esterna filtra e ordina risultati già calcolati
     SELECT
-        l.id_libro,
-        l.titolo,
-        l.immagine_copertina,
-        l.isbn,
-        l.anno_uscita,
-        GROUP_CONCAT(CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori,
-
-        -- Calcolo Rilevanza
-        (MATCH(l.titolo) AGAINST(p_query IN BOOLEAN MODE) * 2) +
-        (MAX(MATCH(a.nome, a.cognome) AGAINST(p_query IN BOOLEAN MODE))) AS rilevanza
-
-    FROM libri l
-             LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
-             LEFT JOIN autori a ON la.id_autore = a.id
-
-    WHERE
-        l.cancellato = 0
-      AND (
-        MATCH(l.titolo) AGAINST(p_query IN BOOLEAN MODE)
-            OR
-        MATCH(a.nome, a.cognome) AGAINST(p_query IN BOOLEAN MODE)
+        risultati.*,
+        COUNT(*) OVER() as totale
+    FROM (
+        -- query interna calcola rilevanza e conteggi
+        SELECT
+            l.id_libro,
+            l.titolo,
+            l.immagine_copertina,
+            l.isbn,
+            l.anno_uscita,
+            l.editore,
+            l.ultimo_aggiornamento,
+            GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
+        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') AS copie_totali,
+        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') AS copie_disponibili,
+        IF(p_query != '', (MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE) * 2) +
+            (MAX(MATCH(a.nome, a.cognome) AGAINST(v_search_query IN BOOLEAN MODE))), 0) AS rilevanza
+        FROM libri l
+        LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+        LEFT JOIN autori a ON la.id_autore = a.id
+        WHERE l.cancellato = 0
+        AND (
+            p_query = ''
+            OR MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE)
+            OR MATCH(a.nome, a.cognome) AGAINST(v_search_query IN BOOLEAN MODE)
+            OR MATCH(l.editore) AGAINST(v_search_query IN BOOLEAN MODE)
+            OR l.isbn = p_query
         )
-
-    GROUP BY l.id_libro
-    ORDER BY rilevanza DESC
+        GROUP BY l.id_libro, l.ultimo_aggiornamento
+    ) AS risultati
+    WHERE (p_solo_disponibili = FALSE OR copie_disponibili > 0)
+    -- ordinamento finale
+    ORDER BY
+        IF(p_query != '', rilevanza, 0) DESC,
+        ultimo_aggiornamento DESC
     LIMIT p_limit OFFSET p_offset;
 END //
 

@@ -7,6 +7,10 @@
 require_once __DIR__ . '/../src/config/session.php';
 require_once __DIR__ . '/../src/Models/BookModel.php';
 
+
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 // Setup Paginazione
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $page = max(1, $page);
@@ -19,8 +23,9 @@ $filters = $filterAvailable ? ['solo_disponibili' => true] : [];
 
 // Recupero Dati dal Model
 $bookModel = new BookModel();
-$books = $bookModel->paginate($page, $perPage, $search, $filters);
-$totalBooks = $bookModel->count($search, $filters);
+$result = $bookModel->paginateWithCount($page, $perPage, $search, $filters);
+$books = $result['data'];
+$totalBooks = $result['total'];
 $totalPages = ceil($totalBooks / $perPage);
 
 require_once __DIR__ . '/../src/Views/layout/header.php';
@@ -75,9 +80,9 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
                                 $img = 'assets/img/placeholder.png'; // Fallback
                                 if (!empty($b['immagine_copertina'])) {
                                     // Se è un URL remoto o un percorso locale
-                                    $img = (strpos($b['immagine_copertina'], 'http') === 0)
+                                    $img = (str_starts_with($b['immagine_copertina'], 'http'))
                                         ? $b['immagine_copertina']
-                                        : $b['immagine_copertina'];
+                                        : 'uploads/covers/' . $b['immagine_copertina'];
                                 }
                                 ?>
                                 <img src="<?= htmlspecialchars($img) ?>" class="card-img-top h-100 w-100" style="object-fit: cover;" alt="<?= htmlspecialchars($b['titolo']) ?>">
