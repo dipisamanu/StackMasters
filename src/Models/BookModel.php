@@ -203,7 +203,7 @@ class BookModel
         }
 
         try {
-            $stmt = $this->pdo->prepare("CALL CercaLibri(:q, :orig, :avail, :ymin, :ymax, :rate, :cond, :sort, :lim, :off)");
+            $stmt = $this->pdo->prepare("CALL CercaLibri(:q, :orig, :avail, :ymin, :ymax, :rate, :cond, :genre, :sort, :lim, :off)");
 
             $stmt->bindValue(':q', $q_full);
             $stmt->bindValue(':orig', $q_original);
@@ -212,6 +212,7 @@ class BookModel
             $stmt->bindValue(':ymax', !empty($filters['year_max']) ? (int)$filters['year_max'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':rate', !empty($filters['rating']) ? (float)$filters['rating'] : null);
             $stmt->bindValue(':cond', $filters['condition'] ?? null);
+            $stmt->bindValue(':genre', !empty($filters['genre']) ? (int)$filters['genre'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':sort', $filters['sort'] ?? 'relevance');
             $stmt->bindValue(':lim', (int)$perPage, PDO::PARAM_INT);
             $stmt->bindValue(':off', (int)$offset, PDO::PARAM_INT);
