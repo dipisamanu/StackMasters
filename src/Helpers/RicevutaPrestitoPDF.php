@@ -22,6 +22,8 @@ class RicevutaPrestitoPDF
             return "";
         }
 
+        //var_dump($utente['cf']);
+
         // Inizializzazione TCPDF
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('StackMasters LMS');

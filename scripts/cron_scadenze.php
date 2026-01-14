@@ -1,16 +1,13 @@
 <?php
 /**
- * CRON JOB: Controllo Scadenze
- * Esecuzione: php scripts/cron_scadenze.php
+ * CRON JOB: Controllo Scadenze (Debug Mode)
  */
 
 use Ottaviodipisa\StackMasters\Models\NotificationManager;
 use Dotenv\Dotenv;
 
-// 1. Caricamento Autoloader Composer
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// 2. Caricamento Variabili Ambiente
 if (file_exists(__DIR__ . '/../.env')) {
     try {
         $dotenv = Dotenv::createUnsafeImmutable(__DIR__ . '/../');
@@ -20,22 +17,55 @@ if (file_exists(__DIR__ . '/../.env')) {
     }
 }
 
-// 3. IMPORTANTE: Inclusione manuale della classe Database
-// Dato che è globale e fuori dallo standard PSR-4, va richiesta esplicitamente.
 require_once __DIR__ . '/../src/config/database.php';
 
 try {
     echo "--- [START] Controllo scadenze: " . date('Y-m-d H:i:s') . " ---\n";
 
-    // 4. Istanza Database (con \ davanti per indicare che è globale)
     $pdo = \Database::getInstance()->getConnection();
+    // Impostiamo PDO per lanciare eccezioni sempre, utile per il debug
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // 5. Istanza NotificationManager
     $notify = new NotificationManager();
 
-    // -----------------------------------------------------------
-    // A. PREAVVISO (3 giorni alla scadenza - Epic 8.2)
-    // -----------------------------------------------------------
+    /**
+     * Helper interno per processare le query ed isolare gli errori
+     */
+    $runCheck = function($sql, $label, $urgency) use ($notify, $pdo) {
+        echo "\n[INFO] Analisi: $label\n";
+
+        $stmt = $pdo->query($sql);
+        $count = 0;
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $count++;
+            try {
+                echo "  > Invio a Utente ID {$row['id_utente']} ('{$row['titolo']}')... ";
+
+                $notify->send(
+                    $row['id_utente'],
+                    NotificationManager::TYPE_REMINDER,
+                    $urgency,
+                    ($label === "PREAVVISO" ? "Scadenza Imminente" : "PRESTITO SCADUTO"),
+                    "Il libro '{$row['titolo']}' " . ($label === "PREAVVISO" ? "scade a breve." : "è scaduto."),
+                    "/dashboard/student/index.php"
+                );
+
+                echo "OK\n";
+            } catch (Exception $e) {
+                echo "ERRORE!\n";
+                echo "    ----------------------------------------------------------\n";
+                echo "    DETTAGLI ERRORE: " . $e->getMessage() . "\n";
+                echo "    FILE: " . $e->getFile() . " (Linea: " . $e->getLine() . ")\n";
+                echo "    TRACE: " . substr($e->getTraceAsString(), 0, 500) . "...\n";
+                echo "    ----------------------------------------------------------\n";
+                // Continuiamo il ciclo per gli altri utenti
+            }
+        }
+        echo "[INFO] $label completato. Processati $count record.\n";
+    };
+
+    // 1. PREAVVISO (3 giorni)
     $sqlPre = "SELECT P.id_utente, L.titolo, P.scadenza_prestito 
                FROM prestiti P 
                JOIN inventari I ON P.id_inventario = I.id_inventario
@@ -43,21 +73,9 @@ try {
                WHERE P.data_restituzione IS NULL 
                AND DATE(P.scadenza_prestito) = DATE(NOW() + INTERVAL 3 DAY)";
 
-    foreach ($pdo->query($sqlPre) as $row) {
-        $notify->send(
-            $row['id_utente'],
-            NotificationManager::TYPE_REMINDER,
-            NotificationManager::URGENCY_LOW,
-            "Scadenza Imminente",
-            "Il libro '{$row['titolo']}' scade il " . date('d/m/Y', strtotime($row['scadenza_prestito'])),
-            "/dashboard/student/index.php"
-        );
-        echo " > Preavviso inviato a Utente ID: {$row['id_utente']}\n";
-    }
+    $runCheck($sqlPre, "PREAVVISO", NotificationManager::URGENCY_LOW);
 
-    // -----------------------------------------------------------
-    // B. RITARDO (Scaduto ieri - Epic 8.3)
-    // -----------------------------------------------------------
+    // 2. RITARDO (1 giorno fa)
     $sqlLate = "SELECT P.id_utente, L.titolo 
                 FROM prestiti P 
                 JOIN inventari I ON P.id_inventario = I.id_inventario
@@ -65,20 +83,11 @@ try {
                 WHERE P.data_restituzione IS NULL 
                 AND DATE(P.scadenza_prestito) = DATE(NOW() - INTERVAL 1 DAY)";
 
-    foreach ($pdo->query($sqlLate) as $row) {
-        $notify->send(
-            $row['id_utente'],
-            NotificationManager::TYPE_REMINDER,
-            NotificationManager::URGENCY_HIGH,
-            "PRESTITO SCADUTO",
-            "Il prestito di '{$row['titolo']}' è scaduto ieri. Restituiscilo subito per evitare multe.",
-            "/dashboard/student/index.php"
-        );
-        echo " > Avviso ritardo inviato a Utente ID: {$row['id_utente']}\n";
-    }
+    $runCheck($sqlLate, "RITARDO", NotificationManager::URGENCY_HIGH);
 
-    echo "--- [END] Controllo completato ---\n";
+    echo "\n--- [END] Cron job terminato ---\n";
 
 } catch (Exception $e) {
-    echo "ERRORE CRITICO: " . $e->getMessage() . "\n";
+    echo "\n!!! ERRORE CRITICO DI SISTEMA !!!\n";
+    echo $e->getMessage() . "\n";
 }
