@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Libri (Versione Fix Seeder)
+ * BookModel - Gestione Libri (Ottimizzato con Stored Procedure)
  * File: src/Models/BookModel.php
  */
 
@@ -16,6 +16,78 @@ class BookModel
         $this->db = Database::getInstance()->getConnection();
         $this->db->exec("SET NAMES 'utf8mb4'");
     }
+
+    /**
+     * Helper privato per trasformare l'input utente in sintassi Boolean Mode
+     * Esempio: "Harry Potter" -> "+Harry* +Potter*"
+     */
+    private function prepareFulltextSearch(string $search): string
+    {
+        $search = trim($search);
+        if (empty($search)) return '';
+
+        // Rimuove caratteri che potrebbero rompere la sintassi SQL
+        $search = str_replace(['+', '-', '<', '>', '(', ')', '~', '*', '"', '@'], ' ', $search);
+
+        $words = explode(' ', $search);
+        $formattedWords = [];
+
+        foreach ($words as $word) {
+            if (!empty($word)) {
+                $formattedWords[] = '+' . $word . '*';
+            }
+        }
+
+        return implode(' ', $formattedWords);
+    }
+
+    /**
+     * Recupera lista libri paginata e il conteggio totale.
+     * Utilizza la Stored Procedure 'CercaLibri'.
+     * * @return array ['data' => array_libri, 'total' => int]
+     */
+    public function paginateWithCount(int $page = 1, int $perPage = 12, string $search = '', array $filters = []): array
+    {
+        $offset = ($page - 1) * $perPage;
+
+        $searchQuery = $this->prepareFulltextSearch($search);
+
+        if (IsbnValidator::validate($search)) {
+            $searchQuery = IsbnValidator::clean($search);
+        }
+
+        $soloDisponibili = !empty($filters['solo_disponibili']) ? 1 : 0;
+
+        try {
+            $stmt = $this->db->prepare("CALL CercaLibri(:query, :soloDisp, :limit, :offset)");
+
+            $stmt->bindValue(':query', $searchQuery, PDO::PARAM_STR);
+            $stmt->bindValue(':soloDisp', $soloDisponibili, PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+
+            $total = 0;
+            if (!empty($results)) {
+                $total = (int)$results[0]['totale'];
+            }
+
+            return [
+                'data' => $results,
+                'total' => $total
+            ];
+
+        } catch (PDOException $e) {
+            error_log("Errore CercaLibri: " . $e->getMessage());
+            return ['data' => [], 'total' => 0];
+        }
+    }
+
+    // --- METODI CRUD STANDARD ---
 
     public function getById(int $id)
     {
@@ -34,89 +106,8 @@ class BookModel
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getAll(string $search = '', array $filters = []): array
-    {
-        return $this->paginate(1, 1000, $search, $filters);
-    }
-
-    public function paginate(int $page = 1, int $perPage = 12, string $search = '', array $filters = []): array
-    {
-        $offset = ($page - 1) * $perPage;
-
-        $sql = "SELECT l.*, 
-                       GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
-                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') as copie_totali,
-                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') as copie_disponibili
-                FROM libri l
-                LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
-                LEFT JOIN autori a ON la.id_autore = a.id
-                WHERE l.cancellato = 0";
-
-        $params = [];
-
-        if (!empty($search)) {
-            $trimSearch = trim($search);
-            $like = "%$trimSearch%";
-            $cleanSearchIsbn = IsbnValidator::clean($trimSearch);
-            $likeIsbn = "%$cleanSearchIsbn%";
-
-            $sql .= " AND (
-                        l.titolo LIKE :q1 OR l.isbn LIKE :q2 
-                        OR CONCAT(a.nome, ' ', a.cognome) LIKE :q3
-                      )";
-            $params[':q1'] = $like;
-            $params[':q2'] = $likeIsbn;
-            $params[':q3'] = $like;
-        }
-
-        $sql .= " GROUP BY l.id_libro";
-
-        if (!empty($filters['solo_disponibili'])) {
-            $sql .= " HAVING copie_disponibili > 0";
-        }
-
-        $sql .= " ORDER BY l.ultimo_aggiornamento DESC LIMIT :limit OFFSET :offset";
-
-        $stmt = $this->db->prepare($sql);
-        foreach ($params as $key => $val) {
-            $stmt->bindValue($key, $val);
-        }
-        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function count(string $search = '', array $filters = []): int
-    {
-        $sql = "SELECT COUNT(DISTINCT l.id_libro) as totale 
-                FROM libri l
-                LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
-                LEFT JOIN autori a ON la.id_autore = a.id
-                WHERE l.cancellato = 0";
-
-        $params = [];
-
-        if (!empty($search)) {
-            $trimSearch = trim($search);
-            $like = "%$trimSearch%";
-            $cleanSearchIsbn = IsbnValidator::clean($trimSearch);
-            $likeIsbn = "%$cleanSearchIsbn%";
-
-            $sql .= " AND (l.titolo LIKE :q1 OR l.isbn LIKE :q2 OR CONCAT(a.nome, ' ', a.cognome) LIKE :q3)";
-            $params[':q1'] = $like;
-            $params[':q2'] = $likeIsbn;
-            $params[':q3'] = $like;
-        }
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return (int)$stmt->fetchColumn();
-    }
-
     /**
-     * MODIFICATO: Restituisce int (ID del libro creato) invece di bool.
+     * @throws Exception
      */
     public function create(array $data, array $files = []): int
     {
@@ -148,7 +139,6 @@ class BookModel
                 ':img' => $coverPath
             ]);
 
-            // CATTURIAMO L'ID PRIMA DEL COMMIT
             $idLibro = (int)$this->db->lastInsertId();
 
             if (!empty($data['autore'])) {
@@ -156,15 +146,17 @@ class BookModel
             }
 
             $this->db->commit();
-            return $idLibro; // RITORNA L'ID
+            return $idLibro;
 
         } catch (Exception $e) {
             $this->db->rollBack();
-            // Rilanciamo l'errore per vederlo nel seeder
             throw $e;
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function update(int $id, array $data, array $files = []): bool
     {
         try {
@@ -204,6 +196,7 @@ class BookModel
             ]);
 
             if (!empty($data['autore'])) {
+                // Rimuovi vecchi autori e aggiungi il nuovo
                 $this->db->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$id]);
                 $this->linkAuthor($id, $this->clean($data['autore']));
             }
@@ -217,28 +210,33 @@ class BookModel
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function delete(int $idLibro): bool
     {
-        try {
-            $check = $this->db->prepare("
-                SELECT COUNT(*) 
-                FROM prestiti p 
-                JOIN inventari i ON p.id_inventario = i.id_inventario 
-                WHERE i.id_libro = ? AND p.data_restituzione IS NULL
-            ");
-            $check->execute([$idLibro]);
-            if ($check->fetchColumn() > 0) {
-                throw new Exception("Impossibile archiviare: ci sono copie attualmente in prestito.");
-            }
-
-            $this->db->prepare("UPDATE libri SET cancellato = 1 WHERE id_libro = ?")->execute([$idLibro]);
-            return true;
-        } catch (Exception $e) {
-            throw $e;
+        $check = $this->db->prepare("
+            SELECT COUNT(*) 
+            FROM prestiti p 
+            JOIN inventari i ON p.id_inventario = i.id_inventario 
+            WHERE i.id_libro = ? AND p.data_restituzione IS NULL
+        ");
+        $check->execute([$idLibro]);
+        if ($check->fetchColumn() > 0) {
+            throw new Exception("Impossibile archiviare: ci sono copie attualmente in prestito.");
         }
+
+        $this->db->prepare("UPDATE libri SET cancellato = 1 WHERE id_libro = ?")->execute([$idLibro]);
+        return true;
     }
 
-    private function uploadCover($file) {
+    // --- METODI PRIVATI ---
+
+    /**
+     * @throws Exception
+     */
+    private function uploadCover($file): string
+    {
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
@@ -256,7 +254,7 @@ class BookModel
         throw new Exception("Errore durante il caricamento dell'immagine.");
     }
 
-    private function linkAuthor(int $idLibro, string $fullName)
+    private function linkAuthor(int $idLibro, string $fullName): void
     {
         $parts = explode(' ', trim($fullName), 2);
         $nome = $parts[0];
@@ -278,14 +276,13 @@ class BookModel
             ->execute([$idLibro, $idAutore]);
     }
 
-    private function clean($str) {
+    private function clean($str): string
+    {
         return strip_tags(trim($str ?? ''));
     }
-    // ... aggiungi questo metodo alla classe BookModel esistente ...
 
     /**
      * Recupera i dettagli di un libro partendo dall'ID di una copia fisica (inventario).
-     * Utilizzato per il feedback visivo durante la scansione al bancone.
      */
     public function getByInventarioId(int $inventarioId)
     {
