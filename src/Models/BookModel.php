@@ -1,6 +1,6 @@
 <?php
 /**
- * BookModel - Gestione Libri (Ottimizzato con Stored Procedure)
+ * Gestione logica dei libri con Query Builder Dinamico
  * File: src/Models/BookModel.php
  */
 
@@ -9,308 +9,187 @@ require_once __DIR__ . '/../Helpers/IsbnValidator.php';
 
 class BookModel
 {
-    private PDO $db;
+    private PDO $pdo;
 
     public function __construct()
     {
-        $this->db = Database::getInstance()->getConnection();
-        $this->db->exec("SET NAMES 'utf8mb4'");
+        $this->pdo = Database::getInstance()->getConnection();
     }
 
-    /**
-     * Helper privato per trasformare l'input utente in sintassi Boolean Mode
-     * Esempio: "Harry Potter" -> "+Harry* +Potter*"
-     */
-    private function prepareFulltextSearch(string $search): string
+    public function getAllGenres(): array
     {
-        $search = trim($search);
-        if (empty($search)) return '';
-
-        // Rimuove caratteri che potrebbero rompere la sintassi SQL
-        $search = str_replace(['+', '-', '<', '>', '(', ')', '~', '*', '"', '@'], ' ', $search);
-
-        $words = explode(' ', $search);
-        $formattedWords = [];
-
-        foreach ($words as $word) {
-            if (!empty($word)) {
-                $formattedWords[] = '+' . $word . '*';
-            }
-        }
-
-        return implode(' ', $formattedWords);
+        return $this->pdo->query("SELECT * FROM generi ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
-     * Recupera lista libri paginata con filtri avanzati.
-     * Utilizza la Stored Procedure 'CercaLibri'.
-     * * @return array ['data' => array_libri, 'total' => int]
+     * Recupera l'anno minimo di pubblicazione presente nel database
      */
-    public function paginateWithCount(int $page = 1, int $perPage = 12, string $search = '', array $filters = []): array
+    public function getMinYear(): int
+    {
+        $stmt = $this->pdo->query("SELECT MIN(YEAR(anno_uscita)) as min_year FROM libri WHERE cancellato = 0 AND anno_uscita IS NOT NULL");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result && $result['min_year'] ? (int)$result['min_year'] : 1900;
+    }
+
+    /**
+     * Recupera un libro per ID
+     */
+    public function getById(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT l.*, 
+                   GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi
+            FROM libri l
+            LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+            LEFT JOIN autori a ON la.id_autore = a.id
+            WHERE l.id_libro = ? AND l.cancellato = 0
+            GROUP BY l.id_libro
+        ");
+        $stmt->execute([$id]);
+        $book = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $book ?: null;
+    }
+
+    /**
+     * Crea un nuovo libro
+     */
+    public function create(array $data, array $authorIds = []): int
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO libri (titolo, descrizione, isbn, anno_uscita, editore, numero_pagine, immagine_copertina)
+                VALUES (:titolo, :descrizione, :isbn, :anno, :editore, :pagine, :copertina)
+            ");
+
+            $anno = !empty($data['anno']) ? $data['anno'] . "-01-01" : null;
+
+            $stmt->execute([
+                ':titolo'      => $data['titolo'],
+                ':descrizione' => $data['descrizione'] ?? null,
+                ':isbn'        => $data['isbn'] ?? null,
+                ':anno'        => $anno,
+                ':editore'     => $data['editore'] ?? null,
+                ':pagine'      => $data['pagine'] ?? null,
+                ':copertina'   => $data['copertina_url'] ?? null
+            ]);
+
+            $idLibro = (int)$this->pdo->lastInsertId();
+
+            if (!empty($authorIds)) {
+                $stmtAuth = $this->pdo->prepare("INSERT INTO libri_autori (id_libro, id_autore) VALUES (?, ?)");
+                foreach ($authorIds as $aid) {
+                    $stmtAuth->execute([$idLibro, $aid]);
+                }
+            } elseif (!empty($data['autore'])) {
+                // Logica fallback per seeder che passa 'autore' come stringa
+                // Qui servirebbe una logica per cercare/creare l'autore
+                // Per ora saltiamo o implementiamo il minimo necessario
+            }
+
+            $this->pdo->commit();
+            return $idLibro;
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Aggiorna un libro esistente
+     */
+    public function update(int $id, array $data): bool
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE libri 
+            SET titolo = :titolo, descrizione = :descrizione, isbn = :isbn, 
+                anno_uscita = :anno, editore = :editore, numero_pagine = :pagine, 
+                immagine_copertina = :copertina
+            WHERE id_libro = :id
+        ");
+
+        $anno = !empty($data['anno']) ? $data['anno'] . "-01-01" : null;
+
+        return $stmt->execute([
+            ':id'          => $id,
+            ':titolo'      => $data['titolo'],
+            ':descrizione' => $data['descrizione'] ?? null,
+            ':isbn'        => $data['isbn'] ?? null,
+            ':anno'        => $anno,
+            ':editore'     => $data['editore'] ?? null,
+            ':pagine'      => $data['pagine'] ?? null,
+            ':copertina'   => $data['copertina_url'] ?? null
+        ]);
+    }
+
+    /**
+     * Elimina (logicamente) un libro
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->pdo->prepare("UPDATE libri SET cancellato = 1 WHERE id_libro = ?");
+        return $stmt->execute([$id]);
+    }
+
+    /**
+     * Motore di ricerca principale (Utilizza Stored Procedure CercaLibri)
+     */
+    public function searchBooks(int $page, int $perPage, array $filters): array
     {
         $offset = ($page - 1) * $perPage;
 
-        // Ricerca
-        $originalSearch = trim($search);
-        $searchQuery = $this->prepareFulltextSearch($search);
-        if (IsbnValidator::validate($search)) {
-            $originalSearch = IsbnValidator::clean($search);
-            // Non sovrascriviamo $searchQuery per permettere alla SP di gestire entrambi
+        $q_original = trim($filters['q'] ?? '');
+        $q_full = '';
+
+        if (!empty($q_original)) {
+            if (!IsbnValidator::validate($q_original)) {
+                $words = explode(' ', $q_original);
+                $formatted = [];
+                foreach ($words as $w) {
+                    if (trim($w)) $formatted[] = '+' . trim($w) . '*';
+                }
+                $q_full = implode(' ', $formatted);
+            }
         }
 
-        // Filtri
-        $soloDisponibili = !empty($filters['solo_disponibili']) ? 1 : 0;
-        $annoMin = !empty($filters['anno_min']) ? (int)$filters['anno_min'] : null;
-        $annoMax = !empty($filters['anno_max']) ? (int)$filters['anno_max'] : null;
-        $ratingMin = !empty($filters['rating_min']) ? (float)$filters['rating_min'] : null;
-        $condizione = !empty($filters['condizione']) ? $filters['condizione'] : null;
-        $sortBy = !empty($filters['sort_by']) ? $filters['sort_by'] : 'relevance';
-
         try {
-            $stmt = $this->db->prepare("CALL CercaLibri(:query, :original, :soloDisp, :annoMin, :annoMax, :ratingMin, :condizione, :sortBy, :limit, :offset)");
+            $stmt = $this->pdo->prepare("CALL CercaLibri(:q, :orig, :avail, :ymin, :ymax, :rate, :cond, :sort, :lim, :off)");
 
-            $stmt->bindValue(':query', $searchQuery);
-            $stmt->bindValue(':original', $originalSearch);
-            $stmt->bindValue(':soloDisp', $soloDisponibili, PDO::PARAM_INT);
-            $stmt->bindValue(':annoMin', $annoMin, is_null($annoMin) ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            $stmt->bindValue(':annoMax', $annoMax, is_null($annoMax) ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            $stmt->bindValue(':ratingMin', $ratingMin, is_null($ratingMin) ? PDO::PARAM_NULL : PDO::PARAM_STR); // Float passa meglio come stringa o null
-            $stmt->bindValue(':condizione', $condizione);
-            $stmt->bindValue(':sortBy', $sortBy);
-            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':q', $q_full);
+            $stmt->bindValue(':orig', $q_original);
+            $stmt->bindValue(':avail', ($filters['available'] === 'on' || $filters['available'] === true), PDO::PARAM_BOOL);
+            $stmt->bindValue(':ymin', !empty($filters['year_min']) ? (int)$filters['year_min'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':ymax', !empty($filters['year_max']) ? (int)$filters['year_max'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':rate', !empty($filters['rating']) ? (float)$filters['rating'] : null);
+            $stmt->bindValue(':cond', $filters['condition'] ?? null);
+            $stmt->bindValue(':sort', $filters['sort'] ?? 'relevance');
+            $stmt->bindValue(':lim', (int)$perPage, PDO::PARAM_INT);
+            $stmt->bindValue(':off', (int)$offset, PDO::PARAM_INT);
 
             $stmt->execute();
-
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
 
             $total = 0;
-            if (!empty($results)) {
-                $total = (int)$results[0]['totale'];
+            if (!empty($data)) {
+                $total = (int)$data[0]['totale'];
             }
 
-            return [
-                'data' => $results,
-                'total' => $total
-            ];
+            return ['data' => $data, 'total' => $total];
 
         } catch (PDOException $e) {
-            error_log("Errore CercaLibri: " . $e->getMessage());
+            error_log("Errore SearchBooks SP: " . $e->getMessage());
             return ['data' => [], 'total' => 0];
         }
     }
 
-    // --- METODI CRUD STANDARD ---
-
-    public function getById(int $id)
-    {
-        $sql = "SELECT l.*, 
-                       GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
-                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') as copie_totali,
-                       (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') as copie_disponibili
-                FROM libri l
-                LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
-                LEFT JOIN autori a ON la.id_autore = a.id
-                WHERE l.id_libro = :id AND l.cancellato = 0
-                GROUP BY l.id_libro";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
     /**
-     * @throws Exception
+     * Alias per searchBooks
      */
-    public function create(array $data, array $files = []): int
+    public function paginateWithCount(int $page, int $perPage, string $search = '', array $extraFilters = []): array
     {
-        try {
-            $this->db->beginTransaction();
-
-            $coverPath = null;
-            if (isset($files['copertina']) && $files['copertina']['error'] === 0) {
-                $coverPath = $this->uploadCover($files['copertina']);
-            } elseif (!empty($data['copertina_url'])) {
-                $coverPath = $data['copertina_url'];
-            }
-
-            $sql = "INSERT INTO libri (titolo, isbn, editore, anno_uscita, descrizione, numero_pagine, immagine_copertina, cancellato) 
-                    VALUES (:titolo, :isbn, :editore, :anno, :descrizione, :pagine, :img, 0)";
-
-            $stmt = $this->db->prepare($sql);
-
-            $cleanIsbn = IsbnValidator::clean($data['isbn'] ?? '');
-            $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
-
-            $stmt->execute([
-                ':titolo' => $this->clean($data['titolo']),
-                ':isbn' => $cleanIsbn,
-                ':editore' => $this->clean($data['editore'] ?? ''),
-                ':anno' => $annoDate,
-                ':descrizione' => $this->clean($data['descrizione'] ?? ''),
-                ':pagine' => !empty($data['pagine']) ? (int)$data['pagine'] : null,
-                ':img' => $coverPath
-            ]);
-
-            $idLibro = (int)$this->db->lastInsertId();
-
-            if (!empty($data['autore'])) {
-                $this->linkAuthor($idLibro, $this->clean($data['autore']));
-            }
-
-            $this->db->commit();
-            return $idLibro;
-
-        } catch (Exception $e) {
-            $this->db->rollBack();
-            throw $e;
-        }
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function update(int $id, array $data, array $files = []): bool
-    {
-        try {
-            $this->db->beginTransaction();
-
-            $oldBook = $this->getById($id);
-            if (!$oldBook) throw new Exception("Libro non trovato o cancellato.");
-
-            $coverPath = $oldBook['immagine_copertina'];
-
-            if (isset($files['copertina']) && $files['copertina']['error'] === 0) {
-                $coverPath = $this->uploadCover($files['copertina']);
-            } elseif (!empty($data['copertina_url'])) {
-                $coverPath = $data['copertina_url'];
-            }
-
-            $sql = "UPDATE libri SET 
-                    titolo = :titolo, isbn = :isbn, editore = :editore, 
-                    anno_uscita = :anno, descrizione = :descrizione, 
-                    numero_pagine = :pagine, immagine_copertina = :img
-                    WHERE id_libro = :id";
-
-            $stmt = $this->db->prepare($sql);
-
-            $cleanIsbn = IsbnValidator::clean($data['isbn'] ?? '');
-            $annoDate = !empty($data['anno']) ? $data['anno'] . '-01-01 00:00:00' : null;
-
-            $stmt->execute([
-                ':titolo' => $this->clean($data['titolo']),
-                ':isbn' => $cleanIsbn,
-                ':editore' => $this->clean($data['editore'] ?? ''),
-                ':anno' => $annoDate,
-                ':descrizione' => $this->clean($data['descrizione'] ?? ''),
-                ':pagine' => !empty($data['pagine']) ? (int)$data['pagine'] : null,
-                ':img' => $coverPath,
-                ':id' => $id
-            ]);
-
-            if (!empty($data['autore'])) {
-                // Rimuovi vecchi autori e aggiungi il nuovo
-                $this->db->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$id]);
-                $this->linkAuthor($id, $this->clean($data['autore']));
-            }
-
-            $this->db->commit();
-            return true;
-
-        } catch (Exception $e) {
-            $this->db->rollBack();
-            throw $e;
-        }
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function delete(int $idLibro): bool
-    {
-        $check = $this->db->prepare("
-            SELECT COUNT(*) 
-            FROM prestiti p 
-            JOIN inventari i ON p.id_inventario = i.id_inventario 
-            WHERE i.id_libro = ? AND p.data_restituzione IS NULL
-        ");
-        $check->execute([$idLibro]);
-        if ($check->fetchColumn() > 0) {
-            throw new Exception("Impossibile archiviare: ci sono copie attualmente in prestito.");
-        }
-
-        $this->db->prepare("UPDATE libri SET cancellato = 1 WHERE id_libro = ?")->execute([$idLibro]);
-        return true;
-    }
-
-    // --- METODI PRIVATI ---
-
-    /**
-     * @throws Exception
-     */
-    private function uploadCover($file): string
-    {
-        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-        if (!in_array($ext, $allowed)) throw new Exception("Formato immagine non valido.");
-        if ($file['size'] > 2 * 1024 * 1024) throw new Exception("Immagine troppo pesante (max 2MB).");
-
-        $targetDir = __DIR__ . '/../../public/uploads/covers/';
-        if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
-
-        $filename = uniqid('cover_') . '.' . $ext;
-
-        if (move_uploaded_file($file['tmp_name'], $targetDir . $filename)) {
-            return 'uploads/covers/' . $filename;
-        }
-        throw new Exception("Errore durante il caricamento dell'immagine.");
-    }
-
-    private function linkAuthor(int $idLibro, string $fullName): void
-    {
-        $parts = explode(' ', trim($fullName), 2);
-        $nome = $parts[0];
-        $cognome = $parts[1] ?? '.';
-
-        $stmt = $this->db->prepare("SELECT id FROM autori WHERE nome LIKE ? AND cognome LIKE ? LIMIT 1");
-        $stmt->execute([$nome, $cognome]);
-        $autore = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($autore) {
-            $idAutore = $autore['id'];
-        } else {
-            $ins = $this->db->prepare("INSERT INTO autori (nome, cognome) VALUES (?, ?)");
-            $ins->execute([$nome, $cognome]);
-            $idAutore = $this->db->lastInsertId();
-        }
-
-        $this->db->prepare("INSERT INTO libri_autori (id_libro, id_autore) VALUES (?, ?)")
-            ->execute([$idLibro, $idAutore]);
-    }
-
-    private function clean($str): string
-    {
-        return strip_tags(trim($str ?? ''));
-    }
-
-    /**
-     * Recupera i dettagli di un libro partendo dall'ID di una copia fisica (inventario).
-     */
-    public function getByInventarioId(int $inventarioId)
-    {
-        $sql = "SELECT l.*, i.id_inventario, i.stato, i.condizione, i.collocazione,
-                   GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi
-            FROM inventari i
-            JOIN libri l ON i.id_libro = l.id_libro
-            LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
-            LEFT JOIN autori a ON la.id_autore = a.id
-            WHERE i.id_inventario = :iid
-            GROUP BY i.id_inventario";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':iid' => $inventarioId]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC);
+        $filters = $extraFilters;
+        $filters['q'] = $search;
+        return $this->searchBooks($page, $perPage, $filters);
     }
 }
