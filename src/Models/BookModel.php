@@ -42,7 +42,7 @@ class BookModel
     }
 
     /**
-     * Recupera lista libri paginata e il conteggio totale.
+     * Recupera lista libri paginata con filtri avanzati.
      * Utilizza la Stored Procedure 'CercaLibri'.
      * * @return array ['data' => array_libri, 'total' => int]
      */
@@ -50,19 +50,33 @@ class BookModel
     {
         $offset = ($page - 1) * $perPage;
 
+        // Ricerca
+        $originalSearch = trim($search);
         $searchQuery = $this->prepareFulltextSearch($search);
-
         if (IsbnValidator::validate($search)) {
-            $searchQuery = IsbnValidator::clean($search);
+            $originalSearch = IsbnValidator::clean($search);
+            // Non sovrascriviamo $searchQuery per permettere alla SP di gestire entrambi
         }
 
+        // Filtri
         $soloDisponibili = !empty($filters['solo_disponibili']) ? 1 : 0;
+        $annoMin = !empty($filters['anno_min']) ? (int)$filters['anno_min'] : null;
+        $annoMax = !empty($filters['anno_max']) ? (int)$filters['anno_max'] : null;
+        $ratingMin = !empty($filters['rating_min']) ? (float)$filters['rating_min'] : null;
+        $condizione = !empty($filters['condizione']) ? $filters['condizione'] : null;
+        $sortBy = !empty($filters['sort_by']) ? $filters['sort_by'] : 'relevance';
 
         try {
-            $stmt = $this->db->prepare("CALL CercaLibri(:query, :soloDisp, :limit, :offset)");
+            $stmt = $this->db->prepare("CALL CercaLibri(:query, :original, :soloDisp, :annoMin, :annoMax, :ratingMin, :condizione, :sortBy, :limit, :offset)");
 
-            $stmt->bindValue(':query', $searchQuery, PDO::PARAM_STR);
+            $stmt->bindValue(':query', $searchQuery);
+            $stmt->bindValue(':original', $originalSearch);
             $stmt->bindValue(':soloDisp', $soloDisponibili, PDO::PARAM_INT);
+            $stmt->bindValue(':annoMin', $annoMin, is_null($annoMin) ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            $stmt->bindValue(':annoMax', $annoMax, is_null($annoMax) ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            $stmt->bindValue(':ratingMin', $ratingMin, is_null($ratingMin) ? PDO::PARAM_NULL : PDO::PARAM_STR); // Float passa meglio come stringa o null
+            $stmt->bindValue(':condizione', $condizione);
+            $stmt->bindValue(':sortBy', $sortBy);
             $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 

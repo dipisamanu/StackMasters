@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Catalogo Libri (Frontend Completo: API + Immagini)
+ * Gestione Catalogo Libri (Frontend Completo: API + Immagini + Paginazione)
  * File: dashboard/librarian/books.php
  */
 
@@ -11,18 +11,32 @@ Session::requireRole('Bibliotecario');
 
 $bookModel = new BookModel();
 
+// 1. Setup Paginazione e Filtri
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = max(1, $page);
+$perPage = 10; // 10 Libri per pagina
+
 $search = $_GET['q'] ?? '';
 $filterAvailable = isset($_GET['available']) && $_GET['available'] === 'on';
 $filters = $filterAvailable ? ['solo_disponibili' => true] : [];
 
+// 2. Recupero Dati (Uso della nuova funzione ottimizzata)
 $books = [];
+$totalBooks = 0;
+$totalPages = 0;
 $sysError = '';
+
 try {
-    $books = $bookModel->getAll($search, $filters);
+    // Sostituito getAll con paginateWithCount
+    $result = $bookModel->paginateWithCount($page, $perPage, $search, $filters);
+    $books = $result['data'];
+    $totalBooks = $result['total'];
+    $totalPages = ceil($totalBooks / $perPage);
 } catch (Exception $e) {
     $sysError = "Errore Sistema: " . $e->getMessage();
 }
 
+// 3. Gestione Flash Messages e Old Data (Invariato)
 $success = $_SESSION['flash_success'] ?? '';
 $error = $_SESSION['flash_error'] ?? '';
 $oldData = $_SESSION['form_data'] ?? [];
@@ -41,7 +55,9 @@ require_once '../../src/Views/layout/header.php';
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="fw-bold text-danger"><i class="fas fa-book me-2"></i>Gestione Catalogo</h2>
-                <p class="text-muted small mb-0">Catalogo dei titoli disponibili in biblioteca.</p>
+                <p class="text-muted small mb-0">
+                    Trovati <strong><?= $totalBooks ?></strong> titoli nel catalogo.
+                </p>
             </div>
             <button class="btn btn-danger shadow-sm" onclick="openModal('create')">
                 <i class="fas fa-plus me-2"></i>Nuovo Titolo
@@ -111,10 +127,10 @@ require_once '../../src/Views/layout/header.php';
                                 <td class="ps-4">
                                     <div class="d-flex align-items-center">
                                         <?php
-                                        // Percorso immagine (locale o remoto)
+                                        // Gestione Immagine
                                         $img = '../../public/assets/img/placeholder.png';
                                         if (!empty($b['immagine_copertina'])) {
-                                            if (strpos($b['immagine_copertina'], 'http') === 0) {
+                                            if (str_starts_with($b['immagine_copertina'], 'http')) {
                                                 $img = $b['immagine_copertina'];
                                             } else {
                                                 $img = '../../public/' . $b['immagine_copertina'];
@@ -155,6 +171,35 @@ require_once '../../src/Views/layout/header.php';
                     </tbody>
                 </table>
             </div>
+
+            <?php if ($totalPages > 1): ?>
+                <div class="card-footer bg-white border-top-0 py-3">
+                    <nav>
+                        <ul class="pagination justify-content-center mb-0">
+                            <?php
+                            // Manteniamo i parametri di ricerca nei link
+                            $queryParams = $_GET;
+                            unset($queryParams['page']);
+                            $queryString = http_build_query($queryParams);
+                            ?>
+
+                            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                                <a class="page-link border-0" href="?page=<?= $page - 1 ?>&<?= $queryString ?>"><i class="fas fa-chevron-left"></i></a>
+                            </li>
+
+                            <?php for($i = 1; $i <= $totalPages; $i++): ?>
+                                <li class="page-item <?= $page == $i ? 'active' : '' ?>">
+                                    <a class="page-link border-0" href="?page=<?= $i ?>&<?= $queryString ?>"><?= $i ?></a>
+                                </li>
+                            <?php endfor; ?>
+
+                            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                                <a class="page-link border-0" href="?page=<?= $page + 1 ?>&<?= $queryString ?>"><i class="fas fa-chevron-right"></i></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -179,7 +224,6 @@ require_once '../../src/Views/layout/header.php';
                         <input type="hidden" name="copertina_url" id="copertina_url">
 
                         <div class="row g-3">
-
                             <div class="col-md-4 text-center">
                                 <div class="mb-2">
                                     <img id="preview_img" src="../../public/assets/img/placeholder.png"
@@ -198,7 +242,7 @@ require_once '../../src/Views/layout/header.php';
                                         <label class="form-label fw-bold">ISBN (Ricerca Auto)</label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light"><i class="fas fa-barcode"></i></span>
-                                            <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="Es. 97888..." onkeypress="handleEnter(event)">
+                                            <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="Es. 97888...">
                                             <button type="button" class="btn btn-primary" id="btnFetch" onclick="fetchBookData()">
                                                 <i class="fas fa-search"></i>
                                             </button>
@@ -255,6 +299,16 @@ require_once '../../src/Views/layout/header.php';
                 openModal(mode, old, true);
                 <?php endif; ?>
             }
+
+            const isbnInput = document.getElementById('isbn');
+            if(isbnInput) {
+                isbnInput.addEventListener('keydown', (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        fetchBookData();
+                    }
+                });
+            }
         });
 
         // Anteprima file locale
@@ -265,7 +319,7 @@ require_once '../../src/Views/layout/header.php';
 
             reader.onloadend = function () {
                 preview.src = reader.result;
-                document.getElementById('copertina_url').value = ''; // Pulisci URL remoto se c'è file locale
+                document.getElementById('copertina_url').value = '';
             }
 
             if (file) {
@@ -299,7 +353,6 @@ require_once '../../src/Views/layout/header.php';
                         document.getElementById('pagine').value = book.pagine;
                         document.getElementById('descrizione').value = book.descrizione;
 
-                        // Gestione Copertina API
                         if (book.copertina) {
                             document.getElementById('preview_img').src = book.copertina;
                             document.getElementById('copertina_url').value = book.copertina;
@@ -325,13 +378,7 @@ require_once '../../src/Views/layout/header.php';
                 });
         }
 
-        function handleEnter(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                fetchBookData();
-            }
-        }
-
+        // Funzione modificata per gestire isOldData come richiesto
         function openModal(mode, data = null, isOldData = false) {
             const form = document.getElementById('bookForm');
             if(!isOldData) form.reset();
@@ -373,7 +420,14 @@ require_once '../../src/Views/layout/header.php';
 
                 if(isOldData) {
                     document.getElementById('titolo').value = data.titolo;
-                    // ... ripulisci se serve ...
+                    // il resto dei campi si popola automaticamente dal browser se non resettiamo il form,
+                    // oppure possiamo aggiungere qui la logica di ripopolamento manuale per sicurezza
+                    if(data.autore) document.getElementById('autore').value = data.autore;
+                    if(data.isbn) document.getElementById('isbn').value = data.isbn;
+                    if(data.editore) document.getElementById('editore').value = data.editore;
+                    if(data.anno) document.getElementById('anno').value = data.anno;
+                    if(data.pagine) document.getElementById('pagine').value = data.pagine;
+                    if(data.descrizione) document.getElementById('descrizione').value = data.descrizione;
                 }
             }
 
