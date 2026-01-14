@@ -252,53 +252,75 @@ DROP PROCEDURE IF EXISTS CercaLibri //
 
 CREATE PROCEDURE CercaLibri(
     IN p_query VARCHAR(255),
+    IN p_original VARCHAR(255),
     IN p_solo_disponibili BOOLEAN,
+    IN p_anno_min INT,
+    IN p_anno_max INT,
+    IN p_rating_min FLOAT,
+    IN p_condizione VARCHAR(20),
+    IN p_sort_by VARCHAR(20),
     IN p_limit INT,
     IN p_offset INT
 )
 BEGIN
-    DECLARE v_search_query VARCHAR(255);
-    -- se input vuoto
+    DECLARE v_search_query VARCHAR(255) DEFAULT '';
+    
     IF p_query IS NOT NULL AND p_query != '' THEN
         SET v_search_query = p_query;
     END IF;
-    -- query esterna filtra e ordina risultati già calcolati
+
     SELECT
-        risultati.*,
+        final_results.*,
         COUNT(*) OVER() as totale
     FROM (
-        -- query interna calcola rilevanza e conteggi
-        SELECT
-            l.id_libro,
-            l.titolo,
-            l.immagine_copertina,
-            l.isbn,
-            l.anno_uscita,
-            l.editore,
-            l.ultimo_aggiornamento,
-            GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
-        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') AS copie_totali,
-        (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') AS copie_disponibili,
-        IF(p_query != '', (MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE) * 2) +
-            (MAX(MATCH(a.nome, a.cognome) AGAINST(v_search_query IN BOOLEAN MODE))), 0) AS rilevanza
-        FROM libri l
-        LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
-        LEFT JOIN autori a ON la.id_autore = a.id
-        WHERE l.cancellato = 0
-        AND (
-            p_query = ''
-            OR MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE)
-            OR MATCH(a.nome, a.cognome) AGAINST(v_search_query IN BOOLEAN MODE)
-            OR MATCH(l.editore) AGAINST(v_search_query IN BOOLEAN MODE)
-            OR l.isbn = p_query
-        )
-        GROUP BY l.id_libro, l.ultimo_aggiornamento
-    ) AS risultati
-    WHERE (p_solo_disponibili = FALSE OR copie_disponibili > 0)
-    -- ordinamento finale
+             SELECT
+                 l.id_libro,
+                 l.titolo,
+                 l.immagine_copertina,
+                 l.isbn,
+                 l.anno_uscita,
+                 l.editore,
+                 l.ultimo_aggiornamento,
+                 l.rating,
+                 GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
+                 (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') AS copie_totali,
+                 (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') AS copie_disponibili,
+                 (SELECT COUNT(*) FROM prestiti p JOIN inventari i ON p.id_inventario = i.id_inventario WHERE i.id_libro = l.id_libro) AS popolarita,
+                 (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND condizione = p_condizione) AS has_condition,
+                 IF(v_search_query != '', (MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE) * 2), 0) AS rilevanza
+             FROM libri l
+                      LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
+                      LEFT JOIN autori a ON la.id_autore = a.id
+             WHERE l.cancellato = 0
+               AND (
+                 p_original = ''
+                     OR (v_search_query != '' AND MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE))
+                     OR (v_search_query != '' AND MATCH(a.nome, a.cognome) AGAINST(v_search_query IN BOOLEAN MODE))
+                     OR (v_search_query != '' AND MATCH(l.editore) AGAINST(v_search_query IN BOOLEAN MODE))
+                     OR l.isbn = p_original
+                 )
+             GROUP BY l.id_libro, l.ultimo_aggiornamento
+         ) AS final_results
+    WHERE
+        (p_solo_disponibili = FALSE OR copie_disponibili > 0)
+      AND (p_anno_min IS NULL OR YEAR(anno_uscita) >= p_anno_min)
+      AND (p_anno_max IS NULL OR YEAR(anno_uscita) <= p_anno_max)
+      AND (p_rating_min IS NULL OR rating >= p_rating_min)
+      AND (p_condizione IS NULL OR p_condizione = '' OR has_condition > 0)
+
     ORDER BY
-        IF(p_query != '', rilevanza, 0) DESC,
+        CASE
+            WHEN p_sort_by = 'alpha' THEN titolo
+            WHEN p_sort_by = 'date_asc' THEN anno_uscita
+            END,
+        CASE
+            WHEN p_sort_by = 'date_desc' THEN anno_uscita
+            WHEN p_sort_by = 'rating' THEN rating
+            WHEN p_sort_by = 'popularity' THEN popolarita
+            WHEN p_sort_by = 'relevance' AND p_original != '' THEN rilevanza
+            END DESC,
         ultimo_aggiornamento DESC
+
     LIMIT p_limit OFFSET p_offset;
 END //
 
