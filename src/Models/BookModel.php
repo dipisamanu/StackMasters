@@ -37,8 +37,10 @@ class BookModel
     public function getById(int $id): ?array
     {
         $stmt = $this->pdo->prepare("
-            SELECT l.*, 
-                   GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi
+            SELECT l.*, l.rating as rating_medio,
+                   GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
+                   (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') AS copie_totali,
+                   (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') AS copie_disponibili
             FROM libri l
             LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
             LEFT JOIN autori a ON la.id_autore = a.id
@@ -65,13 +67,13 @@ class BookModel
             $anno = !empty($data['anno']) ? $data['anno'] . "-01-01" : null;
 
             $stmt->execute([
-                ':titolo'      => $data['titolo'],
+                ':titolo' => $data['titolo'],
                 ':descrizione' => $data['descrizione'] ?? null,
-                ':isbn'        => $data['isbn'] ?? null,
-                ':anno'        => $anno,
-                ':editore'     => $data['editore'] ?? null,
-                ':pagine'      => $data['pagine'] ?? null,
-                ':copertina'   => $data['copertina_url'] ?? null
+                ':isbn' => $data['isbn'] ?? null,
+                ':anno' => $anno,
+                ':editore' => $data['editore'] ?? null,
+                ':pagine' => $data['pagine'] ?? null,
+                ':copertina' => $data['copertina_url'] ?? null
             ]);
 
             $idLibro = (int)$this->pdo->lastInsertId();
@@ -82,9 +84,7 @@ class BookModel
                     $stmtAuth->execute([$idLibro, $aid]);
                 }
             } elseif (!empty($data['autore'])) {
-                // Logica fallback per seeder che passa 'autore' come stringa
-                // Qui servirebbe una logica per cercare/creare l'autore
-                // Per ora saltiamo o implementiamo il minimo necessario
+                $this->linkAuthorByName($idLibro, $data['autore']);
             }
 
             $this->pdo->commit();
@@ -96,30 +96,80 @@ class BookModel
     }
 
     /**
+     * Collega un autore a un libro cercando per nome/cognome o creandolo
+     */
+    private function linkAuthorByName(int $idLibro, string $fullAuthorName): void
+    {
+        $fullAuthorName = trim($fullAuthorName);
+        $parts = explode(' ', $fullAuthorName);
+        $nome = $parts[0];
+        $cognome = (count($parts) > 1) ? implode(' ', array_slice($parts, 1)) : 'Ignoto';
+
+        // Cerca se l'autore esiste già
+        $stmtSearch = $this->pdo->prepare("SELECT id FROM autori WHERE nome = ? AND cognome = ?");
+        $stmtSearch->execute([$nome, $cognome]);
+        $author = $stmtSearch->fetch(PDO::FETCH_ASSOC);
+
+        if ($author) {
+            $idAutore = $author['id'];
+        } else {
+            // Crea nuovo autore
+            $stmtInsAuth = $this->pdo->prepare("INSERT INTO autori (nome, cognome) VALUES (?, ?)");
+            $stmtInsAuth->execute([$nome, $cognome]);
+            $idAutore = (int)$this->pdo->lastInsertId();
+        }
+
+        // Collega libro e autore
+        $stmtLink = $this->pdo->prepare("INSERT IGNORE INTO libri_autori (id_libro, id_autore) VALUES (?, ?)");
+        $stmtLink->execute([$idLibro, $idAutore]);
+    }
+
+    /**
      * Aggiorna un libro esistente
      */
-    public function update(int $id, array $data): bool
+    public function update(int $id, array $data, array $authorIds = []): bool
     {
-        $stmt = $this->pdo->prepare("
-            UPDATE libri 
-            SET titolo = :titolo, descrizione = :descrizione, isbn = :isbn, 
-                anno_uscita = :anno, editore = :editore, numero_pagine = :pagine, 
-                immagine_copertina = :copertina
-            WHERE id_libro = :id
-        ");
+        $this->pdo->beginTransaction();
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE libri 
+                SET titolo = :titolo, descrizione = :descrizione, isbn = :isbn, 
+                    anno_uscita = :anno, editore = :editore, numero_pagine = :pagine, 
+                    immagine_copertina = :copertina
+                WHERE id_libro = :id
+            ");
 
-        $anno = !empty($data['anno']) ? $data['anno'] . "-01-01" : null;
+            $anno = !empty($data['anno']) ? $data['anno'] . "-01-01" : null;
 
-        return $stmt->execute([
-            ':id'          => $id,
-            ':titolo'      => $data['titolo'],
-            ':descrizione' => $data['descrizione'] ?? null,
-            ':isbn'        => $data['isbn'] ?? null,
-            ':anno'        => $anno,
-            ':editore'     => $data['editore'] ?? null,
-            ':pagine'      => $data['pagine'] ?? null,
-            ':copertina'   => $data['copertina_url'] ?? null
-        ]);
+            $stmt->execute([
+                ':id' => $id,
+                ':titolo' => $data['titolo'],
+                ':descrizione' => $data['descrizione'] ?? null,
+                ':isbn' => $data['isbn'] ?? null,
+                ':anno' => $anno,
+                ':editore' => $data['editore'] ?? null,
+                ':pagine' => $data['pagine'] ?? null,
+                ':copertina' => $data['copertina_url'] ?? null
+            ]);
+
+            // Aggiorna Autori
+            if (!empty($authorIds)) {
+                $this->pdo->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$id]);
+                $stmtAuth = $this->pdo->prepare("INSERT INTO libri_autori (id_libro, id_autore) VALUES (?, ?)");
+                foreach ($authorIds as $aid) {
+                    $stmtAuth->execute([$id, $aid]);
+                }
+            } elseif (!empty($data['autore'])) {
+                $this->pdo->prepare("DELETE FROM libri_autori WHERE id_libro = ?")->execute([$id]);
+                $this->linkAuthorByName($id, $data['autore']);
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
     /**
@@ -157,7 +207,7 @@ class BookModel
 
             $stmt->bindValue(':q', $q_full);
             $stmt->bindValue(':orig', $q_original);
-            $stmt->bindValue(':avail', ($filters['available'] === 'on' || $filters['available'] === true), PDO::PARAM_BOOL);
+            $stmt->bindValue(':avail', (($filters['available'] ?? '') === 'on' || ($filters['available'] ?? false) === true), PDO::PARAM_BOOL);
             $stmt->bindValue(':ymin', !empty($filters['year_min']) ? (int)$filters['year_min'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':ymax', !empty($filters['year_max']) ? (int)$filters['year_max'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':rate', !empty($filters['rating']) ? (float)$filters['rating'] : null);
