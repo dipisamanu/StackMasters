@@ -297,10 +297,11 @@ if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
         </div>
 
         <div class="remember-forgot">
-            <label>
-                <input type="checkbox" name="remember" value="1">
-                Ricordami
-            </label>
+            <!-- TODO: Implementare persistenza della sessione utente -->
+<!--            <label>-->
+<!--                <input type="checkbox" name="remember" value="1">-->
+<!--                Ricordami-->
+<!--            </label>-->
             <a href="forgot-password.php">Password dimenticata?</a>
         </div>
 
