@@ -11,6 +11,14 @@ require_once __DIR__ . '/../../src/config/database.php';
 // 2. Controllo Permessi
 Session::requireRole('Bibliotecario');
 
+// Se l'utente è Admin, potrebbe essere reindirizzato qui se ha anche il ruolo Bibliotecario
+// Ma se è Admin, dovrebbe vedere la dashboard Admin
+if (Session::isAdmin()) {
+    // Opzionale: reindirizza admin alla sua dashboard se preferito
+    // header('Location: ../admin/index.php');
+    // exit;
+}
+
 // 3. Recupero Dati Utente
 $nomeUtente = $_SESSION['user_name'] ?? 'Collega';
 

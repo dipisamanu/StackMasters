@@ -66,7 +66,7 @@ if ($book['copie_disponibili'] > 0) {
     $userMessage = 'Tutte le copie sono fuori. <strong>Prenotalo ora</strong> per metterti in coda.';
 
 } else {
-    // CASO C: Nessuna copia fisica esistente (Smarrito/Scartato)
+    // CASO C: Nessuna copia fisica esistente (Smarrito/Fuori Catalogo)
     $statusClass = 'danger';
     $statusText = 'Non Disponibile';
     $statusIcon = 'times-circle';

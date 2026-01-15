@@ -98,7 +98,8 @@ CREATE TABLE utenti
     id_rfid                 INT UNIQUE,
     data_creazione          TIMESTAMP                   DEFAULT CURRENT_TIMESTAMP,
     ultimo_aggiornamento    TIMESTAMP                   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_rfid) REFERENCES rfid (id_rfid) ON DELETE SET NULL
+    FOREIGN KEY (id_rfid) REFERENCES rfid (id_rfid) ON DELETE SET NULL,
+    FULLTEXT INDEX idx_utente (cf, nome, cognome, email)
 );
 
 CREATE TABLE libri_autori
@@ -147,9 +148,9 @@ CREATE TABLE inventari
     id_inventario        INT AUTO_INCREMENT PRIMARY KEY,
     id_libro             INT NOT NULL,
     id_rfid              INT UNIQUE,
-    stato                ENUM('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'PERSO', 'SMARRITO', 'SCARTATO') DEFAULT 'DISPONIBILE',
-    condizione           ENUM ('BUONO', 'DANNEGGIATO', 'PERSO')                           DEFAULT 'BUONO',
-    condizione_originale ENUM ('BUONO', 'DANNEGGIATO', 'PERSO')                           DEFAULT 'BUONO',
+    stato                ENUM ('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'SMARRITO', 'FUORI_CATALOGO') DEFAULT 'DISPONIBILE',
+    condizione           ENUM ('BUONO', 'DANNEGGIATO', 'SMARRITO')                        DEFAULT 'BUONO',
+    condizione_originale ENUM ('BUONO', 'DANNEGGIATO', 'SMARRITO')                        DEFAULT 'BUONO',
     collocazione         VARCHAR(20),
     ultimo_aggiornamento TIMESTAMP                                                        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_libro) REFERENCES libri (id_libro),
@@ -284,7 +285,7 @@ BEGIN
                  l.ultimo_aggiornamento,
                  l.rating,
                  GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
-                 (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') AS copie_totali,
+                 (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SMARRITO') AS copie_totali,
                  (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') AS copie_disponibili,
                  (SELECT COUNT(*) FROM prestiti p JOIN inventari i ON p.id_inventario = i.id_inventario WHERE i.id_libro = l.id_libro) AS popolarita,
                  (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND condizione = p_condizione) AS has_condition,

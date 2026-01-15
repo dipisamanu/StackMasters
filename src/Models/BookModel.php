@@ -39,7 +39,7 @@ class BookModel
         $stmt = $this->pdo->prepare("
             SELECT l.*, l.rating as rating_medio,
                    GROUP_CONCAT(DISTINCT CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi,
-                   (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'SCARTATO' AND stato != 'SMARRITO') AS copie_totali,
+                   (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato != 'FUORI_CATALOGO' AND stato != 'SMARRITO') AS copie_totali,
                    (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') AS copie_disponibili
             FROM libri l
             LEFT JOIN libri_autori la ON l.id_libro = la.id_libro

@@ -194,6 +194,7 @@ require_once '../src/Views/layout/header.php';
                             </a>
                         </div>
                     <?php else: ?>
+                        <p class="lead mb-3 fw-semibold">Bentornato, <?= htmlspecialchars(Session::getNomeCompleto() ?? 'utente') ?>!</p>
                         <div class="mt-5">
                             <a href="<?php
                             $role = Session::getMainRole();

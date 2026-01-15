@@ -10,6 +10,7 @@ config.php
 .env
 database.php
 db_connection.php
+/db/personal.sql
 
 # --- File di Sistema e IDE ---
 # File generati dal Mac o Windows

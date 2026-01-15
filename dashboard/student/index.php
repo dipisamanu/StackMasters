@@ -12,9 +12,20 @@ require_once '../../src/config/database.php';
 
 Session::requireLogin();
 
+// Se l'utente è Admin o Bibliotecario, reindirizzalo alla dashboard corretta
+// Questo evita che un admin finisca per sbaglio nella dashboard studente
+$mainRole = Session::getMainRole();
+if ($mainRole === 'Admin') {
+    header('Location: ../admin/index.php');
+    exit;
+} elseif ($mainRole === 'Bibliotecario') {
+    header('Location: ../librarian/index.php');
+    exit;
+}
+
 $db = Database::getInstance()->getConnection();
 $userId = $_SESSION['user_id'];
-$nomeCompleto = $_SESSION['nome'] ?? 'Studente';
+$nomeCompleto = Session::getNomeCompleto() ?? 'Studente';
 
 // Recupera prestiti attivi
 $prestiti = [];
