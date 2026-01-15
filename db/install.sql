@@ -215,7 +215,7 @@ CREATE TABLE logs_audit
 (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     id_utente  INT                                                                                                     NULL,
-    azione     ENUM ('LOGIN_FALLITO', 'LOGIN_SUCCESS', 'CREAZIONE_UTENTE', 'MODIFICA_PRESTITO', 'CANCELLAZIONE_LIBRO') NOT NULL,
+    azione     ENUM ('LOGIN_FALLITO', 'LOGIN_SUCCESS', 'CREAZIONE_UTENTE', 'MODIFICA_PRESTITO', 'CANCELLAZIONE_LIBRO', 'VERIFICA_EMAIL') NOT NULL,
     dettagli   TEXT,
     ip_address INT UNSIGNED COMMENT 'IPv4 convertito con INET_ATON',
     ipv6       VARBINARY(16) COMMENT 'IPv6 convertito con INET6_ATON',
@@ -258,13 +258,14 @@ CREATE PROCEDURE CercaLibri(
     IN p_anno_max INT,
     IN p_rating_min FLOAT,
     IN p_condizione VARCHAR(20),
+    IN p_genere_id INT,
     IN p_sort_by VARCHAR(20),
     IN p_limit INT,
     IN p_offset INT
 )
 BEGIN
     DECLARE v_search_query VARCHAR(255) DEFAULT '';
-    
+
     IF p_query IS NOT NULL AND p_query != '' THEN
         SET v_search_query = p_query;
     END IF;
@@ -287,7 +288,9 @@ BEGIN
                  (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND stato = 'DISPONIBILE') AS copie_disponibili,
                  (SELECT COUNT(*) FROM prestiti p JOIN inventari i ON p.id_inventario = i.id_inventario WHERE i.id_libro = l.id_libro) AS popolarita,
                  (SELECT COUNT(*) FROM inventari WHERE id_libro = l.id_libro AND condizione = p_condizione) AS has_condition,
-                 IF(v_search_query != '', (MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE) * 2), 0) AS rilevanza
+                 (SELECT COUNT(*) FROM libri_generi WHERE id_libro = l.id_libro AND id_genere = p_genere_id) AS has_genre,
+                 IF(v_search_query != '', (MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE) * 2), 0) AS rilevanza,
+                 l.rating AS rating_medio
              FROM libri l
                       LEFT JOIN libri_autori la ON l.id_libro = la.id_libro
                       LEFT JOIN autori a ON la.id_autore = a.id
@@ -297,6 +300,7 @@ BEGIN
                      OR (v_search_query != '' AND MATCH(l.titolo) AGAINST(v_search_query IN BOOLEAN MODE))
                      OR (v_search_query != '' AND MATCH(a.nome, a.cognome) AGAINST(v_search_query IN BOOLEAN MODE))
                      OR (v_search_query != '' AND MATCH(l.editore) AGAINST(v_search_query IN BOOLEAN MODE))
+                     OR (v_search_query != '' AND l.editore LIKE CONCAT('%', p_original, '%'))
                      OR l.isbn = p_original
                  )
              GROUP BY l.id_libro, l.ultimo_aggiornamento
@@ -307,6 +311,7 @@ BEGIN
       AND (p_anno_max IS NULL OR YEAR(anno_uscita) <= p_anno_max)
       AND (p_rating_min IS NULL OR rating >= p_rating_min)
       AND (p_condizione IS NULL OR p_condizione = '' OR has_condition > 0)
+      AND (p_genere_id IS NULL OR p_genere_id = '' OR has_genre > 0)
 
     ORDER BY
         CASE
