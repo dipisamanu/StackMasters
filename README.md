@@ -13,3 +13,4 @@ daje daje daje che il 6 deve arrivare
 - quando c'è il tasto vieni a ritirarlo, schiaccia pulsante e mostra il percorso dalla 
 - in librarian/index.php sistemare il tasto in mezzo e collegare con lo scanner correttamente
 - fare la pagina admin e sistemare le sue caratteristiche
+- popup di verifica dev'esserci e non nel profilo della persona 
