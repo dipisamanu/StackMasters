@@ -4,97 +4,214 @@
  * Percorso: dashboard/librarian/registra-prestito.php
  */
 
-// 1. ABILITAZIONE ERRORI PER IL MONITORAGGIO
+// 1. MONITORAGGIO ERRORI
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// CSS Inline per un'interfaccia professionale
 echo "
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; line-height: 1.5; padding: 40px 20px; }
-    .container { max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden; }
-    .header { background: #bf2121; padding: 30px; color: white; }
-    .header h1 { margin: 0; font-size: 1.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; }
-    .content { padding: 30px; }
-    .section-title { font-size: 0.875rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
-    .log-entry { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.85rem; padding: 10px 15px; border-radius: 6px; margin-bottom: 8px; background: #f1f5f9; border-left: 4px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center; }
-    .log-entry.success { border-left-color: #10b981; background: #ecfdf5; color: #065f46; }
-    .log-entry.error { border-left-color: #ef4444; background: #fef2f2; color: #991b1b; }
-    .badge { padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; margin-left: 10px; }
-    .badge-success { background: #10b981; color: white; }
-    .badge-error { background: #ef4444; color: white; }
-    .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
-    .btn-download { display: inline-flex; align-items: center; justify-content: center; background: #bf2121; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1rem; transition: background 0.2s; box-shadow: 0 10px 15px -3px rgba(191, 33, 33, 0.3); }
-    .btn-download:hover { background: #9b1b1b; }
-    .footer-nav { margin-top: 25px; text-align: center; }
-    .footer-nav a { color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 500; }
-    .footer-nav a:hover { color: #bf2121; text-decoration: underline; }
-</style>
-";
+<!DOCTYPE html>
+<html lang='it'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Finalizzazione Operazioni | StackMasters</title>
+    <script src='https://cdn.tailwindcss.com'></script>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f1f5f9; 
+            color: #0f172a; 
+            margin: 0;
+            padding: 60px 20px;
+            font-size: 18px; 
+        }
 
-echo "<div class='container'>";
-echo "<div class='header'><h1>Gestione Circolazione</h1></div>";
-echo "<div class='content'>";
+        .main-card { 
+            max-width: 1100px; 
+            margin: 0 auto; 
+            background: #ffffff; 
+            border-radius: 30px; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); 
+            overflow: hidden; 
+        }
 
-// 2. Inclusione dipendenze
+        .top-banner { 
+            background: #bf2121; 
+            padding: 60px 50px; 
+            color: white; 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 8px solid #9b1b1b;
+        }
+
+        .content-area { padding: 50px; }
+
+        .summary-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            padding: 35px;
+            border-radius: 24px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-card span { font-size: 0.9rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-card strong { font-size: 1.6rem; color: #bf2121; font-weight: 800; }
+
+        .operation-row {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 25px 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .operation-row:hover { 
+            border-color: #bf2121; 
+            transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .badge-pill {
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            background: #bf2121;
+            color: white;
+            padding: 25px 60px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 1.4rem;
+            text-decoration: none;
+            transition: all 0.4s ease;
+            box-shadow: 0 20px 25px -5px rgba(191, 33, 33, 0.3);
+        }
+
+        .btn-main:hover {
+            background: #9b1b1b;
+            transform: translateY(-5px);
+            box-shadow: 0 25px 30px rgba(191, 33, 33, 0.4);
+        }
+
+        .section-label {
+            font-size: 1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class='main-card'>
+    <div class='top-banner'>
+        <div>
+            <h1 class='text-5xl font-black uppercase tracking-tight'>Output Sessione</h1>
+            <p class='text-xl opacity-90 font-semibold mt-2'>Controllo Circolazione Volumi - ITIS Rossi</p>
+        </div>
+        <i class='fas fa-sync-alt text-7xl opacity-20 animate-spin-slow'></i>
+    </div>
+
+    <div class='content-area'>";
+
+// 2. LOGICA BACKEND
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Ottaviodipisa\StackMasters\Models\Loan;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaPrestitoPDF;
 
-// 3. Recupero Dati dal Form
 $userCode = $_POST['user_barcode'] ?? '';
 $bookIds  = $_POST['book_ids'] ?? [];
 
-echo "<div class='summary-card'>";
-echo "<div class='section-title'>Parametri della sessione</div>";
-echo "<p style='margin: 0; font-size: 0.95rem;'>Identificativo Utente: <strong>" . htmlspecialchars($userCode) . "</strong></p>";
-echo "<p style='margin: 5px 0 0 0; font-size: 0.95rem;'>Volumi in elaborazione: <strong>" . count($bookIds) . "</strong></p>";
-echo "</div>";
+echo "
+    <div class='section-label'><i class='fas fa-sliders-h'></i> Parametri di Ingresso</div>
+    <div class='summary-header'>
+        <div class='stat-card'>
+            <span>Codice Utente Rilevato</span>
+            <strong>" . htmlspecialchars($userCode) . "</strong>
+        </div>
+        <div class='stat-card'>
+            <span>Unità in Registro</span>
+            <strong>" . count($bookIds) . " Libri</strong>
+        </div>
+    </div>";
 
 if (empty($userCode) || empty($bookIds)) {
-    die("<div class='log-entry error'>Interruzione: Dati insufficienti per procedere con la registrazione.</div></div></div>");
+    die("<div class='p-10 bg-red-100 text-red-800 rounded-3xl font-black text-center border-4 border-red-200 text-2xl'>
+            <i class='fas fa-exclamation-circle mb-4 text-5xl block'></i> DATI SESSIONE MANCANTI
+         </div></div></div></body></html>");
 }
 
 try {
-    // 4. Connessione DB via Singleton
     $db = Database::getInstance()->getConnection();
     $loanModel = new Loan();
 
-    // 5. Ricerca Dati Utente
-    echo "<div class='section-title'>Identificazione Soggetto</div>";
+    // 4. RICERCA UTENTE
     $stmtU = $db->prepare("SELECT id_utente, nome, cognome, email, cf FROM utenti WHERE cf = :cf OR id_utente = :id LIMIT 1");
     $stmtU->execute(['cf' => $userCode, 'id' => $userCode]);
     $utente = $stmtU->fetch(PDO::FETCH_ASSOC);
 
     if (!$utente) {
-        die("<div class='log-entry error'>Anomalia: Utente non registrato nel sistema. Verifica fallita.</div></div></div>");
+        die("<div class='p-10 bg-red-100 text-red-800 rounded-3xl font-black text-center border-4 border-red-200 text-2xl'>
+                <i class='fas fa-user-slash mb-4 text-5xl block'></i> UTENTE NON RICONOSCIUTO
+             </div></div></div></body></html>");
     }
-    echo "<div class='log-entry success'>Anagrafica verificata: <span>" . strtoupper($utente['cognome']) . " " . strtoupper($utente['nome']) . "</span> <span class='badge badge-success'>VALIDO</span></div>";
 
-    // 6. Ciclo di Registrazione Prestiti
-    echo "<br><div class='section-title'>Registro Operazioni Volumi</div>";
+    echo "
+    <div class='section-label'><i class='fas fa-user-shield'></i> Verifica Soggetto Abilitato</div>
+    <div class='bg-slate-900 text-white p-10 rounded-3xl mb-12 flex items-center justify-between border-b-8 border-emerald-500'>
+        <div>
+            
+            <h2 class='text-4xl font-black mt-2'>" . strtoupper($utente['cognome']) . " " . strtoupper($utente['nome']) . "</h2>
+            <p class='text-slate-400 text-lg mt-1'>Codice Fiscale: <span class='font-mono'>" . $utente['cf'] . "</span></p>
+        </div>
+        <div class='text-right'>
+            <i class='fas fa-id-card-alt text-7xl opacity-40'></i>
+        </div>
+    </div>";
+
+    // 5. REGISTRO ESECUZIONE
+    echo "<div class='section-label'><i class='fas fa-list-check'></i> Dettaglio Operazioni Automatizzate</div>";
     $successi = [];
-    $errori = [];
 
     foreach ($bookIds as $idInventario) {
         try {
-            // Chiamata al metodo del modello (dove vengono generati gli errori specifici)
             $res = $loanModel->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
 
-            // Recupero Titolo del libro per il log
-            $stmtL = $db->prepare("
-                SELECT l.titolo 
-                FROM libri l 
-                JOIN inventari i ON l.id_libro = i.id_libro 
-                WHERE i.id_inventario = ?
-            ");
+            $stmtL = $db->prepare("SELECT l.titolo FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
             $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
-            $titoloTroncato = (strlen($infoLibro['titolo']) > 45) ? substr($infoLibro['titolo'], 0, 42) . "..." : $infoLibro['titolo'];
 
             $successi[] = [
                 'id_inventario' => $idInventario,
@@ -102,61 +219,81 @@ try {
                 'scadenza' => $res['data_scadenza']
             ];
 
-            echo "<div class='log-entry success'>
-                    <span>Copia #$idInventario - " . htmlspecialchars($titoloTroncato) . "</span>
-                    <span class='badge badge-success'>REGISTRATO</span>
-                  </div>";
+            echo "
+            <div class='operation-row'>
+                <div class='flex items-center gap-6'>
+                    <div class='w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-xl font-black border-2 border-emerald-200'>#$idInventario</div>
+                    <div>
+                        <span class='text-xs font-black text-slate-400 uppercase tracking-tighter'>Titolo Volume</span>
+                        <div class='font-extrabold text-slate-800 text-xl'>" . htmlspecialchars($infoLibro['titolo']) . "</div>
+                    </div>
+                </div>
+                <span class='badge-pill bg-emerald-600 text-white shadow-lg shadow-emerald-100'>Processato</span>
+            </div>";
         } catch (Exception $e) {
-            $errori[] = $e->getMessage();
-            // Mostriamo l'errore specifico (es. 'Limite prestiti raggiunto')
-            echo "<div class='log-entry error'>
-                    <span>Copia #$idInventario - " . htmlspecialchars($e->getMessage()) . "</span>
-                    <span class='badge badge-error'>RIFIUTATO</span>
-                  </div>";
+            $msgErrore = $e->getMessage();
+
+            // --- LOGICA RISOLUZIONE NOMI UTENTI DA ID ---
+            // Caso 1: Libro Prenotato
+            if (strpos($msgErrore, 'riservata per il ritiro') !== false) {
+                preg_match('/ID:\s*(\d+)/', $msgErrore, $matches);
+                if (isset($matches[1])) {
+                    $stmtN = $db->prepare("SELECT nome, cognome FROM utenti WHERE id_utente = ?");
+                    $stmtN->execute([$matches[1]]);
+                    $uRes = $stmtN->fetch(PDO::FETCH_ASSOC);
+                    if ($uRes) $msgErrore = "Riservato per il ritiro di: <b class='text-red-900'>" . strtoupper($uRes['cognome']) . " " . strtoupper($uRes['nome']) . "</b>";
+                }
+            }
+            // Caso 2: Libro già in prestito
+            elseif (strpos($msgErrore, 'già in prestito') !== false) {
+                $stmtP = $db->prepare("SELECT u.nome, u.cognome FROM prestiti p JOIN utenti u ON p.id_utente = u.id_utente WHERE p.id_inventario = ? AND p.stato = 'attivo' LIMIT 1");
+                $stmtP->execute([$idInventario]);
+                $uPoss = $stmtP->fetch(PDO::FETCH_ASSOC);
+                if ($uPoss) $msgErrore = "Attualmente in possesso di: <b class='text-red-900'>" . strtoupper($uPoss['cognome']) . " " . strtoupper($uPoss['nome']) . "</b>";
+            }
+
+            echo "
+            <div class='operation-row border-red-200 bg-red-50/50'>
+                <div class='flex items-center gap-6'>
+                    <div class='w-16 h-16 bg-red-100 text-red-700 rounded-2xl flex items-center justify-center text-xl font-black border-2 border-red-200'><i class='fas fa-ban'></i></div>
+                    <div>
+                        <span class='text-xs font-black text-red-400 uppercase tracking-tighter'>Anomalia Rilevata</span>
+                        <div class='font-bold text-red-800 text-lg'>Copia #$idInventario - " . $msgErrore . "</div>
+                    </div>
+                </div>
+                <span class='badge-pill bg-red-600 text-white shadow-lg shadow-red-100'>Rifiutato</span>
+            </div>";
         }
     }
 
-    // 7. Controllo Risultati Finali
-    if (empty($successi)) {
-        echo "<br><div class='log-entry error' style='justify-content: center; font-weight: 700;'>ATTENZIONE: Nessuna operazione è stata finalizzata.</div>";
-        echo "<div class='footer-nav'><a href='new_loan.php'>Torna alla registrazione</a></div>";
-        echo "</div></div>";
-        exit;
-    }
+    // 6. BLOCCO PDF E CHIUSURA
+    if (!empty($successi)) {
+        $pdfData = ['utente' => $utente, 'libri' => $successi, 'data_operazione' => date('d/m/Y H:i')];
+        $pdfFileName = RicevutaPrestitoPDF::genera($pdfData);
 
-    // 8. Generazione Ricevuta PDF
-    echo "<br><div class='section-title'>Finalizzazione Documentale</div>";
-    $datiRicevuta = [
-        'utente' => $utente,
-        'libri' => $successi,
-        'data_operazione' => date('d/m/Y H:i')
-    ];
-
-    $pdfFileName = RicevutaPrestitoPDF::genera($datiRicevuta);
-
-    if ($pdfFileName) {
-        echo "<div class='log-entry success' style='justify-content: center;'>Ricevuta PDF archiviata correttamente.</div>";
-
-        // BOX DI SUCCESSO FINALE
-        echo "<div style='text-align:center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0;'>";
-        echo "<h2 style='color: #0f172a; margin-bottom: 25px; font-weight: 700;'>Ciclo operativo terminato</h2>";
-        echo "<a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'>SCARICA RICEVUTA PDF</a>";
-        echo "<div class='footer-nav'><a href='new_loan.php'>Registra un nuovo prestito</a></div>";
-        echo "</div>";
-    } else {
-        echo "<div class='log-entry error'>Avviso: Registrazione completata, ma errore nella creazione del PDF.</div>";
-        echo "<div class='footer-nav'><a href='new_loan.php'>Torna alla registrazione</a></div>";
+        echo "
+        <div class='mt-20 p-14 bg-emerald-600 rounded-[40px] text-center text-white shadow-2xl shadow-emerald-200 relative overflow-hidden'>
+            <i class='fas fa-check-double text-[12rem] absolute -bottom-10 -right-10 opacity-10'></i>
+            <i class='fas fa-cloud-arrow-down text-7xl mb-6'></i>
+            <h2 class='text-4xl font-black mb-4'>Operazione Finalizzata</h2>
+            <p class='text-emerald-100 text-xl mb-12 max-w-2xl mx-auto font-medium'>Il sistema ha aggiornato i database. La ricevuta digitale è pronta per l'archiviazione o la stampa.</p>
+            
+            <a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-main bg-white text-emerald-700'>
+                <i class='fas fa-file-pdf'></i> SCARICA DOCUMENTO RICEVUTA
+            </a>
+        </div>";
     }
 
 } catch (Exception $e) {
-    echo "<div class='log-entry error' style='margin-top:20px;'>
-            <strong>ERRORE CRITICO:</strong> " . htmlspecialchars($e->getMessage()) . "
-          </div>";
-    echo "<div class='footer-nav'><a href='new_loan.php'>Inizializza nuova sessione</a></div>";
+    echo "<div class='bg-red-700 text-white p-10 rounded-3xl font-black text-center'>ERRORE DI SISTEMA: " . $e->getMessage() . "</div>";
 }
 
-echo "</div>"; // fine content
-echo "</div>"; // fine container
-echo "</body>";
+echo "
+    <div class='flex justify-center py-16'>
+        <a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'>
+            <i class='fas fa-arrow-left'></i> Nuova Scansione Rapida
+        </a>
+    </div>
+</div></div></body></html>";
 
 require_once __DIR__ . '/../../src/Views/layout/footer.php';
