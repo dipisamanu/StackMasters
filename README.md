@@ -1,9 +1,5 @@
 TO DO: 
-- collegamento epic 3 con epic 5 (prestiti funzionanti, con status nel catalogo IN_PRESTITO)
-- check del db, ottimizzazione
-- se manca poco tempo:
-    - skip della epic 4 in favore della epic 6
-    - skip della epic 8 in favore della 10 12 13 BASICS
+- collegamento epic 3 con epic 5 (prestiti funzionanti, con status nel catalogo IN_PRESTITO) ✅
 - sistemare il fatto che in catalogo inventario bibliotecario tasto ricerca
 - sistemare la ricerca di isbn 
 - rfid dev'essere unico e non modificabile e deve coincidere con il libro.id
@@ -17,3 +13,4 @@ TO DO:
 - schermata prestiti totali del bibliotecario
 - guardare il fatto della release e i tags
 - seeder in automatico che parte con il db
+- cambiare il colore di sfondo del verify email da viola ✅
