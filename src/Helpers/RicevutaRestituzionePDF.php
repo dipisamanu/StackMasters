@@ -82,7 +82,7 @@ class RicevutaRestituzionePDF
         <h4 class="section-title">DATI UTENTE</h4>
         <table class="info-table">
             <tr><td><b>Utente:</b></td><td>' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
-            <tr><td><b>C.F.:</b></td><td>' . htmlspecialchars($utente['cf'] ?? 'N/D') . '</td></tr>
+            <tr><td><b>Codice Fiscale :</b></td><td>' . htmlspecialchars($utente['cf'] ?? 'N/D') . '</td></tr>
             <tr><td><b>Data Rientro:</b></td><td>' . $dataOp . '</td></tr>
         </table>
 

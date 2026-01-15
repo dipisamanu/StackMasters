@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$nomeCompleto = ($_SESSION['user_name'] ?? 'Bibliotecario');
+$nomeCompleto = ($_SESSION['nome_completo'] ?? 'Bibliotecario');
 $message = $_SESSION['loan_success'] ?? $_SESSION['loan_error'] ?? '';
 $message_type = isset($_SESSION['loan_success']) ? 'success' : (isset($_SESSION['loan_error']) ? 'error' : '');
 

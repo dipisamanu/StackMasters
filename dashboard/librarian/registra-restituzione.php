@@ -4,55 +4,160 @@
  * Percorso: dashboard/librarian/registra-restituzione.php
  */
 
-// 1. ABILITAZIONE ERRORI PER IL MONITORAGGIO TECNICO
+// 1. MONITORAGGIO ERRORI (Solo per sviluppo)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// CSS Inline per un'interfaccia professionale coordinata (Tema Rientro: Emerald)
+// Stili CSS Professionali coordinati con il sistema
 echo "
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; line-height: 1.5; padding: 40px 20px; }
-    .container { max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden; }
-    
-    /* Header coordinato: Emerald per la Restituzione */
-    .header { background: #059669; padding: 30px; color: white; display: flex; align-items: center; justify-content: space-between; }
-    .header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-    .header .op-type { font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-weight: 600; }
-    
-    .content { padding: 30px; }
-    .section-title { font-size: 0.875rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
-    
-    .log-entry { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.85rem; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-    .log-entry.success { border-left: 4px solid #10b981; background: #f0fdf4; }
-    .log-entry.error { border-left: 4px solid #ef4444; background: #fffafb; }
-    
-    .badge { padding: 2px 10px; border-radius: 6px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; }
-    .badge-success { background: #d1fae5; color: #065f46; }
-    .badge-error { background: #fee2e2; color: #991b1b; }
-    .badge-fine { background: #fef3c7; color: #92400e; margin-left: 5px; }
-    
-    .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 30px; }
-    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .summary-item label { display: block; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
-    .summary-item span { font-weight: 600; color: #334155; }
+<!DOCTYPE html>
+<html lang='it'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Output Rientro Asset | StackMasters</title>
+    <script src='https://cdn.tailwindcss.com'></script>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            color: #1e293b; 
+            margin: 0;
+            padding: 40px 20px;
+        }
 
-    .btn-download { display: inline-flex; align-items: center; justify-content: center; background: #059669; color: white; padding: 16px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); border: none; cursor: pointer; }
-    .btn-download:hover { background: #047857; transform: translateY(-1px); box-shadow: 0 12px 20px -3px rgba(5, 150, 105, 0.4); }
-    
-    .footer-nav { margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; }
-    .footer-nav a { color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.2s; }
-    .footer-nav a:hover { color: #059669; text-decoration: underline; }
-</style>
-";
+        .main-container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: #ffffff; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); 
+            overflow: hidden; 
+            border: 1px solid #e2e8f0;
+        }
 
-echo "<div class='container'>";
-echo "<div class='header'>
-        <h1>Gestione Circolazione</h1>
-       
-      </div>";
-echo "<div class='content'>";
+        .header-banner { 
+            background: #059669; 
+            padding: 40px; 
+            color: white; 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-banner h1 { 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em;
+            margin: 0;
+        }
+
+        .content-body { padding: 40px; }
+
+        .session-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 35px;
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .summary-item label { 
+            display: block; 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            color: #64748b; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        
+        .summary-item span { 
+            font-weight: 700; 
+            color: #334155; 
+            font-size: 1rem;
+        }
+
+        .log-row {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-row.success { border-left: 4px solid #10b981; }
+        .log-row.error { border-left: 4px solid #ef4444; background: #fffafb; }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-error { background: #fee2e2; color: #991b1b; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: #059669;
+            color: white;
+            padding: 18px 40px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3);
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn-download:hover {
+            background: #047857;
+            transform: translateY(-2px);
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 15px;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class='main-container'>
+    <div class='header-banner'>
+        <div>
+            <h1>Processo Restituzione</h1>
+            <p class='text-xs opacity-80 font-medium mt-1 uppercase tracking-widest'>Validazione Asset e Reintegro Inventario</p>
+        </div>
+        <i class='fas fa-file-import text-3xl opacity-30'></i>
+    </div>
+
+    <div class='content-body'>";
 
 // 2. INCLUSIONE DIPENDENZE
 require_once __DIR__ . '/../../src/config/database.php';
@@ -61,30 +166,36 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use Ottaviodipisa\StackMasters\Models\Loan;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaRestituzionePDF;
 
-// 3. RECUPERO DATI
 $returnsData = $_POST['returns'] ?? [];
 
-echo "<div class='summary-card'>";
-echo "<div class='section-title'>Parametri di Ricezione</div>";
-echo "<div class='summary-grid'>";
-echo "<div class='summary-item'><label>Stato Sessione</label><span>Attiva</span></div>";
-echo "<div class='summary-item'><label>Esemplari Dichiarati</label><span>" . count($returnsData) . " unità</span></div>";
-echo "</div>";
-echo "</div>";
+// Riepilogo Parametri
+echo "
+    <div class='section-title'>Parametri di Ricezione</div>
+    <div class='session-summary'>
+        <div class='summary-item'>
+            <label>Stato Protocollo</label>
+            <span>Operativo</span>
+        </div>
+        <div class='summary-item'>
+            <label>Esemplari Rilevati</label>
+            <span>" . count($returnsData) . " Unità</span>
+        </div>
+    </div>";
 
 if (empty($returnsData)) {
-    die("<div class='log-entry error'><span>Errore: Nessun dato pervenuto dall'interfaccia operativa.</span> <span class='badge badge-error'>BLOCCATO</span></div></div></div>");
+    die("<div class='p-6 bg-red-50 text-red-700 rounded-xl font-bold text-center border border-red-100 text-sm uppercase tracking-widest'>
+            Interruzione: Nessun dato pervenuto dal carrello di rientro.
+         </div></div></div></body></html>");
 }
 
 try {
-    // 4. CONNESSIONE DB VIA SINGLETON
     $db = Database::getInstance()->getConnection();
     $loanModel = new Loan();
 
     $successi = [];
     $utenteDatiPDF = null;
 
-    echo "<div class='section-title'>Registro Operazioni di Rientro</div>";
+    echo "<div class='section-title'>Registro Operazioni Asset</div>";
 
     // 5. CICLO DI REGISTRAZIONE RESTITUZIONI
     foreach ($returnsData as $jsonData) {
@@ -94,7 +205,7 @@ try {
         $commento = $item['note'];
 
         try {
-            // 5.1 Identificazione Utente associato al prestito attivo
+            // 5.1 Identificazione Utente (prima della chiusura del prestito)
             $stmtU = $db->prepare("
                 SELECT u.* FROM utenti u 
                 JOIN prestiti p ON u.id_utente = p.id_utente 
@@ -104,90 +215,85 @@ try {
             $utente = $stmtU->fetch(PDO::FETCH_ASSOC);
 
             if (!$utente) {
-                throw new Exception("Prestito attivo non rilevato per la copia selezionata.");
+                throw new Exception("Prestito attivo non rilevato.");
             }
 
-            // Salvataggio anagrafica per l'intestazione PDF
             $utenteDatiPDF = $utente;
 
-            // 5.2 Esecuzione logica di business (Multe, Danni, Coda Prenotazioni)
+            // 5.2 Esecuzione Business Logic
             $res = $loanModel->registraRestituzione($idInventario, $condizione, $commento);
 
             // 5.3 Recupero Titolo del volume
-            $stmtL = $db->prepare("
-                SELECT l.titolo 
-                FROM libri l 
-                JOIN inventari i ON l.id_libro = i.id_libro 
-                WHERE i.id_inventario = ?
-            ");
+            $stmtL = $db->prepare("SELECT l.titolo FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
             $titolo = $stmtL->fetchColumn();
 
             $successi[] = [
                 'id_inventario' => $idInventario,
-                'titolo' => $titolo ?: "Copia #$idInventario",
+                'titolo' => $titolo ?: "Asset #$idInventario",
                 'condizione' => $condizione,
                 'multa' => $res['multa_generata'] ?? 0
             ];
 
-            // Visualizzazione Log Successo
-            echo "<div class='log-entry success'>
-                    <span>Copia #$idInventario - " . ($titolo ? htmlspecialchars(substr($titolo, 0, 40)) . "..." : "Asset Identificato") . "</span>
-                    <div style='display:flex; align-items:center;'>
-                        " . ((isset($res['multa_generata']) && $res['multa_generata'] > 0) ? "<span class='badge badge-fine'>Sanzione: " . number_format($res['multa_generata'], 2) . " €</span>" : "") . "
-                        <span class='badge badge-success'>RIENTRATO</span>
-                    </div>
-                  </div>";
+            echo "
+            <div class='log-row success'>
+                <div class='flex flex-col'>
+                    <span class='text-[10px] font-extrabold text-slate-400 uppercase tracking-tighter'>Copia #$idInventario</span>
+                    <span class='font-bold text-slate-700 text-sm'>" . htmlspecialchars(substr($titolo, 0, 45)) . "...</span>
+                </div>
+                <div class='flex items-center gap-3'>
+                    " . ((isset($res['multa_generata']) && $res['multa_generata'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "
+                    <span class='badge badge-success'>RIENTRATO</span>
+                </div>
+            </div>";
 
         } catch (Exception $e) {
-            echo "<div class='log-entry error'>
-                    <span>Copia #$idInventario - Elaborazione interrotta</span>
-                    <span class='badge badge-error'>" . htmlspecialchars($e->getMessage()) . "</span>
-                  </div>";
+            echo "
+            <div class='log-row error'>
+                <div class='flex flex-col'>
+                    <span class='text-[10px] font-extrabold text-red-400 uppercase tracking-tighter'>Copia #$idInventario</span>
+                    <span class='font-bold text-red-800 text-sm'>" . htmlspecialchars($e->getMessage()) . "</span>
+                </div>
+                <span class='badge badge-error'>RIFIUTATO</span>
+            </div>";
         }
     }
 
-    // 6. CONTROLLO RISULTATI FINALI
-    if (empty($successi)) {
-        echo "<br><div class='log-entry error' style='justify-content: center; font-weight: 700;'>ERRORE: Nessuna procedura di rientro è stata portata a termine.</div>";
-        echo "<div class='footer-nav'><a href='returns.php'>Torna alla registrazione</a></div>";
-        echo "</div></div>";
-        exit;
-    }
+    // 6. AREA DOWNLOAD E RICEVUTA
+    if (!empty($successi)) {
+        $datiPDF = [
+            'utente' => $utenteDatiPDF,
+            'libri' => $successi,
+            'data_operazione' => date('d/m/Y H:i')
+        ];
 
-    // 7. GENERAZIONE RICEVUTA PDF
-    echo "<br><div class='section-title'>Archiviazione Documentale</div>";
-    $datiPDF = [
-        'utente' => $utenteDatiPDF,
-        'libri' => $successi,
-        'data_operazione' => date('d/m/Y H:i')
-    ];
+        $pdfFileName = RicevutaRestituzionePDF::genera($datiRicevuta ?? $datiPDF);
 
-    $pdfFileName = RicevutaRestituzionePDF::genera($datiPDF);
-
-    if ($pdfFileName) {
-        echo "<div class='log-entry success' style='justify-content: center; font-weight: 600;'>Documentazione di scarico archiviata correttamente.</div>";
-
-        // BOX CONCLUSIVO
-        echo "<div style='text-align:center; margin-top: 40px; padding-top: 30px; border-top: 1px dashed #e2e8f0;'>";
-        echo "<h2 style='color: #1e293b; margin-bottom: 25px; font-weight: 700; font-size: 1.5rem;'>Ciclo Operativo Concluso</h2>";
-        echo "<a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'>SCARICA RICEVUTA RIENTRO PDF</a>";
-        echo "<div class='footer-nav'><a href='returns.php'>Registra nuovi rientri</a></div>";
-        echo "</div>";
-    } else {
-        echo "<div class='log-entry error'>Avviso: Transazioni registrate, ma generazione PDF fallita.</div>";
-        echo "<div class='footer-nav'><a href='returns.php'>Torna alla lista</a></div>";
+        echo "
+        <div style='margin-top: 40px; padding-top: 30px; border-top: 1px dashed #e2e8f0; text-align: center;'>
+            <h2 class='text-xl font-bold text-slate-800 mb-2'>Ciclo di rientro completato</h2>
+            <p class='text-slate-500 text-sm mb-6'>Le pendenze degli utenti e lo stato dell'inventario sono stati aggiornati correttamente.</p>
+            
+            <a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'>
+                <i class='fas fa-file-pdf'></i> SCARICA RICEVUTA PDF
+            </a>
+            
+            <div class='mt-6'>
+                <a href='returns.php' class='text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest'>
+                    Inizia nuovo rientro &rarr;
+                </a>
+            </div>
+        </div>";
     }
 
 } catch (Exception $e) {
-    echo "<div class='log-entry error' style='margin-top:20px;'>
-            <strong>ECCEZIONE DI SISTEMA:</strong> " . htmlspecialchars($e->getMessage()) . "
+    echo "<div class='p-6 bg-red-100 text-red-700 rounded-xl font-bold text-center border-2 border-red-200 mt-4'>
+            ERRORE CRITICO DI SISTEMA: " . $e->getMessage() . "
           </div>";
-    echo "<div class='footer-nav'><a href='returns.php'>Inizializza nuova sessione</a></div>";
 }
 
-echo "</div>"; // fine content
-echo "</div>"; // fine container
-echo "</body>";
+echo "</div>"; // fine content-body
+echo "</div>"; // fine main-container
+echo "</body></html>";
 
 require_once __DIR__ . '/../../src/Views/layout/footer.php';
