@@ -367,8 +367,8 @@ INSERT INTO autori (nome, cognome) VALUES
 
 -- RUOLI
 INSERT INTO ruoli (priorita, nome, durata_prestito, limite_prestiti) VALUES
-(0, 'Admin', NULL, NULL),
-(1, 'Bibliotecario', 30, 10),
+(0, 'Admin', 45, 10),
+(1, 'Bibliotecario', 45, 10),
 (2, 'Docente', 30, 5),
 (3, 'Studente', 15, 3);
 
