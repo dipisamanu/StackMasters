@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../src/config/database.php';
 Session::requireRole('Bibliotecario');
 
 // 3. Recupero Dati Utente
-$nomeUtente = $_SESSION['user_name'] ?? 'Collega';
+$nomeUtente = $_SESSION['nome_completo'] ?? 'Collega';
 
 // 4. Inclusione Header
 require_once __DIR__ . '/../../src/Views/layout/header.php';
