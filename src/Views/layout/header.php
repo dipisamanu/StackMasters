@@ -97,7 +97,7 @@ if (strpos($scriptPath, '/dashboard/') !== false) {
                     <script src="<?= $rootUrl ?>assets/js/notification.js"></script>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i> <?= htmlspecialchars($_SESSION['nome'] ?? 'Utente') ?>
+                            <i class="fas fa-user-circle me-1"></i> <?= htmlspecialchars($_SESSION['nome_completo'] ?? 'Utente') ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow">
                             <?php
