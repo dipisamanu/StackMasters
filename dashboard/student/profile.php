@@ -496,7 +496,7 @@ try {
             <div class="info-row">
                 <div class="info-label">Email Verificata:</div>
                 <div class="info-value">
-                    <?= $user['email_verificata'] ? '✅ Sì' : '❌ No' ?>
+                    <?= $user['email_verificata'] ? 'Sì' : 'No' ?>
                 </div>
             </div>
 
@@ -564,16 +564,16 @@ try {
         <h2><i class="fas fa-sliders-h"></i> Gestione Profilo</h2>
         <div class="actions-grid">
             <a href="change-password.php" class="action-btn action-primary">
-                <i class="fas fa-key"></i> 🔐 Cambio Password
+                <i class="fas fa-key"></i>Cambio Password
             </a>
             <a href="edit-profile.php" class="action-btn action-primary">
-                <i class="fas fa-edit"></i> ✏️ Modifica Profilo
+                <i class="fas fa-edit"></i> Modifica Profilo
             </a>
             <a href="generate-card.php" class="action-btn action-secondary">
-                <i class="fas fa-id-card"></i> 🎫 Scarica Tessera
+                <i class="fas fa-id-card"></i>Scarica Tessera
             </a>
             <a href="export-data.php" class="action-btn action-secondary">
-                <i class="fas fa-download"></i> 📦 Esporta Dati
+                <i class="fas fa-download"></i>Esporta Dati
             </a>
         </div>
     </div>
@@ -584,7 +584,7 @@ try {
         <p>Le seguenti azioni sono irreversibili. Procedi con cautela.</p>
         <div class="actions-grid">
             <a href="delete-account.php" class="action-btn action-danger" onclick="return confirm('Sei sicuro? Questa azione è IRREVERSIBILE!')">
-                <i class="fas fa-trash"></i> 🗑️ Elimina Account
+                <i class="fas fa-trash"></i>Elimina Account
             </a>
         </div>
     </div>
