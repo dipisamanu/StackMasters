@@ -4,8 +4,6 @@ TO DO:
 - se manca poco tempo:
     - skip della epic 4 in favore della epic 6
     - skip della epic 8 in favore della 10 12 13 BASICS
- 
-daje daje daje che il 6 deve arrivare
 - sistemare il fatto che in catalogo inventario bibliotecario tasto ricerca
 - sistemare la ricerca di isbn 
 - rfid dev'essere unico e non modificabile e deve coincidere con il libro.id
@@ -13,4 +11,9 @@ daje daje daje che il 6 deve arrivare
 - quando c'è il tasto vieni a ritirarlo, schiaccia pulsante e mostra il percorso dalla 
 - in librarian/index.php sistemare il tasto in mezzo e collegare con lo scanner correttamente
 - fare la pagina admin e sistemare le sue caratteristiche
-- popup di verifica dev'esserci e non nel profilo della persona 
+- popup di verifica dev'esserci dopo registrazione e non nel profilo della persona
+- sistemazione tasto modifica libro
+- schermata prestiti per il librarian
+- schermata prestiti totali del bibliotecario
+- guardare il fatto della release e i tags
+- seeder in automatico che parte con il db
