@@ -140,9 +140,7 @@ if (strpos($scriptPath, '/dashboard/') !== false) {
                                 'Amministratore', 'Admin' => 'dashboard/admin/index.php',
                                 default => 'dashboard/student/index.php'
                             };
-
-                            // LOGICA CORRETTA PER IL LINK DASHBOARD
-                            // rootUrl punta a 'public/', quindi dobbiamo uscire da public con '../' per trovare 'dashboard/'
+                            // rooturl punta a 'public/', quindi dobbiamo uscire da public con '../' per trovare 'dashboard/'
                             $dashboardUrl = $rootUrl . '../' . $dash;
                             ?>
 
