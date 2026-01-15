@@ -58,7 +58,9 @@ $nomeCompleto = ($_SESSION['nome'] ?? 'Bibliotecario') . ' ' . ($_SESSION['cogno
         <div class="text-right">
             <p class="text-xs font-bold text-slate-400 uppercase">Operatore</p>
             <p class="font-bold text-slate-700"><?= htmlspecialchars($nomeCompleto) ?></p>
-            <a href="index.php" class="text-red-600 text-xs font-bold hover:underline">Esci dalla modalità rapida</a>
+            <a href="index.php" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
         </div>
     </div>
 

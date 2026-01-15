@@ -5,12 +5,10 @@
  */
 
 // 1. Configurazione Sessioni e Database
-// Usiamo il path relativo per tornare alla root e includere i config
 require_once __DIR__ . '/../../src/config/session.php';
 require_once __DIR__ . '/../../src/config/database.php';
 
 // 2. Controllo Permessi
-// Questa funzione blocca chi non è Bibliotecario e lo rimanda al login o alla home
 Session::requireRole('Bibliotecario');
 
 // 3. Recupero Dati Utente
@@ -20,64 +18,84 @@ $nomeUtente = $_SESSION['user_name'] ?? 'Collega';
 require_once __DIR__ . '/../../src/Views/layout/header.php';
 ?>
 
-    <div class="container-fluid py-4">
-        <div class="row mb-4">
-            <div class="col-12">
-                <h1 class="text-danger">Area Bibliotecario</h1>
-                <p class="lead">Benvenuto, <strong><?= htmlspecialchars($nomeUtente) ?></strong>. Cosa vuoi fare oggi?</p>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+
+        .card-lms { border: none; border-radius: 16px; transition: transform 0.2s, box-shadow 0.2s; background: white; height: 100%; }
+        .card-lms:hover { transform: translateY(-5px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.1); }
+
+        /* Colore Prestito: Indigo */
+        .btn-prestito { background-color: #4f46e5; color: white; border: none; font-weight: 700; padding: 12px; border-radius: 10px; transition: all 0.2s; }
+        .btn-prestito:hover { background-color: #4338ca; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+
+        /* Colore Restituzione: Emerald/Green */
+        .btn-restituzione { background-color: #10b981; color: white; border: none; font-weight: 700; padding: 12px; border-radius: 10px; transition: all 0.2s; }
+        .btn-restituzione:hover { background-color: #059669; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+
+        .icon-box { width: 64px; height: 64px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 1.5rem; }
+        .fw-black { font-weight: 900; }
+    </style>
+
+    <div class="container py-5">
+        <!-- Intestazione -->
+        <div class="row mb-5">
+            <div class="col-12 text-center text-md-start">
+                <h1 class="fw-black text-slate-800 display-6 uppercase tracking-tight">Area Bibliotecario</h1>
+                <p class="text-muted">Benvenuto, <strong><?= htmlspecialchars($nomeUtente) ?></strong>. Gestisci il flusso operativo della biblioteca.</p>
             </div>
         </div>
 
         <div class="row g-4">
-
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100 border-top border-4 border-danger">
-                    <div class="card-body text-center">
-                        <div class="mb-3" style="font-size: 3rem; color: #bf2121;">
-                            <i class="fas fa-book"></i>
+            <!-- SEZIONE CIRCOLAZIONE (AZIONI RAPIDE) -->
+            <div class="col-md-12 mb-2">
+                <div class="card card-lms shadow-sm p-4 border-start border-5 border-primary">
+                    <div class="row align-items-center">
+                        <div class="col-lg-7">
+                            <h4 class="fw-bold mb-1">Circolazione Libri</h4>
+                            <p class="text-muted small mb-lg-0">Registra l'uscita (Prestito) o il rientro (Restituzione) dei volumi.</p>
                         </div>
-                        <h5 class="card-title">Catalogo Libri</h5>
-                        <p class="card-text text-muted">Aggiungi nuovi titoli, modifica quelli esistenti o rimuovi libri dal sistema.</p>
-                        <a href="books.php" class="btn btn-outline-danger w-100 stretched-link">Gestisci Libri</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100 border-top border-4 border-warning">
-                    <div class="card-body text-center">
-                        <div class="mb-3" style="font-size: 3rem; color: #ffc107;">
-                            <i class="fas fa-barcode"></i>
-                        </div>
-                        <h5 class="card-title">Inventario Copie</h5>
-                        <p class="card-text text-muted">Gestisci le copie fisiche, assegna RFID e controlla la disponibilità sugli scaffali.</p>
-                        <a href="#" class="btn btn-outline-warning w-100 disabled">In Arrivo</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODIFICA: Selezione esplicita tra Prestito e Restituzione -->
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100 border-top border-4 border-success">
-                    <div class="card-body text-center">
-                        <div class="mb-3" style="font-size: 3rem; color: #28a745;">
-                            <i class="fas fa-hand-holding-book"></i>
-                        </div>
-                        <h5 class="card-title">Prestiti & Restituzioni</h5>
-                        <p class="card-text text-muted mb-4">Registra l'uscita e il rientro dei libri tramite scansione RFID o manuale.</p>
-
-                        <div class="d-grid gap-2">
-                            <a href="new_loan.php" class="btn btn-success font-weight-bold">
-                                <i class="fas fa-arrow-up mr-2"></i>Nuovo Prestito
-                            </a>
-                            <a href="returns.php" class="btn btn-outline-success font-weight-bold">
-                                <i class="fas fa-arrow-down mr-2"></i>Registra Restituzione
-                            </a>
+                        <div class="col-lg-5">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <a href="new_loan.php" class="btn btn-prestito w-100 d-flex align-items-center justify-content-center gap-2">
+                                        <i class="fas fa-arrow-up"></i> PRESTITO
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="returns.php" class="btn btn-restituzione w-100 d-flex align-items-center justify-content-center gap-2">
+                                        <i class="fas fa-arrow-down"></i> RIENTRO
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- CATALOGO -->
+            <div class="col-md-6">
+                <div class="card card-lms shadow-sm p-4">
+                    <div class="icon-box bg-danger bg-opacity-10 text-danger">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h5 class="fw-bold text-center">Catalogo Libri</h5>
+                    <p class="text-muted text-center small">Aggiungi nuovi titoli, modifica i metadati o gestisci gli autori del sistema.</p>
+                    <a href="books.php" class="btn btn-outline-danger w-100 mt-auto rounded-3 fw-bold">Gestisci Libri</a>
+                </div>
+            </div>
+
+            <!-- INVENTARIO -->
+            <div class="col-md-6">
+                <div class="card card-lms shadow-sm p-4">
+                    <div class="icon-box bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-barcode"></i>
+                    </div>
+                    <h5 class="fw-bold text-center">Inventario Copie</h5>
+                    <p class="text-muted text-center small">Controlla le singole copie fisiche, assegna codici e verifica la disponibilità.</p>
+                    <a href="inventory.php" class="btn btn-outline-warning w-100 mt-auto rounded-3 fw-bold">Gestisci Copie</a>
+                </div>
+            </div>
         </div>
     </div>
 
