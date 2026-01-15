@@ -58,7 +58,7 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                         <div class="col-lg-5">
                             <div class="row g-3">
                                 <div class="col-6">
-                                    <a href="new_loan.php" class="btn btn-prestito w-100 d-flex align-items-center justify-content-center gap-2">
+                                    <a href="new-loan.php" class="btn btn-prestito w-100 d-flex align-items-center justify-content-center gap-2">
                                         <i class="fas fa-arrow-up"></i> PRESTITO
                                     </a>
                                 </div>
