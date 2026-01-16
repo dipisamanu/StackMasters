@@ -235,7 +235,7 @@ try {
 
             // --- LOGICA RISOLUZIONE NOMI UTENTI DA ID ---
             // Caso 1: Libro Prenotato
-            if (strpos($msgErrore, 'riservata per il ritiro') !== false) {
+            if (str_contains($msgErrore, 'riservata per il ritiro')) {
                 preg_match('/ID:\s*(\d+)/', $msgErrore, $matches);
                 if (isset($matches[1])) {
                     $stmtN = $db->prepare("SELECT nome, cognome FROM utenti WHERE id_utente = ?");
@@ -245,8 +245,8 @@ try {
                 }
             }
             // Caso 2: Libro già in prestito
-            elseif (strpos($msgErrore, 'già in prestito') !== false) {
-                $stmtP = $db->prepare("SELECT u.nome, u.cognome FROM prestiti p JOIN utenti u ON p.id_utente = u.id_utente WHERE p.id_inventario = ? AND p.stato = 'attivo' LIMIT 1");
+            elseif (str_contains($msgErrore, 'già in prestito')) {
+                $stmtP = $db->prepare("SELECT u.nome, u.cognome FROM prestiti p JOIN utenti u ON p.id_utente = u.id_utente WHERE p.id_inventario = ? AND p.data_restituzione IS NULL LIMIT 1");
                 $stmtP->execute([$idInventario]);
                 $uPoss = $stmtP->fetch(PDO::FETCH_ASSOC);
                 if ($uPoss) $msgErrore = "Attualmente in possesso di: <b class='text-red-900'>" . strtoupper($uPoss['cognome']) . " " . strtoupper($uPoss['nome']) . "</b>";
