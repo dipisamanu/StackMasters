@@ -6,12 +6,7 @@
 
 require_once __DIR__ . '/../src/config/session.php';
 require_once __DIR__ . '/../src/Models/BookModel.php';
-
-// Caricamento Modelli opzionali
-$hasReservationModel = file_exists(__DIR__ . '/../src/Models/ReservationModel.php');
-if ($hasReservationModel) {
-    require_once __DIR__ . '/../src/Models/ReservationModel.php';
-}
+require_once __DIR__ . '/../src/Models/ReservationModel.php';
 
 // Validazione Input
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -96,29 +91,45 @@ if (!empty($book['immagine_copertina'])) {
     $img = (str_starts_with($book['immagine_copertina'], 'http')) ? $book['immagine_copertina'] : 'uploads/covers/' . $book['immagine_copertina'];
 }
 
-// Stato e Prenotazione
-$statusClass = 'secondary'; $statusText = ''; $canReserve = false; $userMessage = '';
+// -------------------------------------------------------------
+// LOGICA STATO E PRENOTAZIONE (ISSUE 6.1)
+// -------------------------------------------------------------
+$statusClass = 'secondary';
+$statusText = '';
+$canReserve = false;
+$userMessage = '';
 
-if ($book['copie_disponibili'] > 0) {
-    $statusClass = 'success'; $statusText = 'Disponibile (' . $book['copie_disponibili'] . ')';
-    $canReserve = false; $userMessage = '<span class="text-success fw-bold">Disponibile subito!</span>';
-} elseif ($book['copie_totali'] > 0) {
-    $statusClass = 'warning'; $statusText = 'In Prestito';
-    $canReserve = true; $userMessage = 'Tutte le copie sono fuori. <strong>Prenotalo ora</strong>.';
-} else {
-    $statusClass = 'danger'; $statusText = 'Non Disponibile';
-    $canReserve = false; $userMessage = '<span class="text-danger">Non disponibile.</span>';
+// Verifica se l'utente ha già prenotato
+$alreadyReserved = false;
+if (Session::isLoggedIn()) {
+    $resModel = new ReservationModel();
+    $alreadyReserved = $resModel->hasActiveReservation($userId, $id);
 }
 
-$alreadyReserved = false;
-if (isset($_SESSION['user_id']) && $canReserve && $hasReservationModel) {
-    try {
-        $resModel = new ReservationModel();
-        if ($resModel->hasActiveReservation($_SESSION['user_id'], $id)) {
-            $alreadyReserved = true; $canReserve = false;
-            $userMessage = '<span class="text-primary fw-bold">Sei già in coda.</span>';
-        }
-    } catch (Exception $e) { }
+if ($book['copie_disponibili'] > 0) {
+    // Caso: Ci sono copie disponibili -> Nessuna prenotazione necessaria
+    $statusClass = 'success';
+    $statusText = 'Disponibile (' . $book['copie_disponibili'] . ')';
+    $canReserve = false;
+    $userMessage = '<span class="text-success fw-bold"><i class="fas fa-check-circle me-2"></i>Disponibile subito!</span>';
+} elseif ($book['copie_totali'] > 0) {
+    // Caso: Copie esistono ma sono tutte fuori -> Prenotabile
+    $statusClass = 'warning';
+    $statusText = 'In Prestito';
+
+    if ($alreadyReserved) {
+        $canReserve = false;
+        $userMessage = '<span class="text-primary fw-bold"><i class="fas fa-clock me-2"></i>Sei già in coda per questo libro.</span>';
+    } else {
+        $canReserve = true;
+        $userMessage = 'Tutte le copie sono attulamente in prestito. <strong>Mettiti in coda per la prossima disponibilità.</strong>';
+    }
+} else {
+    // Caso: Nessuna copia nel sistema o tutte smarrite/fuori catalogo
+    $statusClass = 'danger';
+    $statusText = 'Non Disponibile';
+    $canReserve = false;
+    $userMessage = '<span class="text-danger">Attualmente non disponibile nel catalogo.</span>';
 }
 
 $success = $_SESSION['flash_success'] ?? '';
@@ -188,10 +199,12 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
                             <?php if (Session::isLoggedIn() && $canReserve): ?>
                                 <form action="../dashboard/student/process-reservation.php" method="POST">
                                     <input type="hidden" name="book_id" value="<?= $id ?>">
-                                    <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4">Mettiti in Coda</button>
+                                    <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4">
+                                        <i class="fas fa-list-ol me-2"></i>Mettiti in Coda
+                                    </button>
                                 </form>
-                            <?php elseif (!Session::isLoggedIn()): ?>
-                                <a href="login.php?redirect=book.php?id=<?= $id ?>" class="btn btn-outline-dark rounded-pill">Accedi</a>
+                            <?php elseif (!Session::isLoggedIn() && $book['copie_totali'] > 0 && $book['copie_disponibili'] == 0): ?>
+                                <a href="login.php?redirect=book.php?id=<?= $id ?>" class="btn btn-outline-dark rounded-pill">Accedi per prenotare</a>
                             <?php endif; ?>
                         </div>
                     </div>

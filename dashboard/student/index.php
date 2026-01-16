@@ -9,6 +9,7 @@ ini_set('display_errors', 1);
 
 require_once '../../src/config/session.php';
 require_once '../../src/config/database.php';
+require_once '../../src/Models/ReservationModel.php';
 
 Session::requireLogin();
 
@@ -25,12 +26,16 @@ if ($mainRole === 'Admin') {
 $db = Database::getInstance()->getConnection();
 $userId = $_SESSION['user_id'];
 $nomeCompleto = Session::getNomeCompleto();
+$reservationModel = new ReservationModel();
 
-// 1. Recupera TUTTI i prestiti (Attivi e Storici)
+// ------------------------------------------------------------------
+// 1. RECUPERO PRESTITI (Logica originale mantenuta)
+// ------------------------------------------------------------------
 $prestitiAttivi = [];
 $storicoPrestiti = [];
 
 try {
+    // Query per recuperare i prestiti e calcolare i giorni rimanenti
     $stmt = $db->prepare("
         SELECT 
             p.id_prestito,
@@ -57,6 +62,7 @@ try {
     $stmt->execute([$userId]);
     $allLoans = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Divisione tra attivi e storico
     foreach ($allLoans as $loan) {
         if ($loan['data_restituzione'] === null) {
             $prestitiAttivi[] = $loan;
@@ -64,37 +70,23 @@ try {
             $storicoPrestiti[] = $loan;
         }
     }
-} catch (Exception $e) { }
+} catch (Exception $e) {
+    // Gestione silenziosa errore o log
+    error_log("Errore recupero prestiti: " . $e->getMessage());
+}
 
-// 2. Recupera Prenotazioni Attive
+// ------------------------------------------------------------------
+// 2. RECUPERO PRENOTAZIONI (Nuova Logica Issue 6.3)
+// ------------------------------------------------------------------
 $prenotazioni = [];
 try {
-    $stmtP = $db->prepare("
-        SELECT 
-            pr.id_prenotazione,
-            l.titolo,
-            l.id_libro,
-            l.immagine_copertina,
-            l.autori_nomi as autore, -- Assumendo che la vista o tabella abbia questo campo o lo aggiungi nella join
-            pr.data_richiesta,
-            pr.scadenza_ritiro,
-            pr.copia_libro
-        FROM prenotazioni pr
-        JOIN (
-            SELECT lb.*, GROUP_CONCAT(CONCAT(a.nome, ' ', a.cognome) SEPARATOR ', ') as autori_nomi
-            FROM libri lb
-            LEFT JOIN libri_autori la ON lb.id_libro = la.id_libro
-            LEFT JOIN autori a ON la.id_autore = a.id
-            GROUP BY lb.id_libro
-        ) l ON pr.id_libro = l.id_libro
-        WHERE pr.id_utente = ?
-        ORDER BY pr.data_richiesta DESC
-    ");
-    $stmtP->execute([$userId]);
-    $prenotazioni = $stmtP->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) { }
+    // Usa il modello per ottenere dati puliti e posizione in coda calcolata
+    $prenotazioni = $reservationModel->getUserReservations($userId);
+} catch (Exception $e) {
+    error_log("Errore recupero prenotazioni: " . $e->getMessage());
+}
 
-// Statistiche
+// Conteggi per le card statistiche
 $countAttivi = count($prestitiAttivi);
 $countStorico = count($storicoPrestiti);
 $countPrenotazioni = count($prenotazioni);
@@ -264,7 +256,7 @@ require_once '../../src/Views/layout/header.php';
                                     <tbody>
                                     <?php foreach ($prestitiAttivi as $p):
                                         $giorni = (int)$p['giorni_rimanenti'];
-                                        // Logica colori richiesta: Rosso < 0, Arancione <= 3, Verde altrimenti
+                                        // Logica colori: Rosso se scaduto, Arancione se scade presto, Verde altrimenti
                                         if ($giorni < 0) {
                                             $dateClass = 'text-alert-danger';
                                             $badgeClass = 'bg-danger';
@@ -325,23 +317,36 @@ require_once '../../src/Views/layout/header.php';
                                     </thead>
                                     <tbody>
                                     <?php foreach ($prenotazioni as $pr):
+                                        // Se copia_libro non è NULL, significa che è pronta
                                         $isReady = !empty($pr['copia_libro']);
+                                        $imgPr = !empty($pr['immagine_copertina']) && str_starts_with($pr['immagine_copertina'], 'http') ? $pr['immagine_copertina'] : '../../public/uploads/covers/' . ($pr['immagine_copertina'] ?? 'default.jpg');
                                         ?>
                                         <tr>
                                             <td class="ps-4">
-                                                <a href="../../public/book.php?id=<?= $pr['id_libro'] ?>" class="text-decoration-none text-dark fw-bold">
-                                                    <?= htmlspecialchars($pr['titolo']) ?>
-                                                </a>
+                                                <div class="d-flex align-items-center">
+                                                    <img src="<?= htmlspecialchars($imgPr) ?>" class="book-thumb me-3" alt="Cover">
+                                                    <div>
+                                                        <a href="../../public/book.php?id=<?= $pr['id_libro'] ?>" class="text-decoration-none text-dark fw-bold">
+                                                            <?= htmlspecialchars($pr['titolo']) ?>
+                                                        </a>
+                                                        <div class="small text-muted">Prenotazione</div>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td><?= date('d/m/Y', strtotime($pr['data_richiesta'])) ?></td>
                                             <td>
                                                 <?php if ($isReady): ?>
                                                     <span class="badge bg-success status-badge animate__animated animate__pulse animate__infinite">
-                                                    <i class="fas fa-check me-1"></i>PRONTO AL RITIRO
-                                                </span>
-                                                    <div class="small text-danger mt-1 fw-bold">Scade il <?= date('d/m', strtotime($pr['scadenza_ritiro'])) ?></div>
+                                                        <i class="fas fa-check me-1"></i>PRONTO AL RITIRO
+                                                    </span>
+                                                    <div class="small text-danger mt-1 fw-bold">
+                                                        Scade il <?= date('d/m H:i', strtotime($pr['scadenza_ritiro'])) ?>
+                                                    </div>
                                                 <?php else: ?>
-                                                    <span class="badge bg-secondary status-badge">In Coda</span>
+                                                    <span class="badge bg-secondary status-badge mb-1">In Coda</span>
+                                                    <div class="small text-muted fw-bold">
+                                                        <i class="fas fa-users me-1"></i>Posizione: <?= $pr['posizione_reale'] ?>°
+                                                    </div>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
