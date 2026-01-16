@@ -68,7 +68,7 @@ require_once '../../src/Views/layout/header.php';
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center gap-3">
 
                 <div class="text-center text-lg-start">
-                    <h6 class="text-uppercase text-danger fw-bold small mb-1">Area Studente</h6>
+
                     <h1 class="fw-bold text-dark display-6 mb-0">Bentornato, <?= htmlspecialchars($nomeCompleto) ?></h1>
                 </div>
 
