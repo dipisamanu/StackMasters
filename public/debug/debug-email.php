@@ -1,12 +1,12 @@
 <?php
-// File: public/debug-email.php
+// File: public/debug/debug-email.php
 // Questo script testa la TUA configurazione in src/config/email.php
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Carica la configurazione reale dell'app
-require_once __DIR__ . '/../src/config/email.php';
+// CORREZIONE PERCORSO: Aggiunto un '../' per risalire dalla cartella /debug
+require_once __DIR__ . '/../../src/config/email.php';
 
 $msg = "";
 $log = "";
