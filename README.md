@@ -14,3 +14,4 @@ TO DO:
 - guardare il fatto della release e i tags
 - seeder in automatico che parte con il db
 - cambiare il colore di sfondo del verify email da viola ✅
+- tasto vedi tutto nella gestione dei prestiti
