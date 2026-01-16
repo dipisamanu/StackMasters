@@ -9,7 +9,7 @@ TO DO:
 - fare la pagina admin e sistemare le sue caratteristiche
 - popup di verifica dev'esserci dopo registrazione e non nel profilo della persona
 - sistemazione tasto modifica libro
-- schermata prestiti per il librarian
+- schermata prestiti personali per il librarian
 - schermata prestiti totali del bibliotecario
 - guardare il fatto della release e i tags
 - seeder in automatico che parte con il db
