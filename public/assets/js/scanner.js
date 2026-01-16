@@ -58,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /**
  * Funzione di ricerca Utente (AJAX) - Pannello grafico migliorato
+ * Ora il beep ok/errore viene gestito qui, non in processBarcode
  */
 async function lookupUser(code) {
     const infoDiv = document.getElementById('user-info-display');
@@ -96,7 +97,7 @@ async function lookupUser(code) {
 
             if (bookInp) bookInp.focus();
             showToast("Utente verificato", "success");
-            AudioFeedback?.ok();
+            AudioFeedback?.ok(); // ✅ beep solo se utente trovato
         } else {
             infoDiv.innerHTML = `
                 <div class="p-4 bg-red-50 text-red-700 border border-red-100 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-sm">
@@ -107,7 +108,7 @@ async function lookupUser(code) {
                 </div>`;
             userInp.classList.add('border-red-500');
             showToast("Codice errato", "error");
-            AudioFeedback?.error();
+            AudioFeedback?.error(); // ❌ beep se utente non trovato
         }
     } catch (e) {
         showToast("Errore di rete", "error");
@@ -272,22 +273,24 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+/**
+ * Processa il codice scannerizzato
+ * Ora il beep ok/error viene gestito in lookupUser/lookupBook
+ */
 function processBarcode(code) {
     if (CF_REGEX.test(code)) {
         document.getElementById("user_barcode").value = code;
-        lookupUser(code);
-        AudioFeedback.ok();
+        lookupUser(code);  // beep ok/error solo in lookupUser
         return;
     }
 
     if (BOOK_REGEX.test(code)) {
         document.getElementById("book_barcode").value = code;
-        lookupBook(code);
-        AudioFeedback.ok();
+        lookupBook(code);  // beep ok/error solo in lookupBook
         return;
     }
 
-    AudioFeedback.error();
+    AudioFeedback.error(); // ❌ formato non valido
     console.error("Codice non valido:", code);
 }
 
