@@ -32,7 +32,6 @@ class OpenLibraryService
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         if ($response === false || $httpCode !== 200) {
             return null;
@@ -81,10 +80,9 @@ class OpenLibraryService
         $imgUrl = '';
         if (isset($info['cover']['medium'])) {
             $imgUrl = $info['cover']['medium'];
-        } elseif (isset($data[$queryKey]['cover']['large'])) { // A volte struttura diversa
+        } elseif (isset($data[$queryKey]['cover']['large'])) {
             $imgUrl = $data[$queryKey]['cover']['large'];
         } else {
-            // Tentativo generico basato su ISBN
             $imgUrl = "https://covers.openlibrary.org/b/isbn/$cleanIsbn-M.jpg";
         }
 

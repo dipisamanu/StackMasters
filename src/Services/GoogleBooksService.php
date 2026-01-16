@@ -38,7 +38,6 @@ class GoogleBooksService
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
-        curl_close($ch);
 
         // 3. Controllo Errori
         if ($response === false || $httpCode !== 200) {
@@ -68,7 +67,7 @@ class GoogleBooksService
             'descrizione' => $info['description'] ?? '',
             'pagine' => $info['pageCount'] ?? 0,
             'isbn' => $cleanIsbn,
-            'copertina' => $imgUrl // NUOVO CAMPO
+            'copertina' => $imgUrl
         ];
     }
 }

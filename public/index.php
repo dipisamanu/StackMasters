@@ -1,13 +1,18 @@
 <?php
 /**
- * Home Page Pubblica - Landing Page
+ * Landing Page (Per visitatori non registrati)
  * File: public/index.php
  */
 
 require_once '../src/config/session.php';
+
+if (Session::isLoggedIn()) {
+    header('Location: home.php');
+    exit;
+}
+
 require_once '../src/Views/layout/header.php';
 ?>
-
     <style>
         :root {
             --primary-red: #bf2121;
@@ -194,7 +199,8 @@ require_once '../src/Views/layout/header.php';
                             </a>
                         </div>
                     <?php else: ?>
-                        <p class="lead mb-3 fw-semibold">Bentornato, <?= htmlspecialchars(Session::getNomeCompleto() ?? 'utente') ?>!</p>
+                        <p class="lead mb-3 fw-semibold">
+                            Bentornato, <?= htmlspecialchars(Session::getNomeCompleto() ?? 'utente') ?>!</p>
                         <div class="mt-5">
                             <a href="<?php
                             $role = Session::getMainRole();
