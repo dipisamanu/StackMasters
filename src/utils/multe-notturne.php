@@ -42,7 +42,7 @@ class CalcolaMulteCron
 
     private function connettiDatabase(): void
     {
-        // Recupero parametri da ENV (coerente con i file di ieri)
+        // Recupero parametri da ENV
         $host = $_ENV['DB_HOST'];
         $dbname = $_ENV['DB_NAME'];
         $user = $_ENV['DB_USER'];
@@ -134,7 +134,7 @@ class CalcolaMulteCron
     {
         $oggi = new \DateTime();
         $scadenza = new \DateTime($p['scadenza_prestito']);
-        $diff = $oggi->diff($scadenza)->days;
+        $diff = $oggi->diff($scadenza)->days; //APPLICA LA DIFFERENZA DI GIORNI(MULTA DAL 4°)
 
         if ($diff <= self::GIORNI_TOLLERANZA) {
             return ['tipo' => 'skip', 'importo' => 0];
@@ -174,9 +174,20 @@ class CalcolaMulteCron
 }
 
 // === BOOTSTRAP ESECUZIONE ===
-if (php_sapi_name() !== 'cli') {
-    die("Accesso negato. Solo CLI.");
-}
+// Controlla se questo script è il file di entry-point dell'esecuzione.
+// Questo permette di includere la classe in altri file (es. test) senza lanciare il cron.
+$entryFile = get_included_files()[0];
 
-$cron = new CalcolaMulteCron();
-$cron->esegui();
+if (realpath($entryFile) === realpath(__FILE__)) {
+    // Lo script è stato eseguito direttamente.
+    // Ora verifichiamo che sia da CLI.
+    if (php_sapi_name() !== 'cli') {
+        header("HTTP/1.1 403 Forbidden");
+        header("Content-Type: text/plain");
+        die("Accesso negato. Questo script può essere eseguito solo da riga di comando (CLI).");
+    }
+
+    // Esegui il cron.
+    $cron = new CalcolaMulteCron();
+    $cron->esegui();
+}
