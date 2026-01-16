@@ -30,6 +30,7 @@ try {
     // Sostituito getAll con paginateWithCount
     $result = $bookModel->paginateWithCount($page, $perPage, $search, $filters);
     $books = $result['data'];
+
     $totalBooks = $result['total'];
     $totalPages = ceil($totalBooks / $perPage);
 } catch (Exception $e) {
