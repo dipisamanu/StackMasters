@@ -15,3 +15,7 @@ TO DO:
 - seeder in automatico che parte con il db
 - cambiare il colore di sfondo del verify email da viola ✅
 - tasto vedi tutto nella gestione dei prestiti
+
+- ----EPIC 9-----
+- issue 9.4 cioè gestire da admin il pagamento(parziale o totale) di una multa da parte di un utente
+-modificare la funzionalità della issue 9.9 secondo cui admin ha una visione panoramica delle multe(al momento vengono mostrate in ordine di utente con debito più alto,mancherebbe ordinarle dalle più vecchie)
