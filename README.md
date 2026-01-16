@@ -7,7 +7,7 @@ TO DO:
 - quando c'è il tasto vieni a ritirarlo, schiaccia pulsante e mostra il percorso dalla 
 - in librarian/index.php sistemare il tasto in mezzo e collegare con lo scanner correttamente
 - fare la pagina admin e sistemare le sue caratteristiche
-- popup di verifica dev'esserci dopo registrazione e non nel profilo della persona
+- popup di verifica dev'esserci dopo registrazione e non nel profilo della persona ✅
 - sistemazione tasto modifica libro
 - schermata prestiti personali per il librarian
 - schermata prestiti totali del bibliotecario
