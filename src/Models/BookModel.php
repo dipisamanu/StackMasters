@@ -243,4 +243,167 @@ class BookModel
         $filters['q'] = $search;
         return $this->searchBooks($page, $perPage, $filters);
     }
+
+    /**
+     * Recupera dati per la Homepage usando la Stored Procedure GetHomepageData
+     * @param string $section 'NOVITA', 'TRENDING', 'TOP_MESE', 'TOP_ALL'
+     * @param int $limit
+     * @return array
+     */
+    public function getHomeSection(string $section, int $limit = 6): array
+    {
+        try {
+            $pdo = $this->pdo;
+            $stmt = $pdo->prepare("CALL GetHomepageData(:section, :limit)");
+            $stmt->bindParam(':section', $section, PDO::PARAM_STR);
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+
+            return $results;
+        } catch (PDOException $e) {
+            error_log("Errore getHomeSection ($section): " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Recupera raccomandazioni personali
+     */
+    public function getPersonalRecommendations(int $userId, int $limit = 6): array
+    {
+        try {
+            $pdo = $this->pdo;
+            $stmt = $pdo->prepare("CALL GetRaccomandazioniPersonali(:uid, :limit)");
+            $stmt->bindParam(':uid', $userId, PDO::PARAM_INT);
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+
+            return $results;
+        } catch (PDOException $e) {
+            error_log("Errore getPersonalRecommendations: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getSimilarBooks(int $bookId, int $limit = 6): array
+    {
+        try {
+            $pdo = $this->pdo;
+            $stmt = $pdo->prepare("CALL GetLibriSimili(:id, :limit)");
+            $stmt->bindParam(':id', $bookId, PDO::PARAM_INT);
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+
+            return $results;
+        } catch (PDOException $e) {
+            error_log("Errore getSimilarBooks: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getReviews(int $bookId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT r.*, u.nome, u.cognome 
+            FROM recensioni r
+            JOIN utenti u ON r.id_utente = u.id_utente
+            WHERE r.id_libro = ?
+            ORDER BY r.data_creazione DESC
+        ");
+        $stmt->execute([$bookId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Verifica se un utente ha mai preso in prestito E restituito un libro
+     */
+    public function hasUserReadBook(int $userId, int $bookId): bool
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*) 
+            FROM prestiti p
+            JOIN inventari i ON p.id_inventario = i.id_inventario
+            WHERE p.id_utente = ? 
+              AND i.id_libro = ? 
+              AND p.data_restituzione IS NOT NULL
+        ");
+        $stmt->execute([$userId, $bookId]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Recupera la recensione specifica di un utente per un libro
+     */
+    public function getUserReview(int $userId, int $bookId): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM recensioni WHERE id_utente = ? AND id_libro = ?");
+        $stmt->execute([$userId, $bookId]);
+        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $res ?: null;
+    }
+
+    /**
+     * Salva o Aggiorna una recensione
+     */
+    public function saveReview(int $userId, int $bookId, int $voto, string $commento): bool
+    {
+        // INSERT ... ON DUPLICATE KEY UPDATE permette di creare o aggiornare con una sola query
+        $stmt = $this->pdo->prepare("
+            INSERT INTO recensioni (id_utente, id_libro, voto, descrizione, data_creazione) 
+            VALUES (:uid, :bid, :voto, :desc, NOW())
+            ON DUPLICATE KEY UPDATE 
+                voto = VALUES(voto), 
+                descrizione = VALUES(descrizione),
+                data_update = NOW()
+        ");
+
+        $success = $stmt->execute([
+            ':uid' => $userId,
+            ':bid' => $bookId,
+            ':voto' => $voto,
+            ':desc' => $commento
+        ]);
+
+        // Aggiorna il rating medio del libro
+        if ($success) {
+            $this->updateBookRating($bookId);
+        }
+        return $success;
+    }
+
+    /**
+     * Elimina una recensione
+     */
+    public function deleteReview(int $userId, int $bookId): bool
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM recensioni WHERE id_utente = ? AND id_libro = ?");
+        $success = $stmt->execute([$userId, $bookId]);
+
+        if ($success) {
+            $this->updateBookRating($bookId);
+        }
+        return $success;
+    }
+
+    /**
+     * Ricalcola e aggiorna il rating medio nella tabella libri
+     */
+    private function updateBookRating(int $bookId): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE libri 
+            SET rating = (SELECT COALESCE(AVG(voto), 0) FROM recensioni WHERE id_libro = ?)
+            WHERE id_libro = ?
+        ");
+        $stmt->execute([$bookId, $bookId]);
+    }
 }

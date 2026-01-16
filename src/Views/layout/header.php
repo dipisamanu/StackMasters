@@ -104,7 +104,6 @@ if (strpos($scriptPath, '/dashboard/') !== false) {
                             // Link profilo specifico per ruolo
                             $profileLink = match($currentRole) {
                                 'Admin' => 'dashboard/admin/profile.php',
-                                'Bibliotecario' => 'dashboard/librarian/profile.php', // Assumendo esista, altrimenti student
                                 default => 'dashboard/student/profile.php'
                             };
 

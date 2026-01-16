@@ -47,22 +47,6 @@ try {
     die("Errore sistema: " . $e->getMessage());
 }
 
-// 3. Statistiche Prestiti
-try {
-    $stmtStats = $db->prepare("
-        SELECT 
-            COUNT(*) as totale,
-            SUM(IF(data_restituzione IS NULL, 1, 0)) as attivi,
-            SUM(IF(data_restituzione IS NOT NULL, 1, 0)) as completati
-        FROM prestiti
-        WHERE id_utente = ?
-    ");
-    $stmtStats->execute([$userId]);
-    $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    $stats = ['totale' => 0, 'attivi' => 0, 'completati' => 0];
-}
-
 // 4. Badge (Solo se non è admin, opzionale)
 $badges = [];
 if (!$isAdmin) {
@@ -129,29 +113,6 @@ require_once '../../src/Views/layout/header.php';
             font-size: 1rem;
         }
 
-        .stat-card {
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-            height: 100%;
-        }
-
-        .stat-number {
-            font-size: 2.2rem;
-            font-weight: 800;
-            line-height: 1;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
         .badge-item {
             border-radius: 10px;
             padding: 1rem;
@@ -203,7 +164,6 @@ require_once '../../src/Views/layout/header.php';
         <?php endif; ?>
 
         <div class="row g-4 mb-4">
-            <!-- Colonna Sinistra: Anagrafica -->
             <div class="col-lg-6">
                 <div class="card card-custom">
                     <div class="card-header-custom">
@@ -234,7 +194,6 @@ require_once '../../src/Views/layout/header.php';
                 </div>
             </div>
 
-            <!-- Colonna Destra: Account -->
             <div class="col-lg-6">
                 <div class="card card-custom">
                     <div class="card-header-custom">
@@ -278,35 +237,6 @@ require_once '../../src/Views/layout/header.php';
             </div>
         </div>
 
-        <!-- Statistiche Prestiti -->
-        <div class="card card-custom mb-4">
-            <div class="card-body p-4">
-                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2"><i class="fas fa-chart-pie me-2"></i>Attività di
-                    Lettura</h5>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="stat-card border-start border-4 border-secondary">
-                            <div class="stat-number text-secondary"><?= $stats['totale'] ?? 0 ?></div>
-                            <div class="stat-label">Prestiti Totali</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="stat-card border-start border-4 border-primary">
-                            <div class="stat-number text-primary"><?= $stats['attivi'] ?? 0 ?></div>
-                            <div class="stat-label">In Corso</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="stat-card border-start border-4 border-success">
-                            <div class="stat-number text-success"><?= $stats['completati'] ?? 0 ?></div>
-                            <div class="stat-label">Completati</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Badge (Solo se presenti e non admin) -->
         <?php if (!empty($badges)): ?>
             <div class="card card-custom mb-4">
                 <div class="card-body p-4">
@@ -328,34 +258,38 @@ require_once '../../src/Views/layout/header.php';
             </div>
         <?php endif; ?>
 
-        <!-- Azioni -->
         <div class="card card-custom mb-4">
             <div class="card-body p-4">
                 <h5 class="fw-bold text-dark mb-4 border-bottom pb-2"><i class="fas fa-cogs me-2"></i>Impostazioni</h5>
-                <div class="d-flex flex-wrap gap-3">
-                    <a href="change-password.php"
-                       class="btn btn-primary px-4 py-2 fw-bold shadow-sm text-decoration-none">
-                        <i class="fas fa-key me-2"></i> Cambia Password
-                    </a>
-                    <a href="edit-profile.php"
-                       class="btn btn-light border px-4 py-2 fw-bold text-dark text-decoration-none">
-                        <i class="fas fa-edit me-2"></i> Modifica Dati
-                    </a>
-                    <a href="generate-card.php"
-                       class="btn btn-dark px-4 py-2 fw-bold shadow-sm text-white text-decoration-none">
-                        <i class="fas fa-id-card me-2"></i> Tessera Virtuale
-                    </a>
-                    <?php if (!$isAdmin): ?>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="change-password.php"
+                           class="btn btn-primary w-100 py-3 fw-bold shadow-sm text-decoration-none d-flex align-items-center justify-content-center">
+                            <i class="fas fa-key me-2"></i> Cambia Password
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="edit-profile.php"
+                           class="btn btn-light border w-100 py-3 fw-bold text-dark text-decoration-none d-flex align-items-center justify-content-center">
+                            <i class="fas fa-edit me-2"></i> Modifica Dati
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="generate-card.php"
+                           class="btn btn-dark w-100 py-3 fw-bold shadow-sm text-white text-decoration-none d-flex align-items-center justify-content-center">
+                            <i class="fas fa-id-card me-2"></i> Tessera Virtuale
+                        </a>
+                    </div>
+                    <div class="col-md-3">
                         <a href="export-data.php"
-                           class="btn btn-light border px-4 py-2 fw-bold text-secondary text-decoration-none">
+                           class="btn btn-light border w-100 py-3 fw-bold text-secondary text-decoration-none d-flex align-items-center justify-content-center">
                             <i class="fas fa-download me-2"></i> Esporta Dati
                         </a>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Zona Pericolosa (Nascosta per Admin) -->
         <?php if (!$isAdmin): ?>
             <div class="card card-custom danger-zone">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">

@@ -1,17 +1,1 @@
-TO DO: 
-- collegamento epic 3 con epic 5 (prestiti funzionanti, con status nel catalogo IN_PRESTITO) ✅
-- sistemare il fatto che in catalogo inventario bibliotecario tasto ricerca
-- sistemare la ricerca di isbn 
-- rfid dev'essere unico e non modificabile e deve coincidere con il libro.id
-- vedere le condizioni in cui è stato prestato il libro quando ritiro
-- quando c'è il tasto vieni a ritirarlo, schiaccia pulsante e mostra il percorso dalla 
-- in librarian/index.php sistemare il tasto in mezzo e collegare con lo scanner correttamente
-- fare la pagina admin e sistemare le sue caratteristiche
-- popup di verifica dev'esserci dopo registrazione e non nel profilo della persona ✅
-- sistemazione tasto modifica libro
-- schermata prestiti personali per il librarian
-- schermata prestiti totali del bibliotecario
-- guardare il fatto della release e i tags
-- seeder in automatico che parte con il db
-- cambiare il colore di sfondo del verify email da viola ✅
-- tasto vedi tutto nella gestione dei prestiti
+

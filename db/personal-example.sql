@@ -74,3 +74,28 @@ VALUES (
            LAST_INSERT_ID(),
            (SELECT id_ruolo FROM ruoli WHERE nome = 'Admin' LIMIT 1)
        );
+
+
+INSERT INTO utenti (
+    cf, nome, cognome, email, password,
+    sesso, data_nascita, comune_nascita,
+    email_verificata, consenso_privacy
+)
+VALUES (
+           'SPGLBR80A01H501Z',
+           'Alberto',
+           'Spiaggia',
+           'alberto@biblioteca.it',
+           '$2y$10$df0EJ9fSVcJ8rK8RdLIlhOL1lhEn0SFmbCGvbwKD.I1PTWdnInbWO',
+           'M',
+           '1980-01-01',
+           'Roma',
+           1,
+           1
+       );
+
+INSERT INTO utenti_ruoli (id_utente, id_ruolo)
+VALUES (
+           LAST_INSERT_ID(),
+           (SELECT id_ruolo FROM ruoli WHERE nome = 'Admin' LIMIT 1)
+    );
