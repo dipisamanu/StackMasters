@@ -56,11 +56,11 @@ INSERT INTO utenti (
     email_verificata, consenso_privacy
 )
 VALUES (
-           'SPGLBR80A01H501Z',
-           'Alberto',
-           'Spiaggia',
-           'alberto@biblioteca.it',
-           '$2y$10$abcdefghilmno...', -- Esempio di hash (USA IL COMANDO PHP DA TERMINALE)
+           'CRLG56GSAJFN',
+           'CALLO',
+           'KOKAINO',
+           'callo@biblioteca.it',
+           '$2y$10$WxrK5tAq/0JMYHMJzIlTd.PhDx1dPQhKrcgdo5kOpdDD7Xl6uNhnW', -- Esempio di hash (USA IL COMANDO PHP DA TERMINALE)
            'M',
            '1980-01-01',
            'Roma',
