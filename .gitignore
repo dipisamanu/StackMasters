@@ -1,11 +1,8 @@
 # --- Dipendenze PHP (Composer) ---
-# Escludiamo la cartella delle librerie esterne (es. PHPMailer, FPDF/TCPDF)
-# Si scaricano con 'composer install', non si portano su Git.
+# run 'composer install'
 /vendor/
 
 # --- File di Configurazione e Sicurezza ---
-# IMPORTANTISSIMO: Mai caricare le password del DB su GitHub!
-# Epic 14.1 menziona un file di configurazione generato
 config.php
 .env
 database.php
@@ -16,33 +13,28 @@ db_connection.php
 # File generati dal Mac o Windows
 .DS_Store
 Thumbs.db
+
 # Configurazioni dell'editor (VS Code, PhpStorm)
 .vscode/
 .idea/
 
 # --- Upload e File Generati dall'Utente ---
-# [cite_start]Epic 3.9: Upload immagini copertina [cite: 177]
-# Non vogliamo le immagini di test degli sviluppatori nel repository
 /uploads/
 /assets/uploads/
 /public/img/covers/
 
 # --- Documenti Generati Dinamicamente ---
-# [cite_start]Epic 1.7 e 5.7: PDF tessere e ricevute generate [cite: 153, 182]
-# [cite_start]Epic 10.7: Report mensili [cite: 187]
 /generated_pdfs/
 /reports/
 *.pdf
 
 # --- Log e Debug ---
-# [cite_start]Epic 13.7: Log eventi sicurezza ed errori [cite: 187]
 /logs/
 error_log
 access_log
 *.log
 
 # --- Backup Database Locali ---
-# Epic 14.3: Dump SQL notturni
 /backups/
 *.sql
 *.gz
