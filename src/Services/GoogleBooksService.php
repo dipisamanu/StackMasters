@@ -1,6 +1,6 @@
 <?php
 /**
- * Servizio per integrare Google Books API (Versione cURL)
+ * Servizio per integrare Google Books API
  * File: src/Services/GoogleBooksService.php
  */
 
@@ -8,56 +8,52 @@ require_once __DIR__ . '/../Helpers/IsbnValidator.php';
 
 class GoogleBooksService
 {
-    private const API_URL = 'https://www.googleapis.com/books/v1/volumes?q=isbn:';
+    // Aggiungo &country=IT per tentare di ottenere prezzi italiani
+    private const API_URL = 'https://www.googleapis.com/books/v1/volumes?country=IT&q=isbn:';
 
     public function fetchByIsbn(string $isbn): ?array
     {
-        // 1. Pulizia ISBN
         $cleanIsbn = IsbnValidator::clean($isbn);
-        if (empty($cleanIsbn)) {
-            return null;
-        }
+        if (empty($cleanIsbn)) return null;
 
         $url = self::API_URL . $cleanIsbn;
 
-        // 2. Inizializza cURL
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        // Timeout
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
-        // Fondamentale per XAMPP/Localhost: ignora verifica SSL
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-
-        // Simula un browser reale
         curl_setopt($ch, CURLOPT_USERAGENT, 'BiblioSystem/1.0');
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
 
-        // 3. Controllo Errori
-        if ($response === false || $httpCode !== 200) {
-            // Puoi scommentare per debug: error_log("Google API Error: $curlError");
-            return null;
-        }
+        if ($response === false || $httpCode !== 200) return null;
 
         $data = json_decode($response, true);
 
-        // 4. Verifica Risultati
         if (!isset($data['totalItems']) || $data['totalItems'] === 0 || !isset($data['items'][0]['volumeInfo'])) {
             return null;
         }
 
-        $info = $data['items'][0]['volumeInfo'];
+        $item = $data['items'][0];
+        $info = $item['volumeInfo'];
+        $sale = $item['saleInfo'] ?? []; // Qui ci sono i prezzi
 
-        // RECUPERO IMMAGINE (Preferiamo thumbnail o smallThumbnail)
         $imgUrl = $info['imageLinks']['thumbnail'] ?? $info['imageLinks']['smallThumbnail'] ?? '';
-        // Fix: Google manda http, forziamo https per evitare warning
         $imgUrl = str_replace('http://', 'https://', $imgUrl);
+
+        $categories = $info['categories'] ?? [];
+
+        // Estrazione prezzo copertina
+        // Cerchiamo prima il prezzo di listino, poi quello al dettaglio
+        $prezzo = 0.00;
+        if (isset($sale['listPrice']['amount'])) {
+            $prezzo = (float)$sale['listPrice']['amount'];
+        } elseif (isset($sale['retailPrice']['amount'])) {
+            $prezzo = (float)$sale['retailPrice']['amount'];
+        }
 
         return [
             'titolo' => $info['title'] ?? '',
@@ -67,7 +63,9 @@ class GoogleBooksService
             'descrizione' => $info['description'] ?? '',
             'pagine' => $info['pageCount'] ?? 0,
             'isbn' => $cleanIsbn,
-            'copertina' => $imgUrl
+            'copertina' => $imgUrl,
+            'categorie' => $categories,
+            'prezzo' => $prezzo // NUOVO CAMPO
         ];
     }
 }
