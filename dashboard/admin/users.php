@@ -60,16 +60,13 @@ $params = [];
 $whereClause = "";
 
 if (!empty($search)) {
-    // CONCAT + LIKE perché MATCH AGAINST non funziona
     $keywords = array_filter(explode(' ', $search));
     $conditions = [];
-
     foreach ($keywords as $index => $word) {
         $key = ":word$index";
         $conditions[] = "CONCAT(IFNULL(u.nome,''), ' ', IFNULL(u.cognome,''), ' ', IFNULL(u.email,''), ' ', IFNULL(u.cf,'')) LIKE $key";
         $params[$key] = "%$word%";
     }
-
     if (!empty($conditions)) {
         $whereClause = "WHERE " . implode(' AND ', $conditions);
     }
@@ -136,6 +133,7 @@ require_once '../../src/Views/layout/header.php';
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; }
+        .content-wrapper { flex: 1 0 auto; }
         footer { flex-shrink: 0; }
 
         .dashboard-container {
@@ -271,7 +269,7 @@ require_once '../../src/Views/layout/header.php';
                             $userRoles = !empty($u['ruoli_nomi']) ? explode('|', $u['ruoli_nomi']) : [];
                             ?>
                             <tr class="<?= $isCurrentUser ? 'bg-warning bg-opacity-10' : '' ?>">
-                                <td class="ps-4">
+                                <td class="ps-4" style="cursor: pointer;" onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle me-3 shadow-sm">
                                             <?= strtoupper(substr($u['nome'], 0, 1) . substr($u['cognome'], 0, 1)) ?>
@@ -287,7 +285,7 @@ require_once '../../src/Views/layout/header.php';
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td style="cursor: pointer;" onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <i class="far fa-envelope text-muted small" style="width: 16px;"></i>
                                         <span class="text-dark small"><?= htmlspecialchars($u['email']) ?></span>
@@ -297,7 +295,7 @@ require_once '../../src/Views/layout/header.php';
                                         <span class="text-muted small" style="font-family: monospace;"><?= htmlspecialchars($u['cf']) ?></span>
                                     </div>
                                 </td>
-                                <td>
+                                <td style="cursor: pointer;" onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
                                     <div class="d-flex flex-wrap gap-1">
                                         <?php if (empty($userRoles)): ?>
                                             <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal border">Nessuno</span>
@@ -322,14 +320,14 @@ require_once '../../src/Views/layout/header.php';
                                         <form class="d-flex justify-content-end align-items-center gap-2" method="POST" action="users.php">
                                             <input type="hidden" name="action" value="update_role">
                                             <input type="hidden" name="user_id" value="<?= $u['id_utente'] ?>">
-                                            <select name="role_id" class="form-select form-select-sm role-select py-1" style="width: 140px;">
+                                            <select name="role_id" class="form-select form-select-sm role-select py-1" style="width: 140px;" onclick="event.stopPropagation();">
                                                 <?php foreach ($roles as $role): ?>
                                                     <option value="<?= $role['id_ruolo'] ?>" <?= ($u['main_role_id'] == $role['id_ruolo']) ? 'selected' : '' ?>>
                                                         <?= htmlspecialchars($role['nome']) ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <button type="submit" class="btn btn-sm btn-light border text-primary shadow-sm" title="Salva Modifiche" onclick="return confirm('Modificare il ruolo di questo utente?');">
+                                            <button type="submit" class="btn btn-sm btn-light border text-primary shadow-sm" title="Salva Modifiche" onclick="event.stopPropagation(); return confirm('Modificare il ruolo di questo utente?');">
                                                 <i class="fas fa-save"></i>
                                             </button>
                                         </form>
