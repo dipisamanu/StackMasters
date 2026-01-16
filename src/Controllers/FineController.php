@@ -3,7 +3,7 @@
 namespace Ottaviodipisa\StackMasters\Controllers;
 
 use Ottaviodipisa\StackMasters\Models\Fine;
-use Ottaviodipisa\StackMasters\Helpers\RicevutaPrestitoPDF;
+use Ottaviodipisa\StackMasters\Helpers\RicevutaPagamentoPDF; // CORRETTO: Usa l'helper per le ricevute di pagamento
 
 /**
  * Controller per la gestione delle sanzioni, pagamenti e reportistica.
@@ -12,12 +12,12 @@ use Ottaviodipisa\StackMasters\Helpers\RicevutaPrestitoPDF;
 class FineController
 {
     private Fine $fineModel;
-    private RicevutaPrestitoPDF $pdfHelper;
+    private RicevutaPagamentoPDF $pdfHelper; // CORRETTO: Tipo di classe aggiornato
 
     public function __construct()
     {
         $this->fineModel = new Fine();
-        $this->pdfHelper = new RicevutaPrestitoPDF();
+        $this->pdfHelper = new RicevutaPagamentoPDF(); // CORRETTO: Istanzia l'helper giusto
     }
 
     /**
@@ -30,71 +30,101 @@ class FineController
 
         $data = [
             'user' => $userId ? $this->fineModel->getUserBalance($userId) : null,
-            'pending_details' => $userId ? $this->fineModel->getPendingDetails($userId) : [],
+            'fines' => $userId ? $this->fineModel->getPendingDetails($userId) : [], // 'fines' invece di 'pending_details' per coerenza con la vista
             'discount' => $userId ? $this->fineModel->getLoyaltyDiscount($userId) : 0,
-            'top_debtors' => $this->fineModel->getTopDebtors()
+            'debtors' => $this->fineModel->getTopDebtors()
         ];
 
         // Inclusione della vista specifica
-        require_once __DIR__ . '/../../dashboard/admin/finance.php';
+        require_once __DIR__ . '/../../dashboard/librarian/finance.php'; // Corretto il percorso a /librarian/
     }
 
     /**
-     * Gestisce la registrazione di un pagamento (totale o parziale).
+     * Gestisce la registrazione di un pagamento.
+     * Questa azione salda TUTTE le multe pendenti per un utente.
      */
-    public function storePayment()
+    public function pay()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
-            $amount = filter_input(INPUT_POST, 'pay_amount', FILTER_VALIDATE_FLOAT);
 
-            if ($userId && $amount > 0) {
+            if ($userId) {
                 try {
-                    $result = $this->fineModel->processPayment($userId, $amount);
+                    // 1. Recupera i dati dell'utente e il totale da saldare PRIMA del pagamento
+                    $userData = $this->fineModel->getUserData($userId); // Metodo per avere solo i dati anagrafici
+                    $totalToPay = $this->fineModel->getTotalPendingAmount($userId);
 
-                    // Recupero dati per la quietanza PDF
-                    $userData = $this->fineModel->getUserBalance($userId);
-                    $pdfFile = $this->pdfHelper->generateFineReceipt($userData, $result);
+                    if ($totalToPay <= 0) {
+                        throw new \Exception("Nessun debito da saldare.");
+                    }
 
-                    header("Location: /StackMasters/dashboard/admin/finance.php?user_id=$userId&status=success&msg=Pagamento_registrato&pdf=$pdfFile");
+                    // 2. Processa il pagamento (salda tutto)
+                    $this->fineModel->settleAllFines($userId);
+
+                    // 3. Genera la quietanza PDF con i dati recuperati PRIMA
+                    $pdfFile = $this->pdfHelper->generateQuietanza($userData, $totalToPay);
+
+                    // 4. Reindirizza con messaggio di successo e link al PDF
+                    header("Location: /StackMasters/dashboard/librarian/finance.php?user_id=$userId&status=success&msg=Pagamento_registrato_con_successo&pdf=$pdfFile");
                     exit();
                 } catch (\Exception $e) {
-                    header("Location: /StackMasters/dashboard/admin/finance.php?user_id=$userId&status=error&msg=Errore_elaborazione_pagamento");
+                    header("Location: /StackMasters/dashboard/librarian/finance.php?user_id=$userId&status=error&msg=" . urlencode($e->getMessage()));
                     exit();
                 }
             }
         }
+         // Se non è una richiesta POST, reindirizza alla pagina principale di finanza
+        header("Location: /StackMasters/dashboard/librarian/finance.php");
+        exit();
     }
+
 
     /**
      * Registra un addebito manuale (danni, smarrimento).
      */
-    public function storeManualCharge()
+    public function charge()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
             $amount = filter_input(INPUT_POST, 'amount', FILTER_VALIDATE_FLOAT);
-            $reason = filter_input(INPUT_POST, 'reason', FILTER_SANITIZE_SPECIAL_CHARS);
+            $causa = filter_input(INPUT_POST, 'causa', FILTER_SANITIZE_SPECIAL_CHARS);
+            $commento = filter_input(INPUT_POST, 'commento', FILTER_SANITIZE_SPECIAL_CHARS);
+
 
             if ($userId && $amount > 0) {
-                $this->fineModel->addManualCharge($userId, $amount, $reason);
-                header("Location: /StackMasters/dashboard/admin/finance.php?user_id=$userId&status=success&msg=Addebito_inserito");
+                $this->fineModel->addManualCharge($userId, $amount, $causa, $commento);
+                header("Location: /StackMasters/dashboard/librarian/finance.php?user_id=$userId&status=success&msg=Addebito_manuale_inserito");
                 exit();
             }
         }
+         // Se non è una richiesta POST, reindirizza
+        header("Location: /StackMasters/dashboard/librarian/finance.php");
+        exit();
     }
 
     /**
-     * Visualizza il report contabile per la segreteria.
+     * Entry point per le azioni del controller.
+     * Determina quale metodo eseguire in base al parametro 'action'.
      */
-    public function showAccountingReport()
+    public static function handleRequest()
     {
-        $start = $_GET['start_date'] ?? date('Y-m-01');
-        $end = $_GET['end_date'] ?? date('Y-m-d');
+        $action = $_GET['action'] ?? 'index';
+        $controller = new self();
 
-        $reportData = $this->fineModel->getAccountingReport($start, $end);
-
-        // Carica la vista del report
-        require_once __DIR__ . '/../../dashboard/admin/finance_report.php';
+        switch ($action) {
+            case 'pay':
+                $controller->pay();
+                break;
+            case 'charge':
+                $controller->charge();
+                break;
+            case 'index':
+            default:
+                $controller->index();
+                break;
+        }
     }
 }
+
+// Esecuzione del gestore delle richieste
+FineController::handleRequest();

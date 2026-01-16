@@ -1,15 +1,16 @@
 <?php
 /**
  * TEST GENERATORE LINK RESET
- * File: public/debug-reset-test.php
+ * File: public/debug/debug-reset-test.php
  * USAGE: Apri nel browser, inserisci email, clicca il link generato.
  */
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once __DIR__ . '/../src/config/database.php';
-require_once __DIR__ . '/../src/config/session.php'; // Uniformità
+// CORREZIONE PERCORSI: Aggiunto un '../' per risalire dalla cartella /debug
+require_once __DIR__ . '/../../src/config/database.php';
+require_once __DIR__ . '/../../src/config/session.php'; // Uniformità
 
 $message = '';
 $link = '';
@@ -37,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Genera Link
             $host = $_SERVER['HTTP_HOST'];
-            // Adatta il path se necessario
+            // Il percorso del link di reset punta a /public/, quindi è corretto
             $url = "http://$host/StackMasters/public/reset-password.php?token=$tokenRaw";
 
             $link = $url;

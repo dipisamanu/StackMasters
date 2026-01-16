@@ -188,6 +188,26 @@ try {
              </div></div></div></body></html>");
     }
 
+    // 4.5 VERIFICA SALDO MULTE UTENTE
+    $stmtMulte = $db->prepare("SELECT SUM(importo) as totale_multe FROM multe WHERE id_utente = :id_utente AND data_pagamento IS NULL");
+    $stmtMulte->execute(['id_utente' => $utente['id_utente']]);
+    $saldoMulte = $stmtMulte->fetch(PDO::FETCH_ASSOC);
+
+    if ($saldoMulte && $saldoMulte['totale_multe'] > 0) {
+        $importoFormattato = number_format($saldoMulte['totale_multe'], 2, ',', '.');
+        die("<div class='p-10 bg-yellow-100 text-yellow-800 rounded-3xl font-black text-center border-4 border-yellow-200 text-2xl'>
+                <i class='fas fa-hand-paper mb-4 text-5xl block'></i> PRESTITO BLOCCATO
+                <p class='text-lg font-medium mt-4'>L'utente ha un saldo multe non pagato di €{$importoFormattato}.<br>È necessario regolarizzare la posizione prima di procedere.</p>
+             </div>
+             <div class='flex justify-center py-16'>
+                <a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'>
+                    <i class='fas fa-arrow-left'></i> Nuova Scansione Rapida
+                </a>
+            </div>
+             </div></div></body></html>");
+    }
+
+
     echo "
     <div class='section-label'><i class='fas fa-user-shield'></i> Verifica Soggetto Abilitato</div>
     <div class='bg-slate-900 text-white p-10 rounded-3xl mb-12 flex items-center justify-between border-b-8 border-emerald-500'>

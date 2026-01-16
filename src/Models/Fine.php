@@ -3,7 +3,7 @@
 namespace Ottaviodipisa\StackMasters\Models;
 
 /**
- * Modello per la gestione finanziaria (Epic 10).
+ * Modello per la gestione finanziaria (Epic 9).
  * Coerente con lo schema install.sql: tabelle e campi in minuscolo.
  */
 class Fine
@@ -22,18 +22,20 @@ class Fine
     /** Recupera saldo e anagrafica utente dallo schema 'utenti' e 'multe' */
     public function getUserBalance(int $userId): array
     {
+        // CORREZIONE: Usati due placeholder distinti (:uid1, :uid2) per evitare problemi
+        // con la riutilizzazione dello stesso placeholder in alcune configurazioni PDO.
         $sql = "SELECT id_utente, nome, cognome, email, 
-                (SELECT IFNULL(SUM(importo), 0) FROM multe WHERE id_utente = :uid AND data_pagamento IS NULL) as debito_totale
-                FROM utenti WHERE id_utente = :uid";
+                (SELECT IFNULL(SUM(importo), 0) FROM multe WHERE id_utente = :uid1 AND data_pagamento IS NULL) as debito_totale
+                FROM utenti WHERE id_utente = :uid2";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['uid' => $userId]);
+        $stmt->execute(['uid1' => $userId, 'uid2' => $userId]);
         return $stmt->fetch() ?: [];
     }
 
     /** Dettaglio pendenze non saldate (dove data_pagamento IS NULL) */
     public function getPendingDetails(int $userId): array
     {
-        $sql = "SELECT id_multa, importo, causa, data_creazione, importo as residuo
+        $sql = "SELECT id_multa, importo, causa, data_creazione, commento, importo as residuo
                 FROM multe 
                 WHERE id_utente = :uid AND data_pagamento IS NULL 
                 ORDER BY data_creazione ASC";
@@ -56,22 +58,29 @@ class Fine
     }
 
     /** Aggiunta addebito manuale rispettando l'ENUM 'causa' ('RITARDO', 'DANNI') */
-    public function addManualCharge(int $userId, float $amt, string $reason): bool
+    public function addManualCharge(int $userId, float $amt, string $reason, ?string $commento = null): bool
     {
-        // Nota: reason deve essere 'DANNI' o 'RITARDO' per l'ENUM del DB
-        $sql = "INSERT INTO multe (id_utente, importo, causa, data_creazione) 
-                VALUES (:uid, :amt, :re, NOW())";
+        // CORREZIONE: Aggiunto il campo 'commento' alla query e ai parametri.
+        $sql = "INSERT INTO multe (id_utente, importo, causa, commento, data_creazione) 
+                VALUES (:uid, :amt, :re, :commento, NOW())";
         return $this->db->prepare($sql)->execute([
             'uid' => $userId,
             'amt' => $amt,
-            're' => strtoupper($reason)
+            're' => strtoupper($reason),
+            'commento' => $commento
         ]);
     }
 
     /** Registrazione pagamento: imposta data_pagamento = NOW() sulle multe più vecchie */
     public function processPayment(int $userId, float $amount): array
     {
-        $this->db->beginTransaction();
+        // CORREZIONE: Controlla se una transazione è già attiva prima di iniziarne una nuova.
+        $isTransactionManagedExternally = $this->db->inTransaction();
+
+        if (!$isTransactionManagedExternally) {
+            $this->db->beginTransaction();
+        }
+        
         try {
             $pending = $this->getPendingDetails($userId);
             $rem = $amount;
@@ -87,11 +96,16 @@ class Fine
                 $paid[] = ['id' => $f['id_multa'], 'versato' => $f['importo']];
             }
 
-            $this->db->commit();
+            if (!$isTransactionManagedExternally) {
+                $this->db->commit();
+            }
+            
             return ['success' => true, 'total' => ($amount - $rem), 'details' => $paid];
         } catch (\Exception $e) {
-            $this->db->rollBack();
-            throw $e;
+            if (!$isTransactionManagedExternally) {
+                $this->db->rollBack();
+            }
+            throw $e; // Rilancia l'eccezione per farla gestire dal chiamante (es. il test)
         }
     }
 
