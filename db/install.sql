@@ -172,7 +172,6 @@ CREATE TABLE prestiti
     data_prestito        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     scadenza_prestito    TIMESTAMP NULL,
     data_restituzione    TIMESTAMP NULL,
-    condizione_uscita    ENUM('BUONO', 'USURATO', 'DANNEGGIATO', 'SMARRITO') NOT NULL DEFAULT 'BUONO',
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_inventario) REFERENCES inventari (id_inventario),
     FOREIGN KEY (id_utente) REFERENCES utenti (id_utente)
