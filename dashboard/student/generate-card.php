@@ -277,7 +277,6 @@ function generateHTMLCard($user) {
         <div class="card">
             <div class="card-header">
                 <div class="logo">
-                    <div class="logo-icon">📚</div>
                     <div>BIBLIOTECA</div>
                     <div>ITIS ROSSI</div>
                 </div>

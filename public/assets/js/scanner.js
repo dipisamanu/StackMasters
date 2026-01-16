@@ -69,7 +69,6 @@ async function lookupUser(code) {
         const data = await res.json();
 
         if (data.success) {
-            // Mostra il pannello del ruolo con grafica premium
             infoDiv.innerHTML = `
                 <div class="p-5 bg-white border border-slate-200 rounded-2xl shadow-lg border-l-8 border-l-indigo-600 animate-pop-in relative overflow-hidden">
                     <div class="absolute top-0 right-0 p-4 opacity-5 text-6xl">
@@ -95,9 +94,9 @@ async function lookupUser(code) {
             userInp.classList.remove('border-red-500');
             userInp.classList.add('border-indigo-500', 'bg-indigo-50/30');
 
-            // Passa automaticamente al campo libro
             if (bookInp) bookInp.focus();
             showToast("Utente verificato", "success");
+            AudioFeedback?.ok();
         } else {
             infoDiv.innerHTML = `
                 <div class="p-4 bg-red-50 text-red-700 border border-red-100 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-sm">
@@ -108,9 +107,11 @@ async function lookupUser(code) {
                 </div>`;
             userInp.classList.add('border-red-500');
             showToast("Codice errato", "error");
+            AudioFeedback?.error();
         }
     } catch (e) {
         showToast("Errore di rete", "error");
+        AudioFeedback?.error();
     }
 }
 
@@ -122,9 +123,9 @@ async function lookupBook(code) {
     const list = document.getElementById('scanned-books-list');
     const emptyMsg = document.getElementById('empty-list-msg');
 
-    // 1. Evita duplicati
     if (document.querySelector(`input[name="book_ids[]"][value="${code}"]`)) {
         showToast("Libro già in carrello", "error");
+        AudioFeedback?.error();
         bookInp.value = "";
         return;
     }
@@ -136,7 +137,6 @@ async function lookupBook(code) {
         if (data.success) {
             if (emptyMsg) emptyMsg.style.display = 'none';
 
-            // Creazione riga libro con stile card orizzontale
             const row = document.createElement('div');
             row.className = "book-entry flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-md hover:border-red-200 transition-all border-l-4 border-l-red-500 mb-3 group";
 
@@ -146,7 +146,7 @@ async function lookupBook(code) {
             row.innerHTML = `
                 <div class="flex items-center gap-5">
                     <div class="relative">
-                        <img src="${cover}" class="h-20 w-14 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform" 
+                        <img src="${cover}" class="h-20 w-14 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform"
                              onerror="this.src='../../public/assets/img/placeholder.png'">
                         <div class="absolute -bottom-2 -right-2 bg-slate-800 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow">
                             #${data.id_inventario}
@@ -164,7 +164,7 @@ async function lookupBook(code) {
                     </div>
                 </div>
                 <input type="hidden" name="book_ids[]" value="${data.id_inventario}">
-                <button type="button" onclick="this.parentElement.remove(); checkEmptyList();" 
+                <button type="button" onclick="this.parentElement.remove(); checkEmptyList();"
                         class="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all">
                     <i class="fas fa-trash-alt"></i>
                 </button>
@@ -172,21 +172,23 @@ async function lookupBook(code) {
 
             list.appendChild(row);
 
-            // Reset input
             bookInp.value = "";
             bookInp.classList.remove('border-red-500');
             bookInp.classList.add('border-green-500', 'bg-green-50/30');
             bookInp.focus();
 
             showToast("Copia aggiunta alla lista", "success");
+            AudioFeedback?.ok();
         } else {
             showToast(data.error || "Copia non disponibile", "error");
+            AudioFeedback?.error();
             bookInp.classList.add('border-red-500');
             bookInp.value = "";
             bookInp.focus();
         }
     } catch (e) {
         showToast("Errore di caricamento libro", "error");
+        AudioFeedback?.error();
     }
 }
 
@@ -217,4 +219,141 @@ function showToast(msg, type) {
         status.style.opacity = '0';
         status.style.transform = 'translateY(10px)';
     }, 2500);
+}
+
+/* =======================================================
+   CONFIGURAZIONE SCANNER
+   ======================================================= */
+
+const SCANNER_CONFIG = {
+    maxInterval: 40,
+    minLength: 3,
+    beepOk: "/sounds/beep.wav",
+    beepError: "/sounds/buzzer.wav"
+};
+
+const CF_REGEX = /^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/i;
+const BOOK_REGEX = /^(?:\d{13}|(?=.*[A-Z])[A-Z0-9]{6,20})$/i;
+
+let buffer = "";
+let lastKeyTime = Date.now();
+
+const AudioFeedback = {
+    ok() {
+        new Audio(SCANNER_CONFIG.beepOk).play().catch(() => {});
+    },
+    error() {
+        new Audio(SCANNER_CONFIG.beepError).play().catch(() => {});
+    }
+};
+
+function isPrintableKey(e) {
+    return e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey;
+}
+
+document.addEventListener("keydown", (e) => {
+    const now = Date.now();
+    if (!isPrintableKey(e) && e.key !== "Enter") return;
+
+    if (now - lastKeyTime < SCANNER_CONFIG.maxInterval) {
+        if (e.key !== "Enter") buffer += e.key;
+    } else {
+        buffer = e.key !== "Enter" ? e.key : "";
+    }
+
+    lastKeyTime = now;
+
+    if (e.key === "Enter") {
+        e.preventDefault();
+        if (buffer.length >= SCANNER_CONFIG.minLength) {
+            processBarcode(buffer.trim().toUpperCase());
+        }
+        buffer = "";
+    }
+});
+
+function processBarcode(code) {
+    if (CF_REGEX.test(code)) {
+        document.getElementById("user_barcode").value = code;
+        lookupUser(code);
+        AudioFeedback.ok();
+        return;
+    }
+
+    if (BOOK_REGEX.test(code)) {
+        document.getElementById("book_barcode").value = code;
+        lookupBook(code);
+        AudioFeedback.ok();
+        return;
+    }
+
+    AudioFeedback.error();
+    console.error("Codice non valido:", code);
+}
+
+/* ===================================================================
+   ===================== RESTITUZIONE MULTIPLA =========================
+   =================================================================== */
+
+const RETURN_CONFIG = { maxItems: 10 };
+let returnBuffer = [];
+
+function renderReturnList() {
+    const list = document.getElementById("return-list");
+    const btn = document.getElementById("process-returns");
+    if (!list || !btn) return;
+
+    list.innerHTML = "";
+    returnBuffer.forEach((code, i) => {
+        const li = document.createElement("li");
+        li.className = "flex justify-between py-1 border-b";
+        li.innerHTML = `<span>${i + 1}. ${code}</span>`;
+        list.appendChild(li);
+    });
+
+    btn.textContent = `Processa restituzione (${returnBuffer.length})`;
+    btn.disabled = returnBuffer.length === 0;
+}
+
+/* ===================================================================
+   ===================== INVENTARIO ===================================
+   =================================================================== */
+
+let inventoryActive = false;
+let inventoryExpected = new Set();
+let inventoryScanned = new Set();
+
+function startInventory(availableBooks = []) {
+    inventoryExpected = new Set(availableBooks.map(c => c.trim().toUpperCase()));
+    inventoryScanned.clear();
+    inventoryActive = true;
+}
+
+document.addEventListener("keydown", (e) => {
+    if (!inventoryActive) return;
+    if (e.key !== "Enter") return;
+    if (buffer.length < SCANNER_CONFIG.minLength) return;
+
+    const code = buffer.trim().toUpperCase();
+    if (!BOOK_REGEX.test(code)) return;
+
+    inventoryScanned.add(code);
+    AudioFeedback.ok();
+});
+
+function stopInventory() {
+    inventoryActive = false;
+
+    const mancanti = [...inventoryExpected].filter(
+        code => !inventoryScanned.has(code)
+    );
+
+    const report = {
+        disponibili_a_sistema: inventoryExpected.size,
+        trovati_fisicamente: inventoryScanned.size,
+        mancanti
+    };
+
+    console.table(report);
+    return report;
 }

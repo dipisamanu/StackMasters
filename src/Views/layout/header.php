@@ -1,6 +1,6 @@
 <?php
 /**
- * Layout Header - Navbar di Sistema
+ * Layout Header - Navbar di Sistema Full Width
  * File: src/Views/layout/header.php
  */
 
@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Calcolo path dinamico per assets in base a dove ci troviamo
 $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
 $basePath = 'assets/';
 $rootUrl = './';
@@ -34,6 +35,7 @@ if (str_contains($scriptPath, '/dashboard/')) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BiblioSystem</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -46,6 +48,7 @@ if (str_contains($scriptPath, '/dashboard/')) {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            /*margin: 0;*/
         }
 
         .content-wrapper {
@@ -54,21 +57,44 @@ if (str_contains($scriptPath, '/dashboard/')) {
 
         .navbar-brand {
             font-weight: 700;
+            /*width: 100%;*/
+            /* Manteniamo il contenuto su un livello basso */
+            /*position: relative;
+            z-index: 1;*/
         }
 
-        /* FIX Z-INDEX: position relative è fondamentale per far funzionare z-index */
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        /* FIX Z-INDEX PER MENU A TENDINA */
         .navbar {
+            width: 100%;
+            padding-left: 0;
+            padding-right: 0;
+            border-radius: 0;
+
+            /* Queste righe sono fondamentali per far vedere il menu sopra tutto */
             position: relative;
-            z-index: 9999;
+            z-index: 9999 !important;
+            overflow: visible !important;
+        }
+
+        /* Assicuriamo che il dropdown sia sopra ogni altra cosa */
+        .dropdown-menu {
+            z-index: 10000 !important;
         }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-    <div class="container">
-        <a class="navbar-brand" href="<?= $rootUrl ?>index.php">
-            <i class="fas fa-book-reader me-2 text-danger"></i>BiblioSystem
+    <div class="container-fluid px-4">
+
+        <a class="navbar-brand d-flex align-items-center gap-2" href="<?= $rootUrl ?>index.php">
+            <i class="fas fa-book-reader text-danger"></i>
+            <span>BiblioSystem</span>
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
@@ -87,7 +113,7 @@ if (str_contains($scriptPath, '/dashboard/')) {
                 <?php endif; ?>
             </ul>
 
-            <ul class="navbar-nav align-items-center">
+            <ul class="navbar-nav align-items-center gap-3">
                 <?php if (isset($_SESSION['user_id'])): ?>
 
                     <li class="nav-item dropdown me-3">
@@ -116,24 +142,20 @@ if (str_contains($scriptPath, '/dashboard/')) {
                     </li>
 
                     <script>
-                        // 1. Definiamo la radice del PROGETTO (dove ci sono le cartelle public, dashboard, src...)
-                        // NOTA: Togliamo "/public" da qui perché le dashboard sono fuori da public
                         const WEB_ROOT = "/StackMasters";
-
-                        // 2. Definiamo il percorso dell'API (che invece È dentro public)
                         const NOTIFICATION_API_PATH = "/StackMasters/public/api/get_notifiche.php";
                     </script>
-
                     <script src="<?= $rootUrl ?>assets/js/notification.js"></script>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i> <?= htmlspecialchars($_SESSION['nome_completo'] ?? 'Utente') ?>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                             <?php
                             $dash = match ($currentRole) {
                                 'Bibliotecario' => 'dashboard/librarian/index.php',
-                                'Admin' => 'dashboard/admin/index.php',
+                                'Amministratore', 'Admin' => 'dashboard/admin/index.php',
                                 default => 'dashboard/student/index.php'
                             };
                             // Fix path relativo
@@ -157,9 +179,16 @@ if (str_contains($scriptPath, '/dashboard/')) {
                                             class="fas fa-sign-out-alt me-2"></i>Esci</a></li>
                         </ul>
                     </li>
+
                 <?php else: ?>
                     <li class="nav-item ms-2"><a href="<?= $rootUrl ?>login.php"
                                                  class="btn btn-outline-light btn-sm rounded-pill">Accedi</a></li>
+                    <!-- <li class="nav-item">
+                        <a href="<?= $rootUrl ?>login.php" class="btn btn-outline-light rounded-pill px-4 btn-sm">Accedi</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="<?= $rootUrl ?>register.php" class="btn btn-warning rounded-pill px-4 fw-bold text-dark btn-sm">Registrati</a>
+                    </li>-->
                 <?php endif; ?>
             </ul>
         </div>

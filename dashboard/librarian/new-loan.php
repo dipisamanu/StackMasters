@@ -87,7 +87,7 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
                 </div>
 
                 <!-- 2. SCANSIONE LIBRI -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <digit add .v class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">2. Acquisizione Volumi</label>
                     <div class="relative">
                         <i class="fas fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
@@ -104,7 +104,7 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
                     <ul class="text-xs space-y-3 font-medium text-slate-300">
                         <li class="flex items-start gap-3"><i class="fas fa-info-circle mt-0.5 text-indigo-400"></i> Studenti: Max 3 volumi / 14 gg</li>
                         <li class="flex items-start gap-3"><i class="fas fa-info-circle mt-0.5 text-indigo-400"></i> Docenti: Max 5 volumi / 30 gg</li>
-                        <li class="flex items-start gap-3"><i class="fas fa-info-circle mt-0.5 text-indigo-400"></i> Staff: Max 12 volumi / 45 gg</li>
+                        <li class="flex items-start gap-3"><i class="fas fa-info-circle mt-0.5 text-indigo-400"></i> Staff: Max 10 volumi / 45 gg</li>
                         <li class="flex items-start gap-3"><i class="fas fa-exclamation-triangle mt-0.5 text-amber-400"></i> Blocco automatico per sanzioni</li>
                     </ul>
                 </div>

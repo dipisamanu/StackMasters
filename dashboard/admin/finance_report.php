@@ -12,6 +12,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     exit;
 }
 
+
 $mainRole = $_SESSION['main_role'] ?? 'Studente';
 if ($mainRole !== 'Admin') {
     http_response_code(403);
