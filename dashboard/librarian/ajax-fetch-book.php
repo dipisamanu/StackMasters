@@ -114,15 +114,15 @@ try {
     ob_clean();
 
     if ($book) {
+        // Rinomino per coerenza con la risposta JSON precedente
+        $book['id_inventario'] = $book['id_inventario'];
+        $book['autori'] = $book['autori'];
+        $book['immagine_copertina'] = $book['immagine_copertina'] ?: '../../public/assets/img/placeholder.png';
+        
+        // Aggiungo la condizione alla risposta
         echo json_encode([
             'success' => true,
-            'id_inventario' => $book['id_inventario'],
-            'titolo' => $book['titolo'],
-            'autori' => $book['autori'],
-            'stato' => $book['stato'],
-            'collocazione' => $book['collocazione'],
-            'immagine_copertina' => $book['immagine_copertina'] ?: '../../public/assets/img/placeholder.png',
-            'isbn' => $book['isbn']
+            'data' => $book
         ]);
     } else {
         echo json_encode([
