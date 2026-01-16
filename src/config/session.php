@@ -37,6 +37,7 @@ if (session_status() === PHP_SESSION_NONE) {
 class Session {
 
     public static function login($userId, $nomeCompleto, $email, $ruoli) {
+        session_regenerate_id(true); // Prevenzione Session Fixation
         $_SESSION['user_id'] = $userId;
         $_SESSION['nome_completo'] = $nomeCompleto;
         $_SESSION['email'] = $email;
@@ -46,11 +47,31 @@ class Session {
         $_SESSION['ip'] = $_SERVER['REMOTE_ADDR'];
         $_SESSION['created'] = time();
 
-        // Determina il ruolo principale (priorità più bassa = più importante)
-        usort($ruoli, function($a, $b) {
-            return $a['priorita'] <=> $b['priorita'];
-        });
-        $_SESSION['ruolo_principale'] = $ruoli[0];
+        // Determina il ruolo principale
+        // 1. Cerca se c'è il ruolo Admin (priorità assoluta per evitare problemi di configurazione)
+        $isAdmin = false;
+        if (!empty($ruoli)) {
+            foreach ($ruoli as $r) {
+                if (strcasecmp($r['nome'], 'Admin') === 0) {
+                    $isAdmin = true;
+                    $_SESSION['ruolo_principale'] = $r;
+                    break;
+                }
+            }
+        }
+
+        // 2. Se non è admin, usa la priorità del DB
+        if (!$isAdmin) {
+            if (!empty($ruoli)) {
+                usort($ruoli, function($a, $b) {
+                    return $a['priorita'] <=> $b['priorita'];
+                });
+                $_SESSION['ruolo_principale'] = $ruoli[0];
+            } else {
+                // Fallback se l'utente non ha ruoli (non dovrebbe accadere grazie a UserModel)
+                $_SESSION['ruolo_principale'] = ['nome' => 'Studente', 'priorita' => 999];
+            }
+        }
     }
 
     /**
@@ -79,12 +100,6 @@ class Session {
             self::logout();
             return false;
         }
-
-        // Verifica IP (protezione contro session hijacking) - DISABILITATO IN SVILUPPO
-        // if (isset($_SESSION['ip']) && $_SESSION['ip'] !== $_SERVER['REMOTE_ADDR']) {
-        //     self::logout();
-        //     return false;
-        // }
 
         $_SESSION['last_activity'] = time();
         return true;
@@ -118,7 +133,8 @@ class Session {
         if (!isset($_SESSION['ruoli'])) return false;
 
         foreach ($_SESSION['ruoli'] as $ruolo) {
-            if ($ruolo['nome'] === $nomeRuolo) {
+            // Case-insensitive check per maggiore robustezza
+            if (strcasecmp($ruolo['nome'], $nomeRuolo) === 0) {
                 return true;
             }
         }
@@ -193,8 +209,10 @@ class Session {
         self::requireLogin();
 
         if (!self::hasRole($nomeRuolo)) {
-            http_response_code(403);
-            die("Accesso negato. Permessi insufficienti.");
+            // Se l'utente è loggato ma non ha il ruolo, reindirizza alla sua dashboard con errore
+            self::setFlash('danger', "Accesso negato. Richiesto ruolo: $nomeRuolo.");
+            self::redirectToDashboard();
+            exit;
         }
     }
 

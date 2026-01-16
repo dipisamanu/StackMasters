@@ -1,11 +1,10 @@
 <?php
-
 require_once '../../src/config/database.php';
 require_once '../../src/config/session.php';
 
 Session::requireLogin();
 
-$db = getDB();
+$db = Database::getInstance()->getConnection();
 $userId = Session::getUserId();
 
 // Recupera dati attuali
@@ -31,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Campi modificabili
         $email = strtolower(trim($_POST['email'] ?? ''));
-        $comune = trim($_POST['comune_nascita'] ?? '');
+
         $notificheAttive = isset($_POST['notifiche_attive']) ? 1 : 0;
         $quietStart = $_POST['quiet_hours_start'] ?? null;
         $quietEnd = $_POST['quiet_hours_end'] ?? null;
@@ -53,17 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Validazione comune
-        if (empty($comune)) {
-            $errors[] = "Il comune è obbligatorio";
-        }
-
         if (empty($errors)) {
             try {
                 $stmtUpdate = $db->prepare("
                     UPDATE utenti 
                     SET email = ?, 
-                        comune_nascita = ?, 
                         notifiche_attive = ?,
                         quiet_hours_start = ?,
                         quiet_hours_end = ?
@@ -71,12 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
 
                 $stmtUpdate->execute([
-                        $email,
-                        $comune,
-                        $notificheAttive,
-                        $quietStart ?: null,
-                        $quietEnd ?: null,
-                        $userId
+                    $email,
+                    $notificheAttive,
+                    $quietStart ?: null,
+                    $quietEnd ?: null,
+                    $userId
                 ]);
 
                 // Log modifica
@@ -102,13 +94,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Se ci sono errori, mantieni i dati inseriti
         if (!empty($errors)) {
             $user['email'] = $email;
-            $user['comune_nascita'] = $comune;
             $user['notifiche_attive'] = $notificheAttive;
             $user['quiet_hours_start'] = $quietStart;
             $user['quiet_hours_end'] = $quietEnd;
         }
     }
 }
+
+// Calcolo iniziali per l'avatar
+$iniziali = strtoupper(substr($user['nome'], 0, 1) . substr($user['cognome'], 0, 1));
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -116,335 +110,334 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modifica Profilo - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="../../public/assets/img/itisrossi.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary-color: #bf2121; /* Rosso ITIS Rossi */
+            --primary-hover: #a01b1b;
+            --bg-color: #f3f4f6;
+            --card-border-radius: 16px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: #1f2937;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+        .profile-header-card {
+            background: linear-gradient(135deg, #fff 0%, #fff 100%);
+            border: none;
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
         }
 
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+        .profile-header-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: var(--primary-color);
         }
 
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
+        .avatar-circle {
+            width: 80px;
+            height: 80px;
+            background-color: #fee2e2;
+            color: var(--primary-color);
+            font-size: 2rem;
+            font-weight: 700;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
         }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
+        .card-custom {
+            border: none;
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            background: #fff;
+            margin-bottom: 1.5rem;
         }
 
-        .alert {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #f3f4f6;
         }
 
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .alert ul {
-            margin: 10px 0 0 20px;
-        }
-
-        .form-section {
-            margin-bottom: 30px;
-        }
-
-        .form-section h2 {
-            color: #bf2121;
-            font-size: 18px;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            color: #555;
+        .data-item {
             margin-bottom: 8px;
-            font-size: 14px;
         }
 
-        input[type="email"],
-        input[type="text"],
-        input[type="time"] {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
+        .data-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .data-value {
+            font-weight: 500;
+            color: #111827;
+            font-size: 0.95rem;
+            background-color: #f9fafb;
+            padding: 0.5rem 0.75rem;
             border-radius: 8px;
-            font-size: 15px;
-            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
         }
 
-        input:focus {
-            outline: none;
-            border-color: #bf2121;
+        .data-icon {
+            color: #9ca3af;
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            padding: 0.625rem 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(191, 33, 33, 0.1);
         }
 
-        input:disabled {
-            background: #f5f5f5;
-            color: #999;
-            cursor: not-allowed;
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
 
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        .checkbox-group label {
-            margin: 0;
-            cursor: pointer;
-            font-weight: normal;
-        }
-
-        .time-range {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .time-range .form-group {
-            flex: 1;
-            margin-bottom: 0;
-        }
-
-        .help-text {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-
-        .info-box p {
-            color: #0c5460;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #f0f0f0;
-        }
-
-        .btn {
-            padding: 12px 30px;
-            border: none;
+        .btn-primary-custom {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
             border-radius: 8px;
-            font-size: 15px;
+            padding: 0.625rem 1.5rem;
             font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
 
-        .btn-primary {
-            background: #bf2121;
-            color: white;
+        .btn-primary-custom:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
         }
 
-        .btn-primary:hover {
-            background: #931b1b;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(191, 33, 33, 0.3);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .readonly-info {
-            background: #f8f9fa;
-            padding: 15px;
+        .btn-outline-custom {
+            color: #4b5563;
+            border-color: #d1d5db;
             border-radius: 8px;
-            margin-bottom: 20px;
+            background: white;
+            font-weight: 500;
         }
 
-        .readonly-info p {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
+        .btn-outline-custom:hover {
+            background-color: #f3f4f6;
+            color: #111827;
         }
 
-        .readonly-info p:last-child {
-            margin-bottom: 0;
-        }
-
-        .readonly-info strong {
-            color: #333;
+        .alert-custom {
+            border-radius: 12px;
+            border: none;
+            border-left: 4px solid #ef4444;
+            background-color: #fef2f2;
         }
     </style>
 </head>
-<body>
+<body class="py-5">
+
 <div class="container">
-    <div class="card">
-        <h1><i class="fas fa-edit"></i> Modifica Profilo</h1>
-        <p class="subtitle">Aggiorna le tue informazioni personali</p>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
 
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-error">
-                <strong>Si sono verificati i seguenti errori:</strong>
-                <ul>
-                    <?php foreach ($errors as $error): ?>
-                        <li><?= htmlspecialchars($error) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" action="">
-            <input type="hidden" name="csrf_token" value="<?= generateCSRFToken() ?>">
-
-            <!-- Dati Personali (Read-only) -->
-            <div class="form-section">
-                <h2>📋 Dati Personali</h2>
-
-                <div class="info-box">
-                    <p><strong>ℹ️ Nota:</strong> I seguenti dati non possono essere modificati autonomamente. Per modifiche, contatta l'amministratore della biblioteca.</p>
-                </div>
-
-                <div class="readonly-info">
-                    <p><strong>Nome:</strong> <?= htmlspecialchars($user['nome']) ?></p>
-                    <p><strong>Cognome:</strong> <?= htmlspecialchars($user['cognome']) ?></p>
-                    <p><strong>Codice Fiscale:</strong> <?= htmlspecialchars($user['cf']) ?></p>
-                    <p><strong>Data di Nascita:</strong> <?= date('d/m/Y', strtotime($user['data_nascita'])) ?></p>
-                    <p><strong>Sesso:</strong> <?= $user['sesso'] === 'M' ? 'Maschio' : 'Femmina' ?></p>
-                </div>
-            </div>
-
-            <!-- Dati Modificabili -->
-            <div class="form-section">
-                <h2>📧 Contatti e Residenza</h2>
-
-                <div class="form-group">
-                    <label for="email">Email *</label>
-                    <input type="email" id="email" name="email"
-                           value="<?= htmlspecialchars($user['email']) ?>" required>
-                    <div class="help-text">Assicurati che sia un'email valida e accessibile</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="comune_nascita">Comune di Nascita *</label>
-                    <input type="text" id="comune_nascita" name="comune_nascita"
-                           value="<?= htmlspecialchars($user['comune_nascita']) ?>" required>
-                </div>
-            </div>
-
-            <!-- Preferenze Notifiche -->
-            <div class="form-section">
-                <h2>🔔 Preferenze Notifiche</h2>
-
-                <div class="form-group">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="notifiche_attive" name="notifiche_attive"
-                                <?= $user['notifiche_attive'] ? 'checked' : '' ?>>
-                        <label for="notifiche_attive">Ricevi notifiche via email</label>
-                    </div>
-                    <div class="help-text">
-                        Riceverai email per scadenze prestiti, prenotazioni disponibili, multe, ecc.
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Orario "Non Disturbare" (opzionale)</label>
-                    <div class="help-text" style="margin-bottom: 10px;">
-                        Imposta un orario in cui non ricevere notifiche email
-                    </div>
-                    <div class="time-range">
-                        <div class="form-group">
-                            <label for="quiet_hours_start">Dalle</label>
-                            <input type="time" id="quiet_hours_start" name="quiet_hours_start"
-                                   value="<?= htmlspecialchars($user['quiet_hours_start'] ?? '') ?>">
-                        </div>
-                        <span style="padding-top: 30px;">→</span>
-                        <div class="form-group">
-                            <label for="quiet_hours_end">Alle</label>
-                            <input type="time" id="quiet_hours_end" name="quiet_hours_end"
-                                   value="<?= htmlspecialchars($user['quiet_hours_end'] ?? '') ?>">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pulsanti -->
-            <div class="actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Salva Modifiche
-                </button>
-                <a href="profile.php" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Annulla
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <a href="profile.php" class="text-decoration-none text-secondary fw-bold small">
+                    <i class="fas fa-chevron-left me-1"></i> Torna al Profilo
                 </a>
             </div>
-        </form>
-    </div>
 
-    <!-- Sezione Cambio Password -->
-    <div class="card">
-        <h2><i class="fas fa-key"></i> Cambia Password</h2>
-        <p class="subtitle">Per motivi di sicurezza, il cambio password richiede la verifica dell'identità</p>
-        <a href="change-password.php" class="btn btn-primary">
-            <i class="fas fa-key"></i> Cambia Password
-        </a>
+            <?php if (!empty($errors)): ?>
+                <div class="alert alert-custom alert-dismissible fade show shadow-sm mb-4" role="alert">
+                    <div class="d-flex text-danger">
+                        <i class="fas fa-exclamation-circle mt-1 me-3 fs-5"></i>
+                        <div>
+                            <strong class="d-block mb-1">Impossibile salvare le modifiche</strong>
+                            <ul class="mb-0 ps-3 small text-secondary">
+                                <?php foreach ($errors as $error): ?>
+                                    <li><?= htmlspecialchars($error) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?= generateCSRFToken() ?>">
+
+                <div class="profile-header-card p-4 d-flex align-items-center">
+                    <div class="avatar-circle me-4">
+                        <?= $iniziali ?>
+                    </div>
+                    <div>
+                        <h1 class="h4 fw-bold text-dark mb-1">Modifica Profilo</h1>
+                        <p class="text-muted mb-0 small">Gestisci le tue informazioni personali e le preferenze
+                            dell'account.</p>
+                    </div>
+                </div>
+
+                <div class="card-custom p-4">
+                    <div class="section-title">
+                        <i class="fas fa-user-circle me-2"></i>Dati Anagrafici
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="data-item">
+                                <div class="data-label">Nome Completo</div>
+                                <div class="data-value">
+                                    <i class="fas fa-user data-icon"></i>
+                                    <?= htmlspecialchars($user['nome'] . ' ' . $user['cognome']) ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="data-item">
+                                <div class="data-label">Codice Fiscale</div>
+                                <div class="data-value">
+                                    <i class="fas fa-id-card data-icon"></i>
+                                    <?= htmlspecialchars($user['cf']) ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="data-item">
+                                <div class="data-label">Data di Nascita</div>
+                                <div class="data-value">
+                                    <i class="fas fa-calendar-alt data-icon"></i>
+                                    <?= date('d/m/Y', strtotime($user['data_nascita'])) ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="data-item">
+                                <div class="data-label">Luogo di Nascita</div>
+                                <div class="data-value">
+                                    <i class="fas fa-map-marker-alt data-icon"></i>
+                                    <?= htmlspecialchars($user['comune_nascita']) ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-light border d-flex align-items-center mt-3 mb-0 py-2 rounded-3">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        <small class="text-muted">Per modificare questi dati, rivolgiti all'amministratore.</small>
+                    </div>
+                </div>
+
+                <div class="card-custom p-4">
+                    <div class="section-title">
+                        <i class="fas fa-cog me-2"></i>Impostazioni Account
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <label for="email" class="form-label fw-bold small text-secondary text-uppercase">Email di
+                                Contatto</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0 text-muted"><i
+                                            class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control border-start-0 ps-0" id="email" name="email"
+                                       value="<?= htmlspecialchars($user['email']) ?>" required>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <label class="form-check-label fw-bold text-dark" for="notifiche_attive">Notifiche
+                                            Email</label>
+                                        <div class="small text-muted">Ricevi avvisi su prestiti e scadenze.</div>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notifiche_attive"
+                                               name="notifiche_attive"
+                                               style="width: 3em; height: 1.5em;" <?= $user['notifiche_attive'] ? 'checked' : '' ?>>
+                                    </div>
+                                </div>
+
+                                <hr class="text-muted opacity-25">
+
+                                <div class="row align-items-center g-2">
+                                    <div class="col-12 col-md-4">
+                                        <span class="small fw-bold text-secondary text-uppercase"><i
+                                                    class="fas fa-moon me-1"></i>Modalità Silenziosa</span>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white">Dalle</span>
+                                            <input type="time" id="quiet_hours_start" name="quiet_hours_start"
+                                                   class="form-control"
+                                                   value="<?= htmlspecialchars($user['quiet_hours_start'] ?? '') ?>">
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white">Alle</span>
+                                            <input type="time" id="quiet_hours_end" name="quiet_hours_end"
+                                                   class="form-control"
+                                                   value="<?= htmlspecialchars($user['quiet_hours_end'] ?? '') ?>">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
+                    <a href="change-password.php" class="text-danger text-decoration-none small fw-bold">
+                        <i class="fas fa-key me-1"></i> Cambia Password
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="profile.php" class="btn btn-outline-custom">Annulla</a>
+                        <button type="submit" class="btn btn-primary-custom shadow-sm">
+                            Salva Modifiche
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

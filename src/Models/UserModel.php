@@ -90,7 +90,7 @@ class UserModel
                 FROM ruoli r
                 INNER JOIN utenti_ruoli ur ON r.id_ruolo = ur.id_ruolo
                 WHERE ur.id_utente = ?
-                ORDER BY r.priorita ASC";
+                ORDER BY r.priorita";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$userId]);

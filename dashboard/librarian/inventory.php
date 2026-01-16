@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Inventario (Con Stati Smarrito/Scartato)
+ * Gestione Inventario (Con Stati Smarrito/Fuori Catalogo)
  * File: dashboard/librarian/inventory.php
  */
 
@@ -64,7 +64,7 @@ require_once '../../src/Views/layout/header.php';
                     <tbody>
                     <?php if (empty($copies)): ?><tr><td colspan="5" class="text-center p-5 text-muted">Nessuna copia fisica.</td></tr><?php else: ?>
                         <?php foreach ($copies as $c): ?>
-                            <tr class="<?= ($c['stato'] == 'SMARRITO' || $c['stato'] == 'SCARTATO') ? 'table-danger text-muted' : '' ?>">
+                            <tr class="<?= ($c['stato'] == 'SMARRITO' || $c['stato'] == 'FUORI_CATALOGO') ? 'table-danger text-muted' : '' ?>">
                                 <td class="ps-4 font-monospace fw-bold text-primary"><?= htmlspecialchars($c['codice_rfid']??'N/D') ?></td>
                                 <td><span class="badge bg-white text-dark border"><?= htmlspecialchars($c['collocazione']) ?></span></td>
                                 <td><?= htmlspecialchars($c['condizione']) ?></td>
@@ -73,13 +73,13 @@ require_once '../../src/Views/layout/header.php';
                                     $bg = 'secondary';
                                     if($c['stato']=='DISPONIBILE') $bg='success';
                                     if($c['stato']=='SMARRITO') $bg='danger';
-                                    if($c['stato']=='SCARTATO') $bg='dark';
+                                    if($c['stato']=='FUORI_CATALOGO') $bg='dark';
                                     ?>
                                     <span class="badge bg-<?= $bg ?>"><?= $c['stato'] ?></span>
                                 </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-light" onclick='openCopyModal("edit", <?= json_encode($c) ?>)'><i class="fas fa-edit"></i></button>
-                                    <form action="process-inventory.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare fisicamente? Usa lo stato Scartato se vuoi tenere lo storico.');">
+                                    <form action="process-inventory.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare fisicamente? Usa lo stato Fuori Catalogo se vuoi tenere lo storico.');">
                                         <input type="hidden" name="action" value="delete_copy">
                                         <input type="hidden" name="id_libro" value="<?= $idLibro ?>">
                                         <input type="hidden" name="id_inventario" value="<?= $c['id_inventario'] ?>">
@@ -128,7 +128,7 @@ require_once '../../src/Views/layout/header.php';
                                 <select name="condizione" id="condizione" class="form-select">
                                     <option value="BUONO">Buono</option>
                                     <option value="DANNEGGIATO">Danneggiato</option>
-                                    <option value="PERSO">Perso</option>
+                                    <option value="SMARRITO">Smarrito</option>
                                 </select>
                             </div>
                             <div class="col-6">
@@ -137,7 +137,7 @@ require_once '../../src/Views/layout/header.php';
                                     <option value="DISPONIBILE">Disponibile</option>
                                     <option value="NON_IN_PRESTITO">Non Prestabile</option>
                                     <option value="SMARRITO">Smarrito</option>
-                                    <option value="SCARTATO">Scartato</option>
+                                    <option value="FUORI_CATALOGO">Fuori Catalogo</option>
                                 </select>
                             </div>
                         </div>

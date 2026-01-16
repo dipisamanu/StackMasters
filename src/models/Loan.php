@@ -169,7 +169,7 @@ class Loan
                 switch (strtoupper($condizione)) {
                     case 'USURATO':    $penaleStato = round($valore * 0.10, 2); break;
                     case 'DANNEGGIATO': $penaleStato = round($valore * 0.50, 2); break;
-                    case 'PERSO':      $penaleStato = $valore; break;
+                    case 'SMARRITO':      $penaleStato = $valore; break;
                 }
             }
 

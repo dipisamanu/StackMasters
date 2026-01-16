@@ -9,14 +9,19 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Calcolo path dinamico per assets in base a dove ci troviamo
-$scriptPath = $_SERVER['SCRIPT_NAME'];
+$scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
 $basePath = 'assets/';
 $rootUrl = './';
 
-if (strpos($scriptPath, '/dashboard/') !== false) {
+// Recupero ruolo pricipale
+$roleData = $_SESSION['ruolo_principale'] ?? $_SESSION['role'] ?? $_SESSION['main_role'] ?? '';
+$currentRole = is_array($roleData) ? ($roleData['nome'] ?? '') : $roleData;
+$isAdmin = ($currentRole === 'Admin');
+
+if (str_contains($scriptPath, '/dashboard/')) {
     $basePath = '../../public/assets/';
     $rootUrl = '../../public/';
-} elseif (strpos($scriptPath, '/public/') !== false) {
+} elseif (str_contains($scriptPath, '/public/')) {
     $basePath = 'assets/';
     $rootUrl = './';
 } else {
@@ -43,15 +48,19 @@ if (strpos($scriptPath, '/dashboard/') !== false) {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            margin: 0;
+            /*margin: 0;*/
         }
 
         .content-wrapper {
             flex: 1;
-            width: 100%;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            /*width: 100%;*/
             /* Manteniamo il contenuto su un livello basso */
-            position: relative;
-            z-index: 1;
+            /*position: relative;
+            z-index: 1;*/
         }
 
         .navbar-brand {
@@ -92,31 +101,43 @@ if (strpos($scriptPath, '/dashboard/') !== false) {
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="collapse navbar-collapse d-lg-flex justify-content-between w-100" id="mainNav">
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="<?= $rootUrl ?>index.php">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= $rootUrl ?>catalog.php"><i
+                                class="fas fa-search me-1"></i>Catalogo</a></li>
 
-            <ul class="navbar-nav mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= $rootUrl ?>index.php">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= $rootUrl ?>catalog.php">
-                        <i class="fas fa-search me-1"></i>Catalogo
-                    </a>
-                </li>
+                <?php if ($isAdmin && !str_contains($scriptPath, '/dashboard/admin/')): ?>
+                    <li class="nav-item"><a class="nav-link" href="<?= $rootUrl ?>../dashboard/admin/index.php"><i
+                                    class="fas fa-crown me-1"></i>Area Admin</a></li>
+                <?php endif; ?>
             </ul>
 
             <ul class="navbar-nav align-items-center gap-3">
                 <?php if (isset($_SESSION['user_id'])): ?>
 
-                    <li class="nav-item dropdown">
-                        <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-bell fa-lg"></i>
-                            <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;"></span>
+                    <li class="nav-item dropdown me-3">
+                        <a class="nav-link hidden-arrow position-relative" href="#" id="notificationDropdown"
+                           role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell fa-lg text-secondary"></i>
+                            <span id="notification-badge"
+                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                  style="display: none; font-size: 0.6rem;">
+                                0
+                            </span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="notificationDropdown" id="notification-list" style="min-width: 300px;">
-                            <li><h6 class="dropdown-header text-uppercase text-muted small fw-bold">Notifiche</h6></li>
-                            <li><hr class="dropdown-divider my-0"></li>
-                            <li class="text-center py-3 text-muted small">Caricamento...</li>
+
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
+                            aria-labelledby="notificationDropdown" id="notification-list"
+                            style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li><h6 class="dropdown-header text-uppercase text-muted small fw-bold">Centro
+                                    Notifiche</h6></li>
+                            <li>
+                                <hr class="dropdown-divider my-0">
+                            </li>
+                            <li class="text-center py-3 text-muted small">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Caricamento...
+                            </li>
                         </ul>
                     </li>
 
@@ -132,32 +153,42 @@ if (strpos($scriptPath, '/dashboard/') !== false) {
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                             <?php
-                            $roleData = $_SESSION['ruolo_principale'] ?? $_SESSION['role'] ?? '';
-                            $role = is_array($roleData) ? ($roleData['nome'] ?? '') : $roleData;
-
-                            $dash = match($role) {
+                            $dash = match ($currentRole) {
                                 'Bibliotecario' => 'dashboard/librarian/index.php',
                                 'Amministratore', 'Admin' => 'dashboard/admin/index.php',
                                 default => 'dashboard/student/index.php'
                             };
-                            // rooturl punta a 'public/', quindi dobbiamo uscire da public con '../' per trovare 'dashboard/'
-                            $dashboardUrl = $rootUrl . '../' . $dash;
-                            ?>
+                            // Fix path relativo
+                            // $rootUrl ci porta alla cartella public, con '../' torniamo alla root del progetto per entrare in dashboard
+                            $finalDash = $rootUrl . '../' . $dash;
 
-                            <li><h6 class="dropdown-header"><?= htmlspecialchars($role) ?></h6></li>
-                            <li><a class="dropdown-item" href="<?= $dashboardUrl ?>"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="<?= $rootUrl ?>logout.php"><i class="fas fa-sign-out-alt me-2"></i>Esci</a></li>
+                            // Correzione specifica se siamo già nella root di public (es. catalog.php)
+                            if ($rootUrl == './') {
+                                $finalDash = '../' . $dash;
+                            }
+                            ?>
+                            <li>
+                                <h6 class="dropdown-header text-uppercase small"><?= htmlspecialchars($currentRole) ?></h6>
+                            </li>
+                            <li><a class="dropdown-item" href="<?= $finalDash ?>"><i
+                                            class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item text-danger" href="<?= $rootUrl ?>logout.php"><i
+                                            class="fas fa-sign-out-alt me-2"></i>Esci</a></li>
                         </ul>
                     </li>
 
                 <?php else: ?>
-                    <li class="nav-item">
+                    <li class="nav-item ms-2"><a href="<?= $rootUrl ?>login.php"
+                                                 class="btn btn-outline-light btn-sm rounded-pill">Accedi</a></li>
+                    <!-- <li class="nav-item">
                         <a href="<?= $rootUrl ?>login.php" class="btn btn-outline-light rounded-pill px-4 btn-sm">Accedi</a>
                     </li>
                     <li class="nav-item">
                         <a href="<?= $rootUrl ?>register.php" class="btn btn-warning rounded-pill px-4 fw-bold text-dark btn-sm">Registrati</a>
-                    </li>
+                    </li>-->
                 <?php endif; ?>
             </ul>
         </div>

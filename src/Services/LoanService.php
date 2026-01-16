@@ -333,7 +333,7 @@ class LoanService
             throw new Exception("La copia è danneggiata e non può essere prestata.");
         }
 
-        if ($copia['condizione'] === 'PERSO') {
+        if ($copia['condizione'] === 'SMARRITO') {
             throw new Exception("La copia risulta smarrita.");
         }
     }

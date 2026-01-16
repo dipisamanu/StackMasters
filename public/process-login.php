@@ -5,7 +5,7 @@
  */
 
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Nascondi errori a video in produzione
+ini_set('display_errors', 1);
 
 require_once __DIR__ . '/../src/config/session.php';
 require_once __DIR__ . '/../src/Models/UserModel.php';
@@ -51,7 +51,8 @@ try {
     Session::login($user['id_utente'], $nomeCompleto, $user['email'], $user['roles']);
 
     // Reindirizzamento in base al ruolo (Logica originale mantenuta)
-    $mainRole = $user['roles'][0]['nome'] ?? 'Studente';
+    // Usa Session::getMainRole() che ora è stato popolato correttamente
+    $mainRole = Session::getMainRole();
 
     switch ($mainRole) {
         case 'Admin':
@@ -66,8 +67,8 @@ try {
             header('Location: ' . BASE_URL . '/dashboard/student/index.php');
             break;
     }
+    error_log("va tutto");
     exit;
-
 } catch (Exception $e) {
     error_log("ERRORE LOGIN: " . $e->getMessage());
     $_SESSION['login_error'] = 'Errore di sistema. Riprova più tardi.';

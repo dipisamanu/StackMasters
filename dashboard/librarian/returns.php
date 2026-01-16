@@ -163,9 +163,9 @@ unset($_SESSION['loan_success'], $_SESSION['loan_error']);
                 <i class="fas fa-exclamation-triangle text-yellow-300 group-hover:text-yellow-500 text-xl"></i>
             </button>
 
-            <button type="button" onclick="confirmCondition('PERSO')" class="w-full flex items-center justify-between p-4 bg-red-50 border-2 border-red-200 rounded-2xl hover:bg-red-100 transition-all group focus:ring-4 focus:ring-red-200 outline-none">
+            <button type="button" onclick="confirmCondition('SMARRITO')" class="w-full flex items-center justify-between p-4 bg-red-50 border-2 border-red-200 rounded-2xl hover:bg-red-100 transition-all group focus:ring-4 focus:ring-red-200 outline-none">
                 <div class="text-left">
-                    <span class="block font-black text-red-800 text-sm uppercase">PERSO / SMARRITO</span>
+                    <span class="block font-black text-red-800 text-sm uppercase">SMARRITO</span>
                     <span class="text-[10px] text-red-600 font-bold uppercase">Sostituzione (100% penale)</span>
                 </div>
                 <i class="fas fa-times-circle text-red-300 group-hover:text-red-500 text-xl"></i>
@@ -263,7 +263,7 @@ unset($_SESSION['loan_success'], $_SESSION['loan_error']);
             'BUONO': 'bg-green-100 text-green-700',
             'USURATO': 'bg-blue-100 text-blue-700',
             'DANNEGGIATO': 'bg-yellow-100 text-yellow-700',
-            'PERSO': 'bg-red-100 text-red-700'
+            'SMARRITO': 'bg-red-100 text-red-700'
         }[cond];
 
         // Se la cover non è presente, usiamo il placeholder

@@ -159,18 +159,6 @@ try {
             margin-bottom: 20px;
         }
 
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -298,56 +286,6 @@ try {
             font-size: 11px;
             color: #999;
             margin-top: 5px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: #bf2121;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #931b1b;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .full-width {
-            grid-column: 1 / -1;
         }
 
         .danger-zone {
@@ -496,7 +434,7 @@ try {
             <div class="info-row">
                 <div class="info-label">Email Verificata:</div>
                 <div class="info-value">
-                    <?= $user['email_verificata'] ? 'Sì' : 'No' ?>
+                    <?= $user['email_verificata'] ? '✔ Sì' : '❌ No' ?>
                 </div>
             </div>
 
@@ -564,16 +502,16 @@ try {
         <h2><i class="fas fa-sliders-h"></i> Gestione Profilo</h2>
         <div class="actions-grid">
             <a href="change-password.php" class="action-btn action-primary">
-                <i class="fas fa-key"></i>Cambio Password
+                <i class="fas fa-key"></i> Cambio Password
             </a>
             <a href="edit-profile.php" class="action-btn action-primary">
                 <i class="fas fa-edit"></i> Modifica Profilo
             </a>
             <a href="generate-card.php" class="action-btn action-secondary">
-                <i class="fas fa-id-card"></i>Scarica Tessera
+                <i class="fas fa-id-card"></i> Scarica Tessera
             </a>
             <a href="export-data.php" class="action-btn action-secondary">
-                <i class="fas fa-download"></i>Esporta Dati
+                <i class="fas fa-download"></i> Esporta Dati
             </a>
         </div>
     </div>
@@ -584,7 +522,7 @@ try {
         <p>Le seguenti azioni sono irreversibili. Procedi con cautela.</p>
         <div class="actions-grid">
             <a href="delete-account.php" class="action-btn action-danger" onclick="return confirm('Sei sicuro? Questa azione è IRREVERSIBILE!')">
-                <i class="fas fa-trash"></i>Elimina Account
+                <i class="fas fa-trash"></i> Elimina Account
             </a>
         </div>
     </div>
