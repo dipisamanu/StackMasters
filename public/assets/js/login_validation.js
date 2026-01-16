@@ -9,6 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
         submitBtn: document.querySelector("button[type='submit']")
     };
 
+    // Aggiungi l'evento per il toggle della password
+    if (ui.toggle && ui.pass) {
+        ui.toggle.addEventListener("click", () => {
+            const isPass = ui.pass.type === "password";
+            ui.pass.type = isPass ? "text" : "password";
+            ui.toggle.textContent = isPass ? '👁️' : '🙈';
+        });
+    }
+
     // Configurazione Campi (Nel login dobbiamo validare solo l'email come formato)
     const fieldsConfig = [
         {
@@ -84,15 +93,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (ui.pass) {
         ui.pass.addEventListener("input", () => toggleError("errPassword", false));
-    }
-
-    // Toggle Mostra/Nascondi Password
-    if (ui.toggle && ui.pass) {
-        ui.toggle.addEventListener("click", () => {
-            const isPass = ui.pass.type === "password";
-            ui.pass.type = isPass ? "text" : "password";
-            ui.toggle.textContent = isPass ? "Mostra" : "Nascondi";
-        });
     }
 
     form.addEventListener("submit", (e) => validateForm(e));
