@@ -39,3 +39,28 @@ VALUES ('SPGLBR80A01H501Z',
 INSERT INTO utenti_ruoli (id_utente, id_ruolo)
 VALUES (LAST_INSERT_ID(),
         (SELECT id_ruolo FROM ruoli WHERE nome = 'Admin' LIMIT 1));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`biblioteca_db`.`libri_autori`, CONSTRAINT `libri_autori_ibfk_1` FOREIGN KEY (`id_autore`) REFERENCES `autori` (`id`) ON DELETE CASCADE)
+                                                              Anteprima
+                                                              JPG, PNG max 2MB
+                                                              ISBN (Ricerca Auto)
