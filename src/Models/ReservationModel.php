@@ -16,52 +16,40 @@ class ReservationModel
     }
 
     /**
-     * Verifica se l'utente ha una prenotazione attiva per questo libro.
+     * Verifica se l'utente ha una prenotazione attiva.
+     * Una prenotazione è attiva se:
+     * 1. È in coda (copia_libro NULL)
+     * 2. È assegnata ma non ancora scaduta (scadenza_ritiro > NOW)
      */
     public function hasActiveReservation(int $userId, int $bookId): bool
     {
         $stmt = $this->pdo->prepare("
-            SELECT COUNT(*) 
-            FROM prenotazioni 
+            SELECT COUNT(*) FROM prenotazioni 
             WHERE id_utente = :uid 
               AND id_libro = :bid
-              AND (
-                  copia_libro IS NULL 
-                  OR (copia_libro IS NOT NULL AND scadenza_ritiro > NOW())
-              )
+              AND (copia_libro IS NULL OR scadenza_ritiro > NOW())
         ");
         $stmt->execute(['uid' => $userId, 'bid' => $bookId]);
         return $stmt->fetchColumn() > 0;
     }
 
     /**
-     * Crea una nuova prenotazione in coda (FIFO)
+     * Crea una nuova prenotazione
      */
     public function createReservation(int $userId, int $bookId): bool
     {
-        try {
-            // Verifica ulteriore di sicurezza per evitare duplicati
-            if ($this->hasActiveReservation($userId, $bookId)) {
-                return false;
-            }
+        if ($this->hasActiveReservation($userId, $bookId)) return false;
 
-            $stmt = $this->pdo->prepare("
-                INSERT INTO prenotazioni (id_utente, id_libro, data_richiesta) 
-                VALUES (:uid, :bid, NOW())
-            ");
-
-            return $stmt->execute([
-                ':uid' => $userId,
-                ':bid' => $bookId
-            ]);
-        } catch (PDOException $e) {
-            error_log("Errore creazione prenotazione: " . $e->getMessage());
-            return false;
-        }
+        // Rimossa la colonna 'stato' che non esiste nel DB
+        $stmt = $this->pdo->prepare("
+            INSERT INTO prenotazioni (id_utente, id_libro, data_richiesta) 
+            VALUES (:uid, :bid, NOW())
+        ");
+        return $stmt->execute([':uid' => $userId, ':bid' => $bookId]);
     }
 
     /**
-     * Conta quante persone ci sono in coda per un libro
+     * Conta quante persone sono in coda per un libro
      */
     public function getQueuePosition(int $bookId): int
     {
@@ -72,5 +60,30 @@ class ReservationModel
         ");
         $stmt->execute([$bookId]);
         return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Recupera le prenotazioni dell'utente con la posizione in coda
+     */
+    public function getUserReservations(int $userId): array
+    {
+        // Rimossa la condizione su 'stato' e migliorata la logica della posizione
+        $sql = "
+            SELECT p.*, l.titolo, l.immagine_copertina,
+                   (SELECT COUNT(*) 
+                    FROM prenotazioni p2 
+                    WHERE p2.id_libro = p.id_libro 
+                      AND p2.copia_libro IS NULL 
+                      AND p2.data_richiesta <= p.data_richiesta) as posizione_reale
+            FROM prenotazioni p
+            JOIN libri l ON p.id_libro = l.id_libro
+            WHERE p.id_utente = ? 
+              AND (p.copia_libro IS NULL OR p.scadenza_ritiro > NOW())
+            ORDER BY p.copia_libro DESC, p.data_richiesta ASC
+        ";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
