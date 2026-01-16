@@ -2,32 +2,71 @@
 /**
  * Pagina Login
  * File: public/login.php
- *
- * EPIC 2.5 - Feature: Flow recupero password
  */
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-session_start();
-
+// Include la gestione della sessione per prima cosa
+require_once '../src/config/session.php';
 require_once '../src/config/database.php';
 
-// Se già loggato, reindirizza
-if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
-    header('Location: ../dashboard/student/index.php');
+// Se l'utente è già loggato, reindirizza alla dashboard
+if (Session::isLoggedIn()) {
+    Session::redirectToDashboard();
     exit;
 }
 
-// Gestione messaggi
-$login_error = $_SESSION['login_error'] ?? '';
-$login_success = $_SESSION['login_success'] ?? '';
-$login_warning = $_SESSION['login_warning'] ?? '';
+// --- GESTIONE POPUP ---
+$popupType = '';
+$popupTitle = '';
+$popupMessage = '';
 
-if (isset($_SESSION['login_error'])) unset($_SESSION['login_error']);
-if (isset($_SESSION['login_success'])) unset($_SESSION['login_success']);
-if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
+// 1. Controlla i messaggi Flash (es. dalla Registrazione)
+if (Session::hasFlash()) {
+    $flash = Session::getFlash();
+    if ($flash['type'] === 'success') {
+        $popupType = 'success';
+        $popupTitle = 'Verifica Email';
+        $popupMessage = $flash['message'];
+    } elseif ($flash['type'] === 'error') {
+        $popupType = 'error';
+        $popupTitle = 'Errore';
+        $popupMessage = $flash['message'];
+    }
+}
+
+// 2. Controlla errori di Login (da process-login.php)
+if (isset($_SESSION['login_error'])) {
+    $errorMsg = $_SESSION['login_error'];
+    unset($_SESSION['login_error']);
+
+    // Se il messaggio contiene "bloccato", mostra popup specifico
+    if (stripos($errorMsg, 'bloccato') !== false) {
+        $popupType = 'blocked';
+        $popupTitle = 'Account Bloccato';
+        $popupMessage = $errorMsg;
+    } else {
+        $popupType = 'error';
+        $popupTitle = 'Errore di Accesso';
+        $popupMessage = $errorMsg;
+    }
+}
+
+// 3. Controlli Legacy/Fallback
+if (isset($_SESSION['login_success'])) {
+    $popupType = 'success';
+    $popupTitle = 'Successo';
+    $popupMessage = $_SESSION['login_success'];
+    unset($_SESSION['login_success']);
+}
+if (isset($_SESSION['login_warning'])) {
+    $popupType = 'warning';
+    $popupTitle = 'Attenzione';
+    $popupMessage = $_SESSION['login_warning'];
+    unset($_SESSION['login_warning']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -76,44 +115,6 @@ if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
         .logo p {
             color: #666;
             font-size: 14px;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            animation: slideIn 0.3s ease;
-            border: 1px solid;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border-color: #c3e6cb;
-        }
-
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-        }
-
-        .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-            border-color: #ffeaa7;
         }
 
         .form-group {
@@ -170,18 +171,6 @@ if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
             align-items: center;
             margin-bottom: 25px;
             font-size: 14px;
-        }
-
-        .remember-forgot label {
-            display: flex;
-            align-items: center;
-            font-weight: normal;
-            margin: 0;
-        }
-
-        .remember-forgot input[type="checkbox"] {
-            width: auto;
-            margin-right: 5px;
         }
 
         .remember-forgot a {
@@ -254,34 +243,127 @@ if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
         .register-link a:hover {
             text-decoration: underline;
         }
+
+        /* --- STILI DEL MODAL (POPUP) --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: slideInModal 0.3s;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0}
+            to {opacity: 1}
+        }
+
+        @keyframes slideInModal {
+            from {transform: translateY(-50px); opacity: 0;}
+            to {transform: translateY(0); opacity: 1;}
+        }
+
+        .close-modal {
+            color: #aaa;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .modal-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .modal-message {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-btn {
+            padding: 10px 30px;
+            border-radius: 25px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+
+        /* Stili specifici per tipo */
+        .type-success .modal-icon { color: #28a745; }
+        .type-success .modal-btn { background: #28a745; color: white; }
+        .type-success .modal-btn:hover { background: #218838; }
+
+        .type-error .modal-icon { color: #dc3545; }
+        .type-error .modal-btn { background: #dc3545; color: white; }
+        .type-error .modal-btn:hover { background: #c82333; }
+
+        .type-blocked .modal-icon { color: #ffc107; }
+        .type-blocked .modal-btn { background: #ffc107; color: #333; }
+        .type-blocked .modal-btn:hover { background: #e0a800; }
+
+        .type-warning .modal-icon { color: #ffc107; }
+        .type-warning .modal-btn { background: #ffc107; color: #333; }
+
     </style>
 </head>
 <body>
+
+<!-- MODAL -->
+<div id="infoModal" class="modal">
+    <div class="modal-content" id="modalContent">
+        <span class="close-modal">&times;</span>
+        <div class="modal-icon" id="modalIcon"></div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-message" id="modalMessage"></div>
+        <button class="modal-btn" id="modalBtn">OK</button>
+    </div>
+</div>
+
 <div class="login-container">
     <div class="logo">
-        <h1>📚 Biblioteca ITIS Rossi</h1>
+        <h1>Biblioteca ITIS Rossi</h1>
         <p>Sistema Gestionale</p>
     </div>
 
-    <?php if (!empty($login_success)): ?>
-        <div class="alert alert-success">
-            ✅ <?= htmlspecialchars($login_success) ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($login_error)): ?>
-        <div class="alert alert-danger">
-            ⚠️ <?= htmlspecialchars($login_error) ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($login_warning)): ?>
-        <div class="alert alert-warning">
-            ⚠️ <?= htmlspecialchars($login_warning) ?>
-        </div>
-    <?php endif; ?>
-
-    <form action="process-login.php" method="POST">
+    <form action="process-login.php" method="POST" id="loginForm">
 
         <div class="form-group">
             <label for="email">Email</label>
@@ -297,11 +379,6 @@ if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
         </div>
 
         <div class="remember-forgot">
-            <!-- TODO: Implementare persistenza della sessione utente -->
-<!--            <label>-->
-<!--                <input type="checkbox" name="remember" value="1">-->
-<!--                Ricordami-->
-<!--            </label>-->
             <a href="forgot-password.php">Password dimenticata?</a>
         </div>
 
@@ -316,13 +393,68 @@ if (isset($_SESSION['login_warning'])) unset($_SESSION['login_warning']);
 </div>
 
 <script>
-    // Toggle password visibility
+    // Toggle visibilità password
     document.getElementById('togglePassword').addEventListener('click', function() {
         const passwordInput = document.getElementById('password');
         const type = passwordInput.type === 'password' ? 'text' : 'password';
         passwordInput.type = type;
         this.textContent = type === 'password' ? '👁️' : '🙈';
     });
+
+    // Logica del Modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById("infoModal");
+        const closeBtn = document.querySelector(".close-modal");
+        const okBtn = document.getElementById("modalBtn");
+        const modalContent = document.getElementById("modalContent");
+        const modalIcon = document.getElementById("modalIcon");
+        const modalTitle = document.getElementById("modalTitle");
+        const modalMessage = document.getElementById("modalMessage");
+
+        // Variabili PHP passate a JS
+        const pType = <?= json_encode($popupType) ?>;
+        const pTitle = <?= json_encode($popupTitle) ?>;
+        const pMessage = <?= json_encode($popupMessage) ?>;
+
+        if (pType) {
+            modalTitle.textContent = pTitle;
+            modalMessage.textContent = pMessage;
+
+            // Imposta lo stile in base al tipo
+            modalContent.className = 'modal-content type-' + pType;
+
+            if (pType === 'success') {
+                if (pTitle.toLowerCase().includes('verifica')) {
+                     modalIcon.innerHTML = '📧';
+                } else {
+                     modalIcon.innerHTML = '✅';
+                }
+            } else if (pType === 'error') {
+                modalIcon.innerHTML = '❌';
+            } else if (pType === 'blocked') {
+                modalIcon.innerHTML = '🔒';
+            } else if (pType === 'warning') {
+                modalIcon.innerHTML = '⚠️';
+            }
+
+            modal.style.display = "block";
+        }
+
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
+        closeBtn.onclick = closeModal;
+        okBtn.onclick = closeModal;
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    });
 </script>
+<!-- Include script di validazione se esiste -->
+<script src="assets/js/login_validation.js"></script>
 </body>
 </html>
