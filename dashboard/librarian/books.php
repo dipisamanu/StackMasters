@@ -158,7 +158,7 @@ require_once '../../src/Views/layout/header.php';
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
                                         <a href="inventory.php?id_libro=<?= $b['id_libro'] ?>" class="btn btn-light btn-sm text-success" title="Inventario"><i class="fas fa-boxes"></i></a>
-                                        <button class="btn btn-light btn-sm text-primary" onclick='openModal("edit", <?= json_encode($b) ?>)'><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-light btn-sm text-primary" onclick='openModal("edit", <?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>)'><i class="fas fa-edit"></i></button>
                                         <form action="process-book.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare questo libro?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id_libro" value="<?= $b['id_libro'] ?>">
@@ -397,7 +397,9 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('autore').value = isOldData ? (data.autore || '') : (data.autori_nomi || '');
                 document.getElementById('editore').value = data.editore;
 
+                // Gestione anno più robusta: converto in stringa per evitare errori .length su numeri
                 let anno = data.anno_uscita || data.anno || '';
+                anno = String(anno);
                 if (anno.length > 4) anno = anno.substring(0, 4);
                 document.getElementById('anno').value = anno;
 
