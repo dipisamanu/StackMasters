@@ -1,6 +1,6 @@
 <?php
 /**
- * Pagina Profilo Utente
+ * Profilo Utente Unificato (Studenti, Admin, Staff)
  * File: dashboard/student/profile.php
  */
 
@@ -9,19 +9,26 @@ require_once __DIR__ . '/../../src/config/session.php';
 
 Session::requireLogin();
 
-$db = getDB();
+$db = Database::getInstance()->getConnection();
 $userId = Session::getUserId();
-
 $flash = Session::getFlash();
 
-// Recupera dati utente
+// 1. Determina Ruolo e Link di Ritorno
+$currentRole = Session::getMainRole();
+$isAdmin = ($currentRole === 'Admin');
+
+$dashboardLink = match ($currentRole) {
+    'Admin' => '../admin/index.php',
+    'Bibliotecario' => '../librarian/index.php',
+    default => 'index.php'
+};
+
+// 2. Recupera Dati Utente
 try {
     $stmt = $db->prepare("
         SELECT 
             u.*,
             r.nome as ruolo_principale,
-            r.durata_prestito,
-            r.limite_prestiti,
             COALESCE(rf.rfid, 'Non assegnato') as rfid_code
         FROM utenti u
         LEFT JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente AND ur.id_ruolo = (
@@ -35,172 +42,71 @@ try {
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$user) {
-        die("Errore: Utente non trovato");
-    }
+    if (!$user) die("Errore: Utente non trovato");
 } catch (Exception $e) {
-    error_log("Errore recupero utente: " . $e->getMessage());
-    die("Errore nel caricamento del profilo");
+    die("Errore sistema: " . $e->getMessage());
 }
 
-// Statistiche prestiti
+// 3. Statistiche Prestiti
 try {
     $stmtStats = $db->prepare("
         SELECT 
-            COUNT(*) as totale_prestiti,
-            SUM(CASE WHEN data_restituzione IS NULL THEN 1 ELSE 0 END) as prestiti_attivi,
-            SUM(CASE WHEN data_restituzione IS NOT NULL THEN 1 ELSE 0 END) as prestiti_completati
+            COUNT(*) as totale,
+            SUM(IF(data_restituzione IS NULL, 1, 0)) as attivi,
+            SUM(IF(data_restituzione IS NOT NULL, 1, 0)) as completati
         FROM prestiti
         WHERE id_utente = ?
     ");
     $stmtStats->execute([$userId]);
     $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    error_log("Errore statistiche: " . $e->getMessage());
-    $stats = ['totale_prestiti' => 0, 'prestiti_attivi' => 0, 'prestiti_completati' => 0];
+    $stats = ['totale' => 0, 'attivi' => 0, 'completati' => 0];
 }
 
-// Badge ottenuti
-try {
-    $stmtBadges = $db->prepare("
-        SELECT b.nome, b.descrizione, b.icona_url, ub.data_conseguimento
-        FROM utenti_badge ub
-        JOIN badge b ON ub.id_badge = b.id_badge
-        WHERE ub.id_utente = ?
-        ORDER BY ub.data_conseguimento DESC
-    ");
-    $stmtBadges->execute([$userId]);
-    $badges = $stmtBadges->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    error_log("Errore badge: " . $e->getMessage());
-    $badges = [];
+// 4. Badge (Solo se non è admin, opzionale)
+$badges = [];
+if (!$isAdmin) {
+    try {
+        $stmtBadges = $db->prepare("
+            SELECT b.nome, b.descrizione, b.icona_url, ub.data_conseguimento
+            FROM utenti_badge ub
+            JOIN badge b ON ub.id_badge = b.id_badge
+            WHERE ub.id_utente = ?
+            ORDER BY ub.data_conseguimento DESC
+        ");
+        $stmtBadges->execute([$userId]);
+        $badges = $stmtBadges->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+    }
 }
+
+require_once '../../src/Views/layout/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Il Mio Profilo - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="../../public/assets/img/itisrossi.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
+        .profile-container {
+            max-width: 1100px;
             margin: 0 auto;
+            padding: 2rem 1rem;
         }
 
-        .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .card-custom {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            height: 100%;
         }
 
-        h1 {
-            color: #333;
-            font-size: 28px;
-        }
-
-        .header-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-header {
-            padding: 10px 20px;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-dashboard {
-            background: #bf2121;
-        }
-
-        .btn-dashboard:hover {
-            background: #931b1b;
-        }
-
-        .btn-logout {
-            background: #dc3545;
-        }
-
-        .btn-logout:hover {
-            background: #c82333;
-        }
-
-        .alert {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .header-buttons {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .card h2 {
-            color: #bf2121;
-            margin-bottom: 20px;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .card-header-custom {
+            padding: 1rem 1.5rem 0.75rem;
+            border-radius: 12px 12px 0 0;
         }
 
         .info-row {
             display: flex;
-            padding: 12px 0;
+            justify-content: space-between;
+            align-items: center;
+            padding: 13px 0;
             border-bottom: 1px solid #f0f0f0;
         }
 
@@ -209,323 +115,264 @@ try {
         }
 
         .info-label {
-            font-weight: 600;
-            color: #666;
-            width: 180px;
-            flex-shrink: 0;
+            font-weight: 700;
+            color: #495057;
+            font-size: 0.95rem;
+            width: 40%;
         }
 
         .info-value {
-            color: #333;
+            font-weight: 400;
+            color: #212529;
+            text-align: right;
+            width: 60%;
+            font-size: 1rem;
         }
 
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .stat-box {
+        .stat-card {
+            border-radius: 12px;
+            padding: 1.5rem;
             text-align: center;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            height: 100%;
         }
 
         .stat-number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #bf2121;
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
         }
 
         .stat-label {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .badges-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
         }
 
         .badge-item {
+            border-radius: 10px;
+            padding: 1rem;
             text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            transition: transform 0.2s;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
         }
 
         .badge-item:hover {
             transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .badge-icon {
-            font-size: 40px;
-            margin-bottom: 8px;
-        }
-
-        .badge-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .badge-desc {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-        }
-
-        .badge-date {
-            font-size: 11px;
-            color: #999;
-            margin-top: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         }
 
         .danger-zone {
             border: 2px solid #dc3545;
+            background-color: #fff5f5;
         }
 
-        .danger-zone p {
-            color: #666;
-            margin-bottom: 15px;
-        }
-
-        .actions-section {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        .actions-section h2 {
-            color: #bf2121;
-            margin-bottom: 20px;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .action-btn {
-            padding: 15px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            color: white;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        .action-primary {
-            background: #bf2121;
-        }
-
-        .action-primary:hover {
-            background: #931b1b;
-        }
-
-        .action-secondary {
-            background: #0066cc;
-        }
-
-        .action-secondary:hover {
-            background: #0052a3;
-        }
-
-        .action-danger {
-            background: #dc3545;
-        }
-
-        .action-danger:hover {
-            background: #c82333;
+        .danger-zone .card-body {
+            color: #842029;
         }
     </style>
-</head>
-<body>
-<div class="container">
-    <div class="header">
-        <h1><i class="fas fa-user-circle"></i> Il Mio Profilo</h1>
-        <div class="header-buttons">
-            <a href="index.php" class="btn-header btn-dashboard">
-                <i class="fas fa-home"></i> Dashboard
-            </a>
-            <a href="../../public/logout.php" class="btn-header btn-logout">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </div>
-    </div>
 
-    <?php if ($flash): ?>
-        <div class="alert alert-<?= htmlspecialchars($flash['type']) ?>">
-            <?= htmlspecialchars($flash['message']) ?>
-        </div>
-    <?php endif; ?>
+    <div class="profile-container">
 
-    <div class="grid">
-        <!-- Informazioni Personali -->
-        <div class="card">
-            <h2><i class="fas fa-id-card"></i> Informazioni Personali</h2>
-
-            <div class="info-row">
-                <div class="info-label">Nome:</div>
-                <div class="info-value"><?= htmlspecialchars($user['nome'] . ' ' . $user['cognome']) ?></div>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-5 gap-3">
+            <div>
+                <h1 class="h3 fw-bold text-dark mb-1">Il Mio Profilo</h1>
+                <p class="text-muted mb-0">Gestisci le tue informazioni e monitora le attività.</p>
             </div>
-
-            <div class="info-row">
-                <div class="info-label">Codice Fiscale:</div>
-                <div class="info-value"><?= htmlspecialchars($user['cf']) ?></div>
-            </div>
-
-            <div class="info-row">
-                <div class="info-label">Email:</div>
-                <div class="info-value"><?= htmlspecialchars($user['email']) ?></div>
-            </div>
-
-            <div class="info-row">
-                <div class="info-label">Data di Nascita:</div>
-                <div class="info-value"><?= date('d/m/Y', strtotime($user['data_nascita'])) ?></div>
-            </div>
-
-            <div class="info-row">
-                <div class="info-label">Sesso:</div>
-                <div class="info-value"><?= $user['sesso'] === 'M' ? 'Maschio' : 'Femmina' ?></div>
-            </div>
-
-            <div class="info-row">
-                <div class="info-label">Comune di Nascita:</div>
-                <div class="info-value"><?= htmlspecialchars($user['comune_nascita']) ?></div>
+            <div class="d-flex gap-2">
+                <a href="<?= $dashboardLink ?>" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Dashboard
+                </a>
+                <a href="../../public/logout.php" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt me-2"></i>Esci
+                </a>
             </div>
         </div>
 
-        <!-- Account -->
-        <div class="card">
-            <h2><i class="fas fa-cog"></i> Account</h2>
-
-            <div class="info-row">
-                <div class="info-label">Ruolo:</div>
-                <div class="info-value"><?= htmlspecialchars($user['ruolo_principale'] ?? 'Non assegnato') ?></div>
+        <?php if ($flash): ?>
+            <div class="alert alert-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?> alert-dismissible fade show shadow-sm mb-4"
+                 role="alert">
+                <i class="fas <?= $flash['type'] === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?> me-2"></i>
+                <?= htmlspecialchars($flash['message']) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        <?php endif; ?>
 
-            <div class="info-row">
-                <div class="info-label">Email Verificata:</div>
-                <div class="info-value">
-                    <?= $user['email_verificata'] ? '✔ Sì' : '❌ No' ?>
+        <div class="row g-4 mb-4">
+            <!-- Colonna Sinistra: Anagrafica -->
+            <div class="col-lg-6">
+                <div class="card card-custom">
+                    <div class="card-header-custom">
+                        <h5 class="mb-0 fw-bold text-danger"><i class="fas fa-id-card me-2"></i>Anagrafica</h5>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-2">
+                        <div class="info-row">
+                            <span class="info-label">Nome Completo</span>
+                            <span class="info-value fs-5"><?= htmlspecialchars($user['nome'] . ' ' . $user['cognome']) ?></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Codice Fiscale</span>
+                            <span class="info-value font-monospace"><?= htmlspecialchars($user['cf']) ?></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email</span>
+                            <span class="info-value"><?= htmlspecialchars($user['email']) ?></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Data di Nascita</span>
+                            <span class="info-value"><?= date('d/m/Y', strtotime($user['data_nascita'])) ?></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Comune</span>
+                            <span class="info-value"><?= htmlspecialchars($user['comune_nascita']) ?></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="info-row">
-                <div class="info-label">Codice RFID:</div>
-                <div class="info-value"><?= htmlspecialchars($user['rfid_code']) ?></div>
-            </div>
-
-            <div class="info-row">
-                <div class="info-label">Livello XP:</div>
-                <div class="info-value"><?= $user['livello_xp'] ?> punti</div>
-            </div>
-
-            <div class="info-row">
-                <div class="info-label">Membro dal:</div>
-                <div class="info-value"><?= date('d/m/Y', strtotime($user['data_creazione'])) ?></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistiche -->
-    <div class="card">
-        <h2><i class="fas fa-chart-bar"></i> Le Mie Statistiche</h2>
-
-        <div class="stat-grid">
-            <div class="stat-box">
-                <div class="stat-number"><?= $stats['totale_prestiti'] ?></div>
-                <div class="stat-label">Prestiti Totali</div>
-            </div>
-
-            <div class="stat-box">
-                <div class="stat-number"><?= $stats['prestiti_attivi'] ?></div>
-                <div class="stat-label">Prestiti Attivi</div>
-            </div>
-
-            <div class="stat-box">
-                <div class="stat-number"><?= $stats['prestiti_completati'] ?></div>
-                <div class="stat-label">Prestiti Completati</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Badge -->
-    <?php if (count($badges) > 0): ?>
-        <div class="card">
-            <h2><i class="fas fa-trophy"></i> I Miei Badge</h2>
-
-            <div class="badges-grid">
-                <?php foreach ($badges as $badge): ?>
-                    <div class="badge-item">
-                        <div class="badge-icon">🏅</div>
-                        <div class="badge-name"><?= htmlspecialchars($badge['nome']) ?></div>
-                        <div class="badge-desc"><?= htmlspecialchars($badge['descrizione']) ?></div>
-                        <div class="badge-date">
-                            Ottenuto il <?= date('d/m/Y', strtotime($badge['data_conseguimento'])) ?>
+            <!-- Colonna Destra: Account -->
+            <div class="col-lg-6">
+                <div class="card card-custom">
+                    <div class="card-header-custom">
+                        <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-user-shield me-2"></i>Account</h5>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-2">
+                        <div class="info-row">
+                            <span class="info-label">Ruolo</span>
+                            <span class="info-value">
+                            <span class="badge bg-dark px-3 py-2 fs-6"><?= htmlspecialchars($user['ruolo_principale']) ?></span>
+                        </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Stato Email</span>
+                            <span class="info-value">
+                            <?php if ($user['email_verificata']): ?>
+                                <span class="text-success fw-bold"><i
+                                            class="fas fa-check-circle me-1"></i> Verificata</span>
+                            <?php else: ?>
+                                <span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i> Non Verificata</span>
+                            <?php endif; ?>
+                        </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">RFID</span>
+                            <span class="info-value font-monospace text-muted"><?= htmlspecialchars($user['rfid_code']) ?></span>
+                        </div>
+                        <?php if (!$isAdmin): ?>
+                            <div class="info-row">
+                                <span class="info-label">Livello XP</span>
+                                <span class="info-value text-warning fw-bold fs-5"><i
+                                            class="fas fa-star me-1"></i><?= $user['livello_xp'] ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <div class="info-row">
+                            <span class="info-label">Membro dal</span>
+                            <span class="info-value"><?= date('d/m/Y', strtotime($user['data_creazione'])) ?></span>
                         </div>
                     </div>
-                <?php endforeach; ?>
+                </div>
             </div>
         </div>
-    <?php endif; ?>
 
-    <!-- Azioni Profilo -->
-    <div class="actions-section">
-        <h2><i class="fas fa-sliders-h"></i> Gestione Profilo</h2>
-        <div class="actions-grid">
-            <a href="change-password.php" class="action-btn action-primary">
-                <i class="fas fa-key"></i> Cambio Password
-            </a>
-            <a href="edit-profile.php" class="action-btn action-primary">
-                <i class="fas fa-edit"></i> Modifica Profilo
-            </a>
-            <a href="generate-card.php" class="action-btn action-secondary">
-                <i class="fas fa-id-card"></i> Scarica Tessera
-            </a>
-            <a href="export-data.php" class="action-btn action-secondary">
-                <i class="fas fa-download"></i> Esporta Dati
-            </a>
+        <!-- Statistiche Prestiti -->
+        <div class="card card-custom mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2"><i class="fas fa-chart-pie me-2"></i>Attività di
+                    Lettura</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="stat-card border-start border-4 border-secondary">
+                            <div class="stat-number text-secondary"><?= $stats['totale'] ?? 0 ?></div>
+                            <div class="stat-label">Prestiti Totali</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card border-start border-4 border-primary">
+                            <div class="stat-number text-primary"><?= $stats['attivi'] ?? 0 ?></div>
+                            <div class="stat-label">In Corso</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card border-start border-4 border-success">
+                            <div class="stat-number text-success"><?= $stats['completati'] ?? 0 ?></div>
+                            <div class="stat-label">Completati</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Badge (Solo se presenti e non admin) -->
+        <?php if (!empty($badges)): ?>
+            <div class="card card-custom mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-warning mb-4 border-bottom pb-2"><i class="fas fa-trophy me-2"></i>I Miei
+                        Traguardi</h5>
+                    <div class="row g-3 row-cols-2 row-cols-md-4 row-cols-lg-6">
+                        <?php foreach ($badges as $badge): ?>
+                            <div class="col">
+                                <div class="badge-item h-100">
+                                    <div class="fs-1 mb-2">🏅</div>
+                                    <div class="fw-bold text-dark small mb-1"><?= htmlspecialchars($badge['nome']) ?></div>
+                                    <div class="text-muted"
+                                         style="font-size: 0.7rem;"><?= date('d/m/y', strtotime($badge['data_conseguimento'])) ?></div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Azioni -->
+        <div class="card card-custom mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2"><i class="fas fa-cogs me-2"></i>Impostazioni</h5>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="change-password.php"
+                       class="btn btn-primary px-4 py-2 fw-bold shadow-sm text-decoration-none">
+                        <i class="fas fa-key me-2"></i> Cambia Password
+                    </a>
+                    <a href="edit-profile.php"
+                       class="btn btn-light border px-4 py-2 fw-bold text-dark text-decoration-none">
+                        <i class="fas fa-edit me-2"></i> Modifica Dati
+                    </a>
+                    <a href="generate-card.php"
+                       class="btn btn-dark px-4 py-2 fw-bold shadow-sm text-white text-decoration-none">
+                        <i class="fas fa-id-card me-2"></i> Tessera Virtuale
+                    </a>
+                    <?php if (!$isAdmin): ?>
+                        <a href="export-data.php"
+                           class="btn btn-light border px-4 py-2 fw-bold text-secondary text-decoration-none">
+                            <i class="fas fa-download me-2"></i> Esporta Dati
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zona Pericolosa (Nascosta per Admin) -->
+        <?php if (!$isAdmin): ?>
+            <div class="card card-custom danger-zone">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h5 class="fw-bold text-danger mb-1"><i class="fas fa-exclamation-triangle me-2"></i>Zona
+                            Pericolosa</h5>
+                        <h6 class="mb-0 fw-bold">L'eliminazione dell'account è irreversibile e cancellerà tutti i tuoi
+                            dati.</h6>
+                    </div>
+                    <a href="delete-account.php" class="btn btn-danger fw-bold px-4 py-2 shadow-sm text-decoration-none"
+                       onclick="return confirm('Sei assolutamente sicuro? Questa azione non può essere annullata.')">
+                        Elimina Account
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+
     </div>
 
-    <!-- Zona Pericolosa -->
-    <div class="actions-section danger-zone">
-        <h2><i class="fas fa-exclamation-triangle"></i> Zona Pericolosa</h2>
-        <p>Le seguenti azioni sono irreversibili. Procedi con cautela.</p>
-        <div class="actions-grid">
-            <a href="delete-account.php" class="action-btn action-danger" onclick="return confirm('Sei sicuro? Questa azione è IRREVERSIBILE!')">
-                <i class="fas fa-trash"></i> Elimina Account
-            </a>
-        </div>
-    </div>
-</div>
-</body>
-</html>
+<?php require_once '../../src/Views/layout/footer.php'; ?>
