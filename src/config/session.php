@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Sessioni Sicure - VERSIONE CORRETTA
+ * Gestione Sessioni Sicure
  * File: src/config/session.php
  */
 
