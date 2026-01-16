@@ -10,6 +10,7 @@ use Ottaviodipisa\StackMasters\Models\NotificationManager;
 /**
  * LoanService - Gestisce tutta la logica di business per prestiti e restituzioni
  * Adattato allo schema database biblioteca_db
+ * Aggiunta logica per notifiche automatiche di scadenza e ritardo prestiti
  */
 class LoanService
 {
