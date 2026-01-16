@@ -12,5 +12,7 @@ TO DO:
 - schermata prestiti totali del bibliotecario ✅
 - guardare il fatto della release e i tags
 - seeder in automatico che parte con il db
+- seeder con i ratings integrati
+- librerie googlebooks e openlibrary sistemate o almeno checked
 - cambiare il colore di sfondo del verify email da viola ✅
 - tasto vedi tutto nella gestione dei prestiti
