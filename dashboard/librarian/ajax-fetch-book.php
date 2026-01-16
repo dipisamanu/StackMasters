@@ -1,6 +1,6 @@
 <?php
 /**
- * AJAX Endpoint - Recupera dati libro dal Database locale (Versione Semplificata)
+ * AJAX Endpoint - Recupera dati libro dal Database locale o da API esterne
  * File: dashboard/librarian/ajax-fetch-book.php
  * Supporta: Scansione Barcode (ID Inventario o ISBN)
  */
@@ -13,9 +13,11 @@ ob_start();
 header('Content-Type: application/json');
 
 try {
-    // 1. Inclusione Configurazione e Sessione
+    // 1. Inclusione Configurazione e Servizi
     require_once '../../src/config/session.php';
     require_once '../../src/config/database.php';
+    require_once '../../src/Services/GoogleBooksService.php';
+    require_once '../../src/Services/OpenLibraryService.php';
 
     // 2. Controllo Permessi
     if (!isset($_SESSION['user_id'])) {
@@ -33,11 +35,6 @@ try {
 
     // Se è un ISBN (lunghezza 10 o 13), cerchiamo il libro generico
     // Se è un ID Inventario (numerico o stringa breve), cerchiamo la copia specifica
-    
-    // Logica migliorata:
-    // Se cerchiamo per ISBN (parametro isbn o id lungo), restituiamo i dati del libro (per form creazione)
-    // Se cerchiamo per ID Inventario (parametro id), restituiamo i dati della copia (per prestito)
-
     if (isset($_GET['isbn']) || strlen($code) >= 10) {
         // Ricerca Libro (Generica)
         $sql = "SELECT 
@@ -73,6 +70,21 @@ try {
              ob_clean();
              echo json_encode(['success' => true, 'data' => $book]);
              exit;
+        } else {
+            // Se non trovato nel DB, prova con le API esterne
+            $googleBooks = new GoogleBooksService();
+            $bookData = $googleBooks->fetchByIsbn($code);
+
+            if (!$bookData) {
+                $openLibrary = new OpenLibraryService();
+                $bookData = $openLibrary->fetchByIsbn($code);
+            }
+
+            if ($bookData) {
+                ob_clean();
+                echo json_encode(['success' => true, 'data' => $bookData]);
+                exit;
+            }
         }
     }
 
