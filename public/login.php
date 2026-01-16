@@ -393,14 +393,6 @@ if (isset($_SESSION['login_warning'])) {
 </div>
 
 <script>
-    // Toggle visibilità password
-    document.getElementById('togglePassword').addEventListener('click', function() {
-        const passwordInput = document.getElementById('password');
-        const type = passwordInput.type === 'password' ? 'text' : 'password';
-        passwordInput.type = type;
-        this.textContent = type === 'password' ? '👁️' : '🙈';
-    });
-
     // Logica del Modal
     document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById("infoModal");
