@@ -4,20 +4,10 @@ namespace Ottaviodipisa\StackMasters\Helpers;
 
 use TCPDF;
 
-/**
- * Helper per la generazione delle ricevute di restituzione (Epic 5.9 - 5.11).
- * Utilizza la libreria TCPDF per produrre un documento PDF salvato sul server.
- */
 class RicevutaRestituzionePDF
 {
-    /**
-     * Genera la ricevuta PDF per un blocco di restituzioni.
-     * * @param array $dati Deve contenere le chiavi 'utente', 'libri' (array di dettagli) e 'data_operazione'.
-     * @return string Nome del file generato.
-     */
     public static function genera(array $dati): string
     {
-        // 1. Validazione e estrazione dati
         $utente = $dati['utente'] ?? null;
         $libri  = $dati['libri'] ?? [];
         $dataOp = $dati['data_operazione'] ?? date('d/m/Y H:i');
@@ -27,116 +17,113 @@ class RicevutaRestituzionePDF
             return "";
         }
 
-        // 2. Inizializzazione TCPDF
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('StackMasters LMS');
         $pdf->SetAuthor('Biblioteca ITIS Rossi');
-        $pdf->SetTitle('Ricevuta Restituzione #' . ($utente['id_utente'] ?? '0'));
+        $pdf->SetTitle('Avviso di Restituzione - ' . $utente['cognome']);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-        $pdf->SetMargins(15, 45, 15);
+        $pdf->SetMargins(15, 20, 15);
         $pdf->AddPage();
 
-        /* ================= HEADER ESTETICO (ROSSO ITIS) ================= */
-        $pdf->SetFillColor(191, 33, 33); // Rosso istituzionale #bf2121
-        $pdf->Rect(0, 0, 210, 35, 'F');
-        $pdf->SetTextColor(255, 255, 255);
-        $pdf->SetFont('helvetica', 'B', 20);
-        $pdf->SetY(12);
-        $pdf->Cell(0, 10, 'RICEVUTA DI RESTITUZIONE', 0, 1, 'C');
+        // --- HEADER ---
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->Cell(0, 10, 'Biblioteca Scolastica ITIS "A. Rossi"', 0, 1, 'L');
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell(0, 5, 'Via Legione Gallieno, 52 - 36100 Vicenza (VI)', 0, 1, 'L');
+        $pdf->Line(15, $pdf->GetY() + 2, 195, $pdf->GetY() + 2);
 
-        /* ================= CONTENUTO HTML ================= */
+        // --- TITOLO DOCUMENTO ---
+        $pdf->SetY($pdf->GetY() + 10);
+        $pdf->SetFont('helvetica', 'B', 22);
+        $pdf->SetTextColor(34, 197, 94); // Verde
+        $pdf->Cell(0, 15, 'AVVISO DI RESTITUZIONE', 0, 1, 'C');
         $pdf->SetTextColor(0, 0, 0);
+
+        // --- DATI UTENTE ---
         $pdf->SetFont('helvetica', '', 11);
-
-        // Generazione dinamica delle righe della tabella
-        $rowsHtml = '';
-        foreach ($libri as $libro) {
-            $titolo = htmlspecialchars($libro['titolo']);
-            $condizione = $libro['condizione'] ?? 'BUONO';
-            $multa = (float)($libro['multa'] ?? 0);
-            $totaleMulte += $multa;
-
-            // Stile condizionale in base allo stato del libro
-            $condStyle = ($condizione !== 'BUONO' && $condizione !== 'NUOVO') ? 'color: #bf2121; font-weight: bold;' : 'color: #28a745;';
-            $multaText = ($multa > 0) ? number_format($multa, 2) . ' €' : '-';
-
-            $rowsHtml .= '
-            <tr>
-                <td style="border: 1px solid #ddd; width: 15%; text-align: center;">' . $libro['id_inventario'] . '</td>
-                <td style="border: 1px solid #ddd; width: 45%;">' . $titolo . '</td>
-                <td style="border: 1px solid #ddd; width: 25%; text-align: center; ' . $condStyle . '">' . $condizione . '</td>
-                <td style="border: 1px solid #ddd; width: 15%; text-align: right;">' . $multaText . '</td>
-            </tr>';
-        }
-
         $html = '
         <style>
-            .section-title { color: #bf2121; font-weight: bold; font-size: 14pt; border-bottom: 1px solid #eee; }
-            .info-table td { padding: 4px; }
-            .items-table th { background-color: #f8f9fa; font-weight: bold; text-align: center; border: 1px solid #ddd; }
-            .total-row { background-color: #fff5f5; font-weight: bold; }
+            .section-title { font-weight: bold; font-size: 12pt; color: #333; border-bottom: 1px solid #ccc; margin-bottom: 5px; }
+            .info-table td { padding: 5px; font-size: 10pt; }
         </style>
-
-        <br><br>
-        <h4 class="section-title">DATI UTENTE</h4>
+        <h4 class="section-title">Dati del Lettore</h4>
         <table class="info-table">
-            <tr><td><b>Utente:</b></td><td>' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
-            <tr><td><b>Codice Fiscale :</b></td><td>' . htmlspecialchars($utente['cf'] ?? 'N/D') . '</td></tr>
-            <tr><td><b>Data Rientro:</b></td><td>' . $dataOp . '</td></tr>
+            <tr><td width="25%"><b>Nominativo:</b></td><td width="75%">' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
+            <tr><td><b>Data Operazione:</b></td><td>' . $dataOp . '</td></tr>
         </table>
-
         <br><br>
-        <h4 class="section-title">RIEPILOGO VOLUMI RESTITUITI</h4>
-        <table cellpadding="5" class="items-table">
-            <thead>
-                <tr>
-                    <th style="width: 15%;">ID</th>
-                    <th style="width: 45%;">Titolo Libro</th>
-                    <th style="width: 25%;">Stato</th>
-                    <th style="width: 15%;">Sanzione</th>
-                </tr>
-            </thead>
-            <tbody>
-                ' . $rowsHtml . '
-            </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td colspan="3" style="border: 1px solid #ddd; text-align: right;">TOTALE ADDEBITI GENERATI:</td>
-                    <td style="border: 1px solid #ddd; text-align: right; color: #bf2121;">' . number_format($totaleMulte, 2) . ' €</td>
-                </tr>
-            </tfoot>
-        </table>
-
-        <br><br>
-        <p style="font-size: 9pt; color: #666; font-style: italic;">
-            La presente ricevuta attesta la riconsegna fisica dei volumi sopra elencati. 
-            In caso di penali indicate, l\'importo è stato addebitato sul portale utente e dovrà essere saldato secondo il regolamento della biblioteca.
-        </p>
-        ';
-
+        <h4 class="section-title">Riepilogo Volumi Rientrati</h4>';
         $pdf->writeHTML($html, true, false, true, false, '');
 
-        /* ================= FOOTER ================= */
-        $pdf->SetY(-40);
-        $pdf->SetFont('helvetica', 'I', 9);
-        $pdf->SetTextColor(120, 120, 120);
-        $pdf->Cell(0, 5, 'StackMasters LMS - Generato automaticamente dal sistema', 0, 1, 'C');
-        $pdf->Ln(5);
+        // --- TABELLA LIBRI ---
+        $pdf->SetFont('helvetica', 'B', 9);
+        $header = ['ID', 'Titolo', 'Cond. Uscita', 'Cond. Rientro', 'Addebito'];
+        $w = [15, 80, 30, 30, 25];
+        
+        $pdf->SetFillColor(45, 55, 72);
+        $pdf->SetTextColor(255, 255, 255);
+        for($i = 0; $i < count($header); $i++) {
+            $pdf->Cell($w[$i], 7, $header[$i], 1, 0, 'C', 1);
+        }
+        $pdf->Ln();
         $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('', '');
+
+        foreach ($libri as $libro) {
+            $totaleMulte += (float)($libro['multa'] ?? 0);
+            $condPartenza = $libro['condizione_partenza'] ?? 'BUONO';
+            $condRientro = $libro['condizione'] ?? 'BUONO';
+            $multaText = ($libro['multa'] > 0) ? number_format($libro['multa'], 2) . ' €' : '-';
+
+            $pdf->Cell($w[0], 6, $libro['id_inventario'], 'LR', 0, 'C');
+            $pdf->Cell($w[1], 6, htmlspecialchars($libro['titolo']), 'LR', 0, 'L');
+            $pdf->Cell($w[2], 6, $condPartenza, 'LR', 0, 'C');
+            
+            if ($condRientro !== $condPartenza) {
+                $pdf->SetTextColor(191, 33, 33);
+                $pdf->SetFont('', 'B');
+            }
+            $pdf->Cell($w[3], 6, $condRientro, 'LR', 0, 'C');
+            $pdf->SetFont('', '');
+            $pdf->SetTextColor(0, 0, 0);
+
+            $pdf->Cell($w[4], 6, $multaText, 'LR', 0, 'R');
+            $pdf->Ln();
+        }
+        
+        // CORREZIONE: La riga di chiusura tabella è stata rimossa da qui e integrata nella riga del totale.
+        
+        // --- RIGA TOTALE ---
         $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 10, 'Timbro e Firma Bibliotecario: _______________________________', 0, 1, 'R');
+        // CORREZIONE: Aggiunto il bordo superiore 'T' e rimosso quello destro 'R' per la prima cella.
+        $pdf->Cell(array_sum($w) - $w[4], 8, 'TOTALE ADDEBITATO', 'LTB', 0, 'R');
+        $pdf->SetTextColor(191, 33, 33);
+        // CORREZIONE: Aggiunto il bordo superiore 'T' per la seconda cella.
+        $pdf->Cell($w[4], 8, number_format($totaleMulte, 2) . ' €', 'TRB', 1, 'R');
+        $pdf->SetTextColor(0, 0, 0);
 
-        // 3. Salvataggio fisico
+        // --- NOTE FINALI ---
+        $pdf->SetY($pdf->GetY() + 10);
+        $pdf->SetFont('helvetica', 'I', 8);
+        $pdf->MultiCell(0, 10, "Questo documento attesta la riconsegna dei volumi. Eventuali addebiti per ritardi o danni sono stati registrati sul profilo dell'utente e dovranno essere saldati presso la biblioteca.", 0, 'L');
+
+        // --- FOOTER ---
+        $pdf->SetY(-40);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(90, 10, 'Firma del Bibliotecario', 'T', 0, 'C');
+        $pdf->Cell(10, 10, '', 0, 0, 'C');
+        $pdf->Cell(90, 10, 'Firma del Lettore', 'T', 1, 'C');
+
+        // Salvataggio
         $fileName = "restituzione_" . ($utente['id_utente'] ?? '0') . "_" . time() . ".pdf";
-        $dir = __DIR__ . "/../../public/assets/docs/";
+        $path = __DIR__ . "/../../public/assets/docs/" . $fileName;
 
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
         }
 
-        $pdf->Output($dir . $fileName, 'F');
-
+        $pdf->Output($path, 'F');
         return $fileName;
     }
 }
