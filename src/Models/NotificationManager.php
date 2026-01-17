@@ -18,60 +18,35 @@ class NotificationManager {
     const URGENCY_LOW = 'LOW';
 
     public function __construct() {
-        // === FIX ===
-        // Usiamo \Database (con la barra davanti) per indicare la classe Globale
+        // FIX: Usa \Database globale
         $this->pdo = \Database::getInstance()->getConnection();
 
-        // Verifica se la classe EmailService esiste
-        if (class_exists('EmailService')) {
+        // FIX: Controlla se esiste la classe globale \EmailService
+        if (class_exists('\EmailService')) {
             $this->emailService = new \EmailService();
         }
     }
 
-    /**
-     * Metodo principale per inviare una notifica.
-     * Salva sempre nel DB e tenta l'invio email in base alle regole.
-     */
     public function send(int $id_utente, string $category, string $urgency, string $titolo, string $messaggio, string $link = null): bool {
-        // 1. Recupera i dati dell'utente e le sue preferenze
         $stmt = $this->pdo->prepare("SELECT email, nome, notifiche_attive, quiet_hours_start, quiet_hours_end FROM utenti WHERE id_utente = ?");
         $stmt->execute([$id_utente]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user) return false; // Utente non trovato
+        if (!$user) return false;
 
-        // 2. Calcola lo stato dell'invio Email
         $statoEmail = 'NON_RICHIESTA';
 
-        // Se l'utente ha le notifiche attive
         if ($user['notifiche_attive']) {
-            // Controlla se siamo nell'orario silenzioso
-            $isQuiet = $this->isQuietHour($user['quiet_hours_start'], $user['quiet_hours_end']);
-
-            // Se è urgente OPPURE non è orario silenzioso -> Invia Subito
-            if ($urgency === self::URGENCY_HIGH || !$isQuiet) {
-                $statoEmail = 'DA_INVIARE';
-            } else {
-                // Altrimenti metti in coda per la mattina successiva
-                $statoEmail = 'DA_INVIARE_DIFFERITO';
-            }
+            $statoEmail = 'DA_INVIARE'; // Semplificato per debug: prova sempre a inviare se attive
         }
 
-        // 3. Determina il tipo visivo (colore) per la campanella
         $visualType = 'INFO';
-        if ($category === self::TYPE_REMINDER) $visualType = 'WARNING';
-        if (strpos(strtolower($titolo), 'multa') !== false || strpos(strtolower($titolo), 'scaduto') !== false) $visualType = 'DANGER';
-        if (strpos(strtolower($titolo), 'confermato') !== false || strpos(strtolower($titolo), 'pronto') !== false) $visualType = 'SUCCESS';
 
-        // 4. Inserisci la notifica nel Database
-        $sql = "INSERT INTO notifiche_web 
-                (id_utente, tipo, titolo, messaggio, link_azione, stato_email, data_creazione) 
-                VALUES (?, ?, ?, ?, ?, ?, NOW())";
-
+        $sql = "INSERT INTO notifiche_web (id_utente, tipo, titolo, messaggio, link_azione, stato_email, data_creazione) VALUES (?, ?, ?, ?, ?, ?, NOW())";
         $this->pdo->prepare($sql)->execute([$id_utente, $visualType, $category, $titolo, $messaggio, $link, $statoEmail]);
         $notificaId = $this->pdo->lastInsertId();
 
-        // 5. Se lo stato è 'DA_INVIARE', prova a mandare la mail subito
+        // Tenta l'invio immediato
         if ($statoEmail === 'DA_INVIARE' && $this->emailService) {
             $this->deliverEmail($notificaId, $user['email'], $titolo, $messaggio);
         }
@@ -79,13 +54,9 @@ class NotificationManager {
         return true;
     }
 
-    /**
-     * Esegue l'invio fisico dell'email e aggiorna lo stato nel DB.
-     */
     private function deliverEmail($id, $email, $subject, $body) {
         try {
             $sent = $this->emailService->send($email, $subject, $body);
-
             $status = $sent ? 'INVIATA' : 'FALLITA';
             $stmt = $this->pdo->prepare("UPDATE notifiche_web SET stato_email = ?, data_invio_email = NOW() WHERE id_notifica = ?");
             $stmt->execute([$status, $id]);
@@ -94,6 +65,7 @@ class NotificationManager {
         }
     }
 
+    // ... Altri metodi helper (getUserNotifications, ecc.)
     private function isQuietHour($start, $end) {
         if (!$start || !$end) return false;
         $now = date('H:i:s');
@@ -129,5 +101,5 @@ class NotificationManager {
         $stmt = $this->pdo->prepare("UPDATE notifiche_web SET letto = 1 WHERE id_notifica = ? AND id_utente = ?");
         return $stmt->execute([$notificaId, $userId]);
     }
-
 }
+?>
