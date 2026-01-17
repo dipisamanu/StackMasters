@@ -15,7 +15,7 @@ if (file_exists($projectRoot . '/.env')) {
         $dotenv->load();
     } catch (\Throwable $e) {
         error_log("Errore caricamento .env: " . $e->getMessage());
-        throw new \Exception("Errore caricamento .env: " . $e->getMessage());
+        // Non blocchiamo tutto qui, lasciamo che sia il costruttore a gestire errori critici
     }
 }
 
@@ -23,6 +23,7 @@ class EmailService {
     private $mailer;
     private $smtpConfig;
     private $debug;
+    private $lastError = ''; // Variabile per memorizzare l'ultimo errore
 
     public function __construct($debug = false) {
         $this->debug = $debug;
@@ -50,13 +51,17 @@ class EmailService {
         $this->configureMailer();
     }
 
+    /**
+     * Restituisce l'ultimo errore verificatosi durante l'invio
+     */
+    public function getLastError() {
+        return $this->lastError;
+    }
+
     private function configureMailer() {
         try {
             if ($this->debug) {
-                $this->mailer->SMTPDebug = 2;
-                $this->mailer->Debugoutput = function($str, $level) {
-                    error_log("PHPMailer [$level]: $str");
-                };
+                $this->mailer->SMTPDebug = 0; // Disabilita output diretto (lo catturiamo se serve)
             }
 
             $this->mailer->isSMTP();
@@ -66,6 +71,9 @@ class EmailService {
             $this->mailer->Password = $this->smtpConfig['password'];
             $this->mailer->SMTPSecure = $this->smtpConfig['encryption'];
             $this->mailer->Port = $this->smtpConfig['port'];
+            
+            // Mantiene la connessione viva per invii multipli
+            $this->mailer->SMTPKeepAlive = true;
 
             $this->mailer->SMTPOptions = [
                 'ssl' => [
@@ -80,7 +88,8 @@ class EmailService {
             $this->mailer->Encoding = 'base64';
 
         } catch (PHPMailerException $e) {
-            error_log("Errore configurazione email: " . $e->getMessage());
+            $this->lastError = "Configurazione fallita: " . $e->getMessage();
+            error_log($this->lastError);
             throw $e;
         }
     }
@@ -89,9 +98,6 @@ class EmailService {
         $baseUrl = $_ENV['APP_URL'] ?? (defined('BASE_URL') ? BASE_URL : 'http://localhost/StackMasters');
         $verifyUrl = rtrim($baseUrl, '/') . '/public/verify-email.php?token=' . urlencode($token);
 
-        error_log("BASE_URL utilizzato: " . $baseUrl);
-        error_log("URL Verifica completo: " . $verifyUrl);
-
         $subject = "Verifica il tuo account - Biblioteca ITIS Rossi";
         $body = $this->getVerificationTemplate($nome, $verifyUrl);
 
@@ -99,11 +105,14 @@ class EmailService {
     }
 
     public function send($to, $subject, $body, $altBody = '') {
+        $this->lastError = ''; // Reset errore
         try {
+            // Reset per evitare residui di invii precedenti
             $this->mailer->clearAddresses();
             $this->mailer->clearAttachments();
+            $this->mailer->clearAllRecipients(); // Pulisce anche CC e BCC
+            
             $this->mailer->addAddress($to);
-
             $this->mailer->isHTML(true);
             $this->mailer->Subject = $subject;
             $this->mailer->Body = $body;
@@ -112,20 +121,24 @@ class EmailService {
             $result = $this->mailer->send();
 
             if ($result) {
-                error_log("Email inviata con successo a: $to");
                 return true;
             } else {
-                error_log("Invio email fallito (nessuna eccezione)");
+                $this->lastError = "Invio fallito (send ha restituito false)";
                 return false;
             }
 
         } catch (PHPMailerException $e) {
-            error_log("Errore invio email a $to: " . $e->getMessage());
-            error_log("ErrorInfo: " . $this->mailer->ErrorInfo);
+            $this->lastError = $e->getMessage() . " (Info: " . $this->mailer->ErrorInfo . ")";
+            error_log("Errore invio email a $to: " . $this->lastError);
+            return false;
+        } catch (\Exception $e) {
+            $this->lastError = "Eccezione generica: " . $e->getMessage();
+            error_log("Errore generico invio email a $to: " . $this->lastError);
             return false;
         }
     }
 
+    // ... (Template HTML invariati) ...
     private function getVerificationTemplate($nome, $verifyUrl) {
         return '
         <!DOCTYPE html>
@@ -268,6 +281,123 @@ class EmailService {
                 </div>
                 <div class=\"footer\">
                     <p>Biblioteca ITIS Rossi - Sistema Gestionale</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+
+        return $this->send($to, $subject, $body);
+    }
+
+    public function sendReservationAvailable($to, $nome, $titoloLibro, $scadenzaRitiro) {
+        $subject = "Prenotazione Disponibile - " . $titoloLibro;
+        $body = "
+        <!DOCTYPE html>
+        <html lang=\"it\">
+        <head>
+            <meta charset=\"UTF-8\">
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+            <style>
+                body { 
+                    font-family: 'Segoe UI', Arial, sans-serif; 
+                    line-height: 1.6; 
+                    color: #333;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f4f4f4;
+                }
+                .container { 
+                    max-width: 600px; 
+                    margin: 20px auto;
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+                }
+                .header { 
+                    background: #d35400; /* Arancione scuro, più elegante */
+                    color: white; 
+                    padding: 25px; 
+                    text-align: center;
+                }
+                .header h2 {
+                    margin: 0;
+                    font-weight: 600;
+                    letter-spacing: 0.5px;
+                }
+                .content { 
+                    padding: 40px;
+                }
+                .info-box { 
+                    background: #fdf2e9; /* Crema molto tenue */
+                    padding: 20px; 
+                    margin: 25px 0; 
+                    border-left: 5px solid #d35400;
+                    border-radius: 4px;
+                    color: #5d4037;
+                }
+                .info-item {
+                    margin-bottom: 8px;
+                    font-size: 1.05em;
+                }
+                .info-item:last-child {
+                    margin-bottom: 0;
+                }
+                .footer {
+                    text-align: center;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    color: #888;
+                    font-size: 0.85em;
+                    border-top: 1px solid #eee;
+                }
+                .btn {
+                    display: inline-block;
+                    padding: 12px 25px;
+                    background-color: #d35400;
+                    color: white !important;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    margin-top: 20px;
+                    transition: background-color 0.3s;
+                }
+                .btn:hover {
+                    background-color: #a04000;
+                }
+                .urgent-note {
+                    color: #c0392b;
+                    font-weight: 600;
+                    font-size: 0.9em;
+                    margin-top: 15px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class=\"container\">
+                <div class=\"header\">
+                    <h2>🔔 Prenotazione Disponibile</h2>
+                </div>
+                <div class=\"content\">
+                    <p>Ciao <strong>" . htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') . "</strong>,</p>
+                    <p>Ottime notizie! Il libro che stavi aspettando è rientrato ed è stato messo da parte per te.</p>
+                    
+                    <div class=\"info-box\">
+                        <div class=\"info-item\"><strong>📚 Libro:</strong> " . htmlspecialchars($titoloLibro, ENT_QUOTES, 'UTF-8') . "</div>
+                        <div class=\"info-item\"><strong>⏳ Scadenza Ritiro:</strong> " . htmlspecialchars($scadenzaRitiro, ENT_QUOTES, 'UTF-8') . "</div>
+                    </div>
+                    
+                    <p class=\"urgent-note\">⚠ Importante: Hai 48 ore per il ritiro.</p>
+                    <p>Se non passi entro la scadenza indicata, la prenotazione decadrà automaticamente e il libro verrà assegnato al prossimo utente in coda.</p>
+                    
+                    <p style=\"text-align: center;\">
+                        <a href=\"" . ($_ENV['APP_URL'] ?? 'http://localhost/StackMasters') . "/dashboard/student/index.php\" class=\"btn\">Visualizza nella Dashboard</a>
+                    </p>
+                </div>
+                <div class=\"footer\">
+                    <p>Biblioteca ITIS Rossi - Sistema Gestionale</p>
+                    <p>Via Legnano 12, Vicenza</p>
                 </div>
             </div>
         </body>

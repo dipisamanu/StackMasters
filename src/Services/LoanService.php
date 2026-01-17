@@ -47,6 +47,7 @@ class LoanService
         $this->db->beginTransaction();
 
         try {
+            // 1. RECUPERA DATI UTENTE E LIBRO
             $utente = $this->getUtenteCompleto($utenteId);
             if (!$utente) {
                 throw new Exception("Utente non trovato (ID: $utenteId)");
@@ -57,37 +58,51 @@ class LoanService
                 throw new Exception("Copia libro non trovata (ID Inventario: $inventarioId)");
             }
 
+            // 2. CONTROLLI PRELIMINARI
             $this->verificaMultePendenti($utenteId);
             $this->verificaBloccoAccount($utente);
             $this->verificaLimitiPrestito($utente);
             $this->verificaDisponibilitaCopia($copia);
 
+            // 3. GESTIONE PRENOTAZIONI (Logica Avanzata)
             // Verifica se la copia è riservata ad altri o se l'utente ha prenotazioni pendenti
             $this->gestisciPrenotazioniPrimaDelPrestito($copia['id_libro'], $inventarioId, $utenteId);
+            
             // Verifica se l'utente aveva una prenotazione attiva per questo libro (per chiuderla)
             $prenotazione = $this->verificaPrenotazione($utenteId, $copia['id_libro']);
+
+            // 4. CALCOLA DATA SCADENZA
             $dataScadenza = $this->calcolaDataScadenza($utente['durata_prestito']);
+
+            // 5. REGISTRA IL PRESTITO
             $prestitoId = $this->creaPrestito($utenteId, $inventarioId, $dataScadenza);
+
+            // 6. AGGIORNA STATO COPIA
             $this->aggiornaStatoCopia($inventarioId, 'IN_PRESTITO');
+
+            // 7. INCREMENTA CONTATORE PRESTITI
             $this->incrementaPrestitiUtente($utenteId, $utente['id_ruolo']);
 
+            // 8. GESTISCI PRENOTAZIONE (CHIUSURA)
             $messaggioPrenotazione = '';
             if ($prenotazione) {
                 $this->completaPrenotazione($prenotazione['id_prenotazione']);
                 $messaggioPrenotazione = "Prenotazione #{$prenotazione['id_prenotazione']} completata";
             }
 
-            // Se l'utente ha preso una copia diversa da quella assegnata, libera la sua vecchia assegnazione
-            // gestisciPrenotazioniPrimaDelPrestito si occupa già di riassegnare eventuali copie prenotate ma non ritirate.
+            // 9. NOTIFICA SUCCESSIVO IN CODA (Se l'utente ha preso una copia diversa da quella assegnata, libera la sua vecchia assegnazione)
+            // Nota: gestisciPrenotazioniPrimaDelPrestito si occupa già di riassegnare eventuali copie prenotate ma non ritirate.
 
+            // 10. LOG AUDIT
             $this->logAzione($utenteId, 'MODIFICA_PRESTITO', "Prestito #$prestitoId registrato - Libro: {$copia['titolo']}");
 
+            // 11. COMMIT TRANSAZIONE
             $this->db->commit();
 
-            // Notifica Email Diretta
+            // Notifica Email Diretta (Stilizzata)
             $this->inviaEmailConferma($utente, $copia, $dataScadenza, $prestitoId);
             
-            // Notifica Interna
+            // Notifica Interna (Campanella) - NO EMAIL (già inviata sopra)
             try {
                 $this->notifier->send(
                     $utenteId,
@@ -95,7 +110,8 @@ class LoanService
                     NotificationManager::URGENCY_LOW,
                     "Prestito Confermato",
                     "Hai preso in prestito '{$copia['titolo']}'. Scadenza prevista: " . date('d/m/Y', strtotime($dataScadenza)),
-                    "/dashboard/student/index.php"
+                    "/dashboard/student/index.php",
+                    true // forceNoEmail
                 );
             } catch (Exception $e) {
                 error_log("Errore invio notifica prestito: " . $e->getMessage());
@@ -167,11 +183,11 @@ class LoanService
                 switch (strtoupper($condizione)) {
                     case 'USURATO':
                         // 10% del valore
-                        $penaleStato = round($valoreLibro * 0.1, 2);
+                        $penaleStato = round($valoreLibro * 0.10, 2);
                         break;
                     case 'DANNEGGIATO':
                         // 50% del valore
-                        $penaleStato = round($valoreLibro / 2, 2);
+                        $penaleStato = round($valoreLibro * 0.50, 2);
                         break;
                     case 'SMARRITO':
                         // 100% del valore
@@ -188,26 +204,45 @@ class LoanService
 
             $this->completaPrestito($prestito['id_prestito']);
             
-            // Logica Assegnazione Prenotazione
-            $prenotazioneSuccessiva = $this->getPrenotazioneSuccessiva($prestito['id_libro']);
+            // --- LOGICA ASSEGNAZIONE / STATO FINALE ---
             
-            if ($prenotazioneSuccessiva) {
-                $this->assegnaPrenotazione($prenotazioneSuccessiva['id_prenotazione'], $inventarioId);
-                $this->aggiornaStatoCopia($inventarioId, 'PRENOTATO', $condizione); // Aggiorna stato e condizione
-                $messaggi[] = "📢 Libro riservato per: {$prenotazioneSuccessiva['nome']} {$prenotazioneSuccessiva['cognome']} (48h)";
+            // Se il libro è DANNEGGIATO o SMARRITO, non può essere rimesso in circolo
+            if ($condizione === 'DANNEGGIATO' || $condizione === 'SMARRITO') {
+                $nuovoStato = ($condizione === 'SMARRITO') ? 'SMARRITO' : 'NON_IN_PRESTITO';
+                $this->aggiornaStatoCopia($inventarioId, $nuovoStato, $condizione);
+                $messaggi[] = "⛔ Libro ritirato dalla circolazione (Stato: $nuovoStato)";
                 
-                // Notifica immediata all'utente in attesa
-                $this->notifier->send(
-                    $prenotazioneSuccessiva['id_utente'],
-                    NotificationManager::TYPE_INFO,
-                    NotificationManager::URGENCY_HIGH,
-                    "Il libro che aspettavi è disponibile!",
-                    "È arrivato il tuo turno per '{$prestito['titolo']}'. Hai 48 ore per passare in biblioteca.",
-                    "/dashboard/student/index.php"
-                );
+                // Se c'erano prenotazioni, NON possiamo assegnare QUESTA copia.
+                // Bisognerebbe cercare un'altra copia disponibile per la prenotazione, ma per ora la lasciamo in coda.
+                // (Il sistema assegnerà un'altra copia quando rientrerà)
             } else {
-                $this->aggiornaStatoCopia($inventarioId, 'DISPONIBILE', $condizione);
-                $messaggi[] = "✅ Libro tornato disponibile";
+                // Se il libro è BUONO o USURATO, può essere prestato
+                $prenotazioneSuccessiva = $this->getPrenotazioneSuccessiva($prestito['id_libro']);
+                
+                if ($prenotazioneSuccessiva) {
+                    $this->assegnaPrenotazione($prenotazioneSuccessiva['id_prenotazione'], $inventarioId);
+                    $this->aggiornaStatoCopia($inventarioId, 'PRENOTATO', $condizione);
+                    $messaggi[] = "📢 Libro riservato per: {$prenotazioneSuccessiva['nome']} {$prenotazioneSuccessiva['cognome']} (48h)";
+                    
+                    // Notifica Interna (Campanella) - NO EMAIL (invio quella stilizzata sotto)
+                    $this->notifier->send(
+                        $prenotazioneSuccessiva['id_utente'],
+                        NotificationManager::TYPE_INFO,
+                        NotificationManager::URGENCY_HIGH,
+                        "Il libro che aspettavi è disponibile!",
+                        "È arrivato il tuo turno per '{$prestito['titolo']}'. Hai 48 ore per passare in biblioteca.",
+                        "/dashboard/student/index.php",
+                        true // forceNoEmail
+                    );
+
+                    // Invio Email Prenotazione Disponibile (Stilizzata)
+                    $scadenzaRitiro = date('d/m/Y H:i', strtotime('+' . self::ORE_RISERVA_PRENOTAZIONE . ' hours'));
+                    $this->inviaEmailPrenotazioneDisponibile($prenotazioneSuccessiva, $prestito['titolo'], $scadenzaRitiro);
+
+                } else {
+                    $this->aggiornaStatoCopia($inventarioId, 'DISPONIBILE', $condizione);
+                    $messaggi[] = "✅ Libro tornato disponibile";
+                }
             }
 
             if ($giorniRitardo <= 0) {
@@ -221,7 +256,8 @@ class LoanService
 
             $this->db->commit();
 
-            // Notifiche Post-Commit per chi restituisce
+            // Notifiche Post-Commit per chi restituisce (Multe)
+            // Qui lasciamo l'email automatica perché non abbiamo un template specifico per le multe
             try {
                 if ($multaTotale > 0) {
                     $this->notifier->send(
@@ -265,7 +301,7 @@ class LoanService
             $scadute = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($scadute as $pren) {
-                // Notifica scadenza
+                // Notifica scadenza (Lasciamo email automatica per ora, o creiamo template "Prenotazione Scaduta")
                 $this->notifier->send(
                     (int)$pren['id_utente'],
                     'PRENOTAZIONE',
@@ -293,14 +329,21 @@ class LoanService
                     
                     $log[] = "Prenotazione #{$pren['id_prenotazione']} scaduta. Copia #{$pren['copia_libro']} riassegnata a utente {$prenotazioneSuccessiva['id_utente']}.";
                     
+                    // Notifica Interna - NO EMAIL
                     $this->notifier->send(
                         $prenotazioneSuccessiva['id_utente'],
                         NotificationManager::TYPE_INFO,
                         NotificationManager::URGENCY_HIGH,
                         "Il libro che aspettavi è disponibile!",
                         "È arrivato il tuo turno. Hai 48 ore per passare in biblioteca.",
-                        "/dashboard/student/index.php"
+                        "/dashboard/student/index.php",
+                        true // forceNoEmail
                     );
+
+                    // Invio Email Prenotazione Disponibile (Stilizzata)
+                    $scadenzaRitiro = date('d/m/Y H:i', strtotime('+' . self::ORE_RISERVA_PRENOTAZIONE . ' hours'));
+                    $this->inviaEmailPrenotazioneDisponibile($prenotazioneSuccessiva, $copiaInfo['titolo'], $scadenzaRitiro);
+
                 } else {
                     $this->aggiornaStatoCopia((int)$pren['copia_libro'], 'DISPONIBILE');
                     $log[] = "Prenotazione #{$pren['id_prenotazione']} scaduta. Copia #{$pren['copia_libro']} tornata disponibile.";
@@ -419,10 +462,12 @@ class LoanService
     }
 
     private function aggiornaStatoCopia(int $id, string $stato, ?string $cond = null): void {
-        // Ignorare il warning, la query completa filtra in modo corretto
         $sql = "UPDATE inventari SET stato = ?";
         $params = [$stato];
-        if ($cond) { $sql .= ", condizione = ?"; $params[] = $cond; }
+        if ($cond) { 
+            $sql .= ", condizione = ?"; 
+            $params[] = strtoupper($cond);
+        }
         $sql .= " WHERE id_inventario = ?";
         $params[] = $id;
         $this->db->prepare($sql)->execute($params);
@@ -533,6 +578,22 @@ class LoanService
             );
         } catch (Exception $e) {
             error_log("Errore invio email di conferma prestito: " . $e->getMessage());
+        }
+    }
+
+    private function inviaEmailPrenotazioneDisponibile(array $prenotazione, string $titoloLibro, string $scadenzaRitiro): void
+    {
+        require_once __DIR__ . '/../config/email.php';
+        try {
+            $emailService = getEmailService(true);
+            $emailService->sendReservationAvailable(
+                $prenotazione['email'],
+                $prenotazione['nome'],
+                $titoloLibro,
+                $scadenzaRitiro
+            );
+        } catch (Exception $e) {
+            error_log("Errore invio email di prenotazione disponibile: " . $e->getMessage());
         }
     }
 }

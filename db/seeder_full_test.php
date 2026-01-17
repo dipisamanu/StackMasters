@@ -210,62 +210,71 @@ try {
         for ($c = 0; $c < $numCopie; $c++) {
             $codicePos = sprintf("%s%d-%02d", $scaffaleChar, $ripiano, $posizione++);
             if ($posizione > 10) { $posizione = 1; $ripiano++; }
+            
+            // Logica condizione e stato coerente
             $condizioneFisica = (rand(1, 10) == 1) ? 'DANNEGGIATO' : 'BUONO';
+            $statoIniziale = ($condizioneFisica === 'DANNEGGIATO') ? 'NON_IN_PRESTITO' : 'DISPONIBILE';
 
-            $stmt = $db->prepare("INSERT INTO inventari (id_libro, collocazione, stato, condizione) VALUES (?, ?, 'DISPONIBILE', ?)");
-            $stmt->execute([$idLibro, $codicePos, $condizioneFisica]);
-            $copieIds[] = $db->lastInsertId();
+            $stmt = $db->prepare("INSERT INTO inventari (id_libro, collocazione, stato, condizione) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$idLibro, $codicePos, $statoIniziale, $condizioneFisica]);
+            
+            // Aggiungiamo ai prestiti solo se NON è danneggiato
+            if ($statoIniziale === 'DISPONIBILE') {
+                $copieIds[] = $db->lastInsertId();
+            }
         }
 
-        // PRESTITI
-        $numLoans = $isPopular ? rand(15, 30) : rand(2, 8);
-        $ratingSum = 0;
-        $ratingCount = 0;
+        // PRESTITI (Solo su copie disponibili)
+        if (!empty($copieIds)) {
+            $numLoans = $isPopular ? rand(15, 30) : rand(2, 8);
+            $ratingSum = 0;
+            $ratingCount = 0;
 
-        for ($l = 0; $l < $numLoans; $l++) {
-            $idUtente = $usersIds[array_rand($usersIds)];
-            $idCopia = $copieIds[array_rand($copieIds)];
+            for ($l = 0; $l < $numLoans; $l++) {
+                $idUtente = $usersIds[array_rand($usersIds)];
+                $idCopia = $copieIds[array_rand($copieIds)];
 
-            $isRecent = (rand(1, 100) <= 30);
-            if ($isRecent) {
-                $start = date('Y-m-d H:i:s', strtotime('-' . rand(1, 6) . ' days'));
-                $end = date('Y-m-d H:i:s', strtotime($start . ' + ' . rand(1, 4) . ' days'));
-            } else {
-                $start = date('Y-m-d H:i:s', strtotime('-' . rand(30, 365) . ' days'));
-                $end = date('Y-m-d H:i:s', strtotime($start . ' + ' . rand(5, 20) . ' days'));
-            }
+                $isRecent = (rand(1, 100) <= 30);
+                if ($isRecent) {
+                    $start = date('Y-m-d H:i:s', strtotime('-' . rand(1, 6) . ' days'));
+                    $end = date('Y-m-d H:i:s', strtotime($start . ' + ' . rand(1, 4) . ' days'));
+                } else {
+                    $start = date('Y-m-d H:i:s', strtotime('-' . rand(30, 365) . ' days'));
+                    $end = date('Y-m-d H:i:s', strtotime($start . ' + ' . rand(5, 20) . ' days'));
+                }
 
-            // Inserimento prestito senza specificare condizione_uscita (userà il DEFAULT del DB o NULL se permesso)
-            $db->prepare("INSERT INTO prestiti (id_inventario, id_utente, data_prestito, data_restituzione, scadenza_prestito) VALUES (?, ?, ?, ?, ?)")
-                ->execute([$idCopia, $idUtente, $start, $end, $end]);
-            $totalLoans++;
+                // Inserimento prestito
+                $db->prepare("INSERT INTO prestiti (id_inventario, id_utente, data_prestito, data_restituzione, scadenza_prestito) VALUES (?, ?, ?, ?, ?)")
+                    ->execute([$idCopia, $idUtente, $start, $end, $end]);
+                $totalLoans++;
 
-            // RECENSIONI
-            if (rand(1, 100) <= $CONFIG['REVIEWS_CHANCE'] && $ratingCount < 15) {
-                $voto = rand(3, 5);
-                if (rand(1, 10) == 1) $voto = rand(1, 2);
+                // RECENSIONI
+                if (rand(1, 100) <= $CONFIG['REVIEWS_CHANCE'] && $ratingCount < 15) {
+                    $voto = rand(3, 5);
+                    if (rand(1, 10) == 1) $voto = rand(1, 2);
 
-                $titoloRec = $reviewTitles[$voto][array_rand($reviewTitles[$voto])];
-                $bodyRec = $reviewBodies[array_rand($reviewBodies)];
+                    $titoloRec = $reviewTitles[$voto][array_rand($reviewTitles[$voto])];
+                    $bodyRec = $reviewBodies[array_rand($reviewBodies)];
 
-                $stmtRec = $db->prepare("INSERT IGNORE INTO recensioni (id_libro, id_utente, voto, descrizione, data_creazione) VALUES (?, ?, ?, ?, ?)");
-                $stmtRec->execute([$idLibro, $idUtente, $voto, "$titoloRec. $bodyRec", $end]);
+                    $stmtRec = $db->prepare("INSERT IGNORE INTO recensioni (id_libro, id_utente, voto, descrizione, data_creazione) VALUES (?, ?, ?, ?, ?)");
+                    $stmtRec->execute([$idLibro, $idUtente, $voto, "$titoloRec. $bodyRec", $end]);
 
-                if ($stmtRec->rowCount() > 0) {
-                    $ratingSum += $voto;
-                    $ratingCount++;
-                    $totalReviews++;
+                    if ($stmtRec->rowCount() > 0) {
+                        $ratingSum += $voto;
+                        $ratingCount++;
+                        $totalReviews++;
+                    }
                 }
             }
-        }
 
-        if ($ratingCount > 0) {
-            $avg = $ratingSum / $ratingCount;
-            $db->prepare("UPDATE libri SET rating = ? WHERE id_libro = ?")->execute([$avg, $idLibro]);
+            if ($ratingCount > 0) {
+                $avg = $ratingSum / $ratingCount;
+                $db->prepare("UPDATE libri SET rating = ? WHERE id_libro = ?")->execute([$avg, $idLibro]);
+            }
         }
 
         // CODE PRENOTAZIONI
-        if ($isPopular && rand(1, 2) == 1) {
+        if ($isPopular && rand(1, 2) == 1 && !empty($copieIds)) {
             foreach ($copieIds as $cid) {
                 $uid = $usersIds[array_rand($usersIds)];
                 $now = date('Y-m-d H:i:s');

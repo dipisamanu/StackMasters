@@ -1,297 +1,276 @@
 <?php
 /**
- * Landing Page (Per visitatori non registrati)
+ * Landing Page Modernizzata
  * File: public/index.php
  */
 
 require_once '../src/config/session.php';
 
+// Se l'utente è già loggato, via alla dashboard corretta
 if (Session::isLoggedIn()) {
-    header('Location: home.php');
+    $role = Session::getMainRole();
+    if ($role === 'Admin') header('Location: ../dashboard/admin/');
+    elseif ($role === 'Bibliotecario') header('Location: ../dashboard/librarian/');
+    else header('Location: ../dashboard/student/');
     exit;
 }
 
 require_once '../src/Views/layout/header.php';
 ?>
+
     <style>
+        /* Variabili locali allineate all'Header */
         :root {
-            --primary-red: #bf2121;
-            --dark-text: #333333;
-            --light-bg: #f8f9fa;
+            --primary-color: #0d6efd;
+            --secondary-color: #64748b;
+            --dark-bg: #0f172a;
+            --light-bg: #f8fafc;
         }
 
-        .hero-header {
+        body {
+            background-color: var(--light-bg);
+        }
+
+        /* 1. HERO SECTION - Full Width & Gradient */
+        .hero-section {
             position: relative;
-            background-size: cover;
-            background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)) no-repeat center;
-            padding: 80px 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            padding: 120px 0;
             color: white;
+            overflow: hidden;
         }
 
-        /* Media Query per Mobile */
-        @media (max-width: 768px) {
-            .hero-header {
-                padding: 50px 0;
-            }
+        /* Elementi decorativi di sfondo (cerchi sfocati) */
+        .hero-bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.1;
+            z-index: 0;
+        }
+        .shape-1 { width: 400px; height: 400px; background: #3b82f6; top: -100px; right: -50px; }
+        .shape-2 { width: 300px; height: 300px; background: #8b5cf6; bottom: -50px; left: -100px; }
 
-            .display-4 {
-                font-size: 2.5rem;
-            }
+        .hero-content {
+            position: relative;
+            z-index: 1;
         }
 
-        .btn-hero-base {
+        .btn-hero {
+            padding: 12px 35px;
             font-weight: 600;
-            padding: 14px 45px;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border-radius: 6px;
-            border: 2px solid transparent;
-            letter-spacing: 0.5px;
-            font-size: 1rem;
+            border-radius: 50rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
-        .btn-hero-primary {
-            background-color: #d92525;
-            border-color: #d92525;
-            color: white;
-            box-shadow: none;
-        }
-
-        .btn-hero-primary:hover {
-            background-color: #b01f1f;
-            border-color: #b01f1f;
-            color: white;
+        .btn-hero:hover {
             transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
 
-        .btn-hero-outline {
-            background-color: rgba(0, 0, 0, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            color: white;
-        }
-
-        .btn-hero-outline:hover {
-            background-color: white;
-            border-color: white;
-            color: var(--primary-red);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-            transform: translateY(-3px);
-        }
-
-        .stats-section {
-            background-color: white;
-            padding: 60px 0;
-            border-bottom: 1px solid #eaeaea;
+        /* 2. STAT CARDS - Floating style */
+        .stats-container {
+            margin-top: -50px; /* Sovrapposizione alla Hero */
+            position: relative;
+            z-index: 2;
         }
 
         .stat-card {
-            background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-            text-align: center;
-            border: 1px solid #eee;
-            border-bottom: 4px solid var(--primary-red);
-            height: 100%;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.02);
             transition: transform 0.3s ease;
+            text-align: center;
+            height: 100%;
         }
-
         .stat-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-10px);
         }
 
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--dark-text);
-            margin-bottom: 10px;
-        }
-
-        .section-title {
-            color: var(--dark-text);
-            font-weight: 800;
-            margin-bottom: 1rem;
-            position: relative;
-            display: inline-block;
-        }
-
-        .section-title::after {
-            content: '';
-            display: block;
-            width: 60px;
-            height: 4px;
-            background: var(--primary-red);
-            margin: 15px auto 0;
-            border-radius: 2px;
-        }
-
-        .hours-card {
-            background: #ffffff;
-            color: var(--dark-text);
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e0e0e0;
-        }
-
-        .hours-title {
-            color: var(--primary-red);
-            font-weight: 800;
-            margin-bottom: 25px;
-            font-size: 1.5rem;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 15px;
-        }
-
-        .hours-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .hours-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid #e9ecef;
-            font-size: 1.1rem;
-        }
-
-        .hours-list li:last-child {
-            border-bottom: none;
-        }
-
-        .step-icon-wrapper {
-            width: 80px;
-            height: 80px;
-            background-color: white;
+        .icon-wrapper {
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
-            border: 2px solid var(--primary-red);
-            font-size: 2rem;
-            color: var(--primary-red);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            font-size: 1.8rem;
+            margin: 0 auto 1.5rem;
         }
+
+        /* 3. INFO SECTION */
+        .section-title {
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        /* Card Orari */
+        .hours-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .hour-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .hour-row:last-child { border-bottom: none; }
+
+        /* 4. STEPS */
+        .step-card {
+            border: none;
+            background: transparent;
+            text-align: center;
+            padding: 1rem;
+        }
+        .step-number {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #e2e8f0;
+            line-height: 1;
+            margin-bottom: -20px;
+            position: relative;
+            z-index: 0;
+        }
+        .step-icon {
+            position: relative;
+            z-index: 1;
+            background: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
     </style>
 
-    <header class="hero-header text-center">
-        <div class="container">
+    <section class="hero-section">
+        <div class="hero-bg-shape shape-1"></div>
+        <div class="hero-bg-shape shape-2"></div>
+
+        <div class="container hero-content text-center">
             <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <h1 class="display-4 fw-bold mb-3">La Tua Biblioteca, <span class="text-danger">Digitale</span></h1>
-                    <p class="lead mb-4 opacity-90 fs-5">
-                        Un ecosistema moderno per l'apprendimento.<br>
-                        Cerca, prenota e gestisci i tuoi libri direttamente dallo smartphone.
+                <div class="col-lg-9">
+                <span class="badge bg-white bg-opacity-10 border border-white border-opacity-25 rounded-pill px-3 py-2 mb-4 fw-normal">
+                    <i class="fas fa-sparkles text-warning me-2"></i>La biblioteca del futuro è qui
+                </span>
+                    <h1 class="display-3 fw-bold mb-4">Scopri, Prenota, <span class="text-primary text-gradient" style="background: -webkit-linear-gradient(#60a5fa, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Impara.</span></h1>
+                    <p class="lead mb-5 text-white opacity-75 mx-auto" style="max-width: 700px;">
+                        BiblioSystem rivoluziona il modo di vivere la cultura.
+                        Un catalogo infinito a portata di click, gestione smart dei prestiti e spazi pensati per la tua concentrazione.
                     </p>
 
-                    <?php if (!Session::isLoggedIn()): ?>
-                        <div class="d-flex justify-content-center gap-4 mt-5">
-                            <a href="register.php" class="btn btn-hero-base btn-hero-primary"
-                               aria-label="Registrati alla biblioteca">
-                                <i class="fas fa-user-plus me-2" aria-hidden="true"></i> Inizia Ora
-                            </a>
-                            <a href="login.php" class="btn btn-hero-base btn-hero-outline"
-                               aria-label="Accedi al tuo account">
-                                Accedi
-                            </a>
-                        </div>
-                    <?php else: ?>
-                        <p class="lead mb-3 fw-semibold">
-                            Bentornato, <?= htmlspecialchars(Session::getNomeCompleto() ?? 'utente') ?>!</p>
-                        <div class="mt-5">
-                            <a href="<?php
-                            $role = Session::getMainRole();
-                            if ($role === 'Admin') echo '../dashboard/admin/';
-                            elseif ($role === 'Bibliotecario') echo '../dashboard/librarian/';
-                            else echo '../dashboard/student/';
-                            ?>" class="btn btn-hero-base btn-hero-primary">
-                                <i class="fas fa-tachometer-alt me-2" aria-hidden="true"></i> Vai alla Dashboard
-                            </a>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <section class="stats-section">
-        <div class="container">
-            <div class="row g-4 justify-content-center">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-book fa-3x text-secondary mb-3 opacity-50" aria-hidden="true"></i>
-                        <div class="stat-number">10.000+</div>
-                        <div class="text-uppercase fw-bold text-muted small">Volumi Disponibili</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-users fa-3x text-secondary mb-3 opacity-50" aria-hidden="true"></i>
-                        <div class="stat-number">500+</div>
-                        <div class="text-uppercase fw-bold text-muted small">Studenti Attivi</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-check-circle fa-3x text-secondary mb-3 opacity-50" aria-hidden="true"></i>
-                        <div class="stat-number">24/7</div>
-                        <div class="text-uppercase fw-bold text-muted small">Prenotazioni Online</div>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="register.php" class="btn btn-primary btn-hero shadow-lg">
+                            <i class="fas fa-rocket me-2"></i>Inizia Subito
+                        </a>
+                        <a href="catalog.php" class="btn btn-outline-light btn-hero">
+                            Esplora Catalogo
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="py-5" style="background-color: #f8f9fa;">
-        <div class="container py-4">
-            <div class="row align-items-center">
-                <div class="col-lg-7 mb-5 mb-lg-0">
-                    <h2 class="section-title">Innovazione al servizio della cultura</h2>
-                    <p class="fs-5 text-dark mb-4">
-                        La biblioteca dell'Istituto Rossi si rinnova. Abbiamo abbandonato la vecchia gestione cartacea
-                        per offrirti un servizio <strong>veloce, trasparente e smart</strong>.
+    <div class="container stats-container mb-5">
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="icon-wrapper bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark">10.000+</h3>
+                    <p class="text-muted small text-uppercase fw-bold ls-1 mb-0">Volumi Disponibili</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="icon-wrapper bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark">500+</h3>
+                    <p class="text-muted small text-uppercase fw-bold ls-1 mb-0">Studenti Attivi</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="icon-wrapper bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark">H24</h3>
+                    <p class="text-muted small text-uppercase fw-bold ls-1 mb-0">Servizi Digitali</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="py-5">
+        <div class="container py-lg-5">
+            <div class="row align-items-center g-5">
+
+                <div class="col-lg-6">
+                    <h2 class="section-title display-6">Studiare non è mai stato <br>così semplice.</h2>
+                    <p class="text-secondary fs-5 mb-4 lh-lg">
+                        Dimentica le file e le schede cartacee. Con BiblioSystem hai il controllo totale: verifica la disponibilità in tempo reale, prenota da casa e ricevi notifiche intelligenti.
                     </p>
-                    <p class="text-muted mb-4">
-                        Grazie alla nuova piattaforma puoi verificare la disponibilità dei testi in tempo reale,
-                        ricevere notifiche sulle scadenze e guadagnare badge.
-                    </p>
-                    <ul class="list-unstyled mt-4">
-                        <li class="mb-3 fs-5"><i class="fas fa-wifi text-danger me-3" aria-hidden="true"></i> Postazioni
-                            studio con WiFi
-                        </li>
-                        <li class="mb-3 fs-5"><i class="fas fa-tablet-alt text-danger me-3" aria-hidden="true"></i>
-                            Consultazione digitale
-                        </li>
-                        <li class="mb-3 fs-5"><i class="fas fa-user-friends text-danger me-3" aria-hidden="true"></i>
-                            Area studio di gruppo
-                        </li>
-                    </ul>
+
+                    <div class="d-flex flex-column gap-3 mt-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-wifi fa-lg text-primary me-3 bg-white p-3 rounded shadow-sm"></i>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">WiFi Ultra-Veloce</h6>
+                                <small class="text-muted">Connessione fibra in tutte le aule studio.</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-tablet-alt fa-lg text-primary me-3 bg-white p-3 rounded shadow-sm"></i>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">Consultazione Digitale</h6>
+                                <small class="text-muted">Accesso a migliaia di eBook e riviste.</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-lg-5">
-
+                <div class="col-lg-5 offset-lg-1">
                     <div class="hours-card">
-                        <h3 class="hours-title"><i class="far fa-clock me-2" aria-hidden="true"></i> Orari di Apertura
-                        </h3>
-                        <ul class="hours-list">
-                            <li>
-                                <span class="fw-bold text-dark">Lunedì - Venerdì</span>
-                                <span class="badge bg-success fs-6">08:00 - 17:00</span>
-                            </li>
-                            <li>
-                                <span class="fw-bold text-dark">Sabato</span>
-                                <span class="badge bg-warning text-dark fs-6">08:00 - 12:30</span>
-                            </li>
-                            <li>
-                                <span class="fw-bold text-dark">Domenica</span>
-                                <span class="badge bg-secondary fs-6">Chiuso</span>
-                            </li>
-                        </ul>
-                        <div class="mt-3 pt-3 border-top text-center text-muted small">
-                            * Gli orari possono variare durante le festività.
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-dark text-white rounded p-2 me-3"><i class="far fa-clock fa-lg"></i></div>
+                            <h4 class="fw-bold m-0 text-dark">Orari di Apertura</h4>
+                        </div>
+
+                        <div class="hour-row">
+                            <span class="text-secondary fw-medium">Lunedì - Venerdì</span>
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">08:00 - 17:00</span>
+                        </div>
+                        <div class="hour-row">
+                            <span class="text-secondary fw-medium">Sabato</span>
+                            <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">08:00 - 12:30</span>
+                        </div>
+                        <div class="hour-row">
+                            <span class="text-secondary fw-medium">Domenica</span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2">Chiuso</span>
+                        </div>
+
+                        <div class="alert alert-light border mt-4 mb-0 d-flex align-items-center">
+                            <i class="fas fa-info-circle text-primary me-2"></i>
+                            <small class="text-muted">Gli orari possono variare nei festivi.</small>
                         </div>
                     </div>
                 </div>
@@ -299,51 +278,51 @@ require_once '../src/Views/layout/header.php';
         </div>
     </section>
 
-    <section class="py-5 bg-white">
+    <section class="py-5 bg-white border-top">
         <div class="container py-4">
-            <h2 class="text-center section-title">Come Funziona il Prestito</h2>
+            <div class="text-center mb-5">
+                <h2 class="section-title">Inizia in 4 passaggi</h2>
+                <p class="text-muted">Il processo è completamente automatizzato per farti risparmiare tempo.</p>
+            </div>
 
-            <div class="row g-4 mt-5 text-center">
+            <div class="row g-4">
                 <div class="col-md-3">
-                    <div class="step-icon-wrapper">
-                        <i class="fas fa-user-edit" aria-hidden="true"></i>
+                    <div class="step-card">
+                        <div class="step-number">01</div>
+                        <div class="step-icon"><i class="fas fa-user-plus"></i></div>
+                        <h5 class="fw-bold text-dark">Registrati</h5>
+                        <p class="text-muted small">Crea il tuo account gratuito e ottieni la tessera virtuale.</p>
                     </div>
-                    <h4 class="h5 fw-bold text-dark">1. Registrati</h4>
-                    <p class="text-muted small">Crea il tuo account in pochi secondi. Il sistema genererà la tua tessera
-                        virtuale.</p>
                 </div>
-
                 <div class="col-md-3">
-                    <div class="step-icon-wrapper">
-                        <i class="fas fa-search" aria-hidden="true"></i>
+                    <div class="step-card">
+                        <div class="step-number">02</div>
+                        <div class="step-icon"><i class="fas fa-search"></i></div>
+                        <h5 class="fw-bold text-dark">Cerca</h5>
+                        <p class="text-muted small">Sfoglia il catalogo e trova il libro che ti serve.</p>
                     </div>
-                    <h4 class="h5 fw-bold text-dark">2. Cerca & Prenota</h4>
-                    <p class="text-muted small">Sfoglia il catalogo online. Se il libro è disponibile, prenotalo con un
-                        click.</p>
                 </div>
-
                 <div class="col-md-3">
-                    <div class="step-icon-wrapper">
-                        <i class="fas fa-qrcode" aria-hidden="true"></i>
+                    <div class="step-card">
+                        <div class="step-number">03</div>
+                        <div class="step-icon"><i class="fas fa-mouse-pointer"></i></div>
+                        <h5 class="fw-bold text-dark">Prenota</h5>
+                        <p class="text-muted small">Blocca il libro con un click. Ti avviseremo quando è pronto.</p>
                     </div>
-                    <h4 class="h5 fw-bold text-dark">3. Ritira</h4>
-                    <p class="text-muted small">Passa in biblioteca, mostra il QR Code della tua tessera e ritira il
-                        libro.</p>
                 </div>
-
                 <div class="col-md-3">
-                    <div class="step-icon-wrapper">
-                        <i class="fas fa-undo-alt" aria-hidden="true"></i>
+                    <div class="step-card">
+                        <div class="step-number">04</div>
+                        <div class="step-icon"><i class="fas fa-book-reader"></i></div>
+                        <h5 class="fw-bold text-dark">Ritira</h5>
+                        <p class="text-muted small">Passa in sede, mostra il QR Code e goditi la lettura.</p>
                     </div>
-                    <h4 class="h5 fw-bold text-dark">4. Restituisci</h4>
-                    <p class="text-muted small">Riporta il libro entro la scadenza (30 giorni per docenti, 14 per
-                        studenti).</p>
                 </div>
             </div>
 
             <div class="text-center mt-5">
-                <a href="register.php" class="btn btn-outline-danger px-4 rounded-pill">
-                    Crea subito il tuo account
+                <a href="register.php" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
+                    Crea il tuo Account Ora
                 </a>
             </div>
         </div>
