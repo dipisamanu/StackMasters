@@ -163,7 +163,7 @@ echo "
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Ottaviodipisa\StackMasters\Models\Loan;
+use Ottaviodipisa\StackMasters\Services\LoanService;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaRestituzionePDF;
 
 $returnsData = $_POST['returns'] ?? [];
@@ -190,7 +190,7 @@ if (empty($returnsData)) {
 
 try {
     $db = Database::getInstance()->getConnection();
-    $loanModel = new Loan();
+    $loanService = new LoanService();
 
     $successi = [];
     $utenteDatiPDF = null;
@@ -220,8 +220,8 @@ try {
 
             $utenteDatiPDF = $utente;
 
-            // 5.2 Esecuzione Business Logic
-            $res = $loanModel->registraRestituzione($idInventario, $condizione, $commento);
+            // 5.2 Esecuzione Business Logic (Service)
+            $res = $loanService->registraRestituzione($idInventario, $condizione, $commento);
 
             // 5.3 Recupero Titolo del volume
             $stmtL = $db->prepare("SELECT l.titolo FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
@@ -232,7 +232,7 @@ try {
                 'id_inventario' => $idInventario,
                 'titolo' => $titolo ?: "Asset #$idInventario",
                 'condizione' => $condizione,
-                'multa' => $res['multa_generata'] ?? 0
+                'multa' => $res['multa_totale'] ?? 0
             ];
 
             echo "
@@ -242,7 +242,7 @@ try {
                     <span class='font-bold text-slate-700 text-sm'>" . htmlspecialchars(substr($titolo, 0, 45)) . "...</span>
                 </div>
                 <div class='flex items-center gap-3'>
-                    " . ((isset($res['multa_generata']) && $res['multa_generata'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "
+                    " . ((isset($res['multa_totale']) && $res['multa_totale'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "
                     <span class='badge badge-success'>RIENTRATO</span>
                 </div>
             </div>";
