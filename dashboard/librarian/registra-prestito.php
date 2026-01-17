@@ -148,7 +148,7 @@ echo "
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Ottaviodipisa\StackMasters\Models\Loan;
+use Ottaviodipisa\StackMasters\Services\LoanService;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaPrestitoPDF;
 
 $userCode = $_POST['user_barcode'] ?? '';
@@ -174,7 +174,7 @@ if (empty($userCode) || empty($bookIds)) {
 
 try {
     $db = Database::getInstance()->getConnection();
-    $loanModel = new Loan();
+    $loanService = new LoanService();
 
     $stmtU = $db->prepare("SELECT id_utente, nome, cognome, email, cf FROM utenti WHERE cf = :cf OR id_utente = :id LIMIT 1");
     $stmtU->execute(['cf' => $userCode, 'id' => $userCode]);
@@ -205,7 +205,7 @@ try {
             $stmtUpdateCond = $db->prepare("UPDATE inventari SET condizione = ? WHERE id_inventario = ?");
             $stmtUpdateCond->execute([$condizioneUscita, $idInventario]);
 
-            $res = $loanModel->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
+            $res = $loanService->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
 
             // CORREZIONE: Aggiunto ISBN alla query
             $stmtL = $db->prepare("SELECT l.titolo, l.isbn FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");

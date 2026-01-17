@@ -10,12 +10,18 @@ require_once '../../src/Models/InventoryModel.php';
 
 Session::requireRole('Bibliotecario');
 
-$idLibro = $_GET['id_libro'] ?? 0;
-if (!$idLibro) { header("Location: books.php"); exit; }
+$idLibro = isset($_GET['id_libro']) ? (int)$_GET['id_libro'] : 0;
+if ($idLibro === 0) {
+    header("Location: books.php");
+    exit;
+}
 
 $bookModel = new BookModel();
 $book = $bookModel->getById($idLibro);
-if (!$book) { header("Location: books.php"); exit; }
+if (!$book) {
+    header("Location: books.php");
+    exit;
+}
 
 $invModel = new InventoryModel();
 $copies = $invModel->getCopiesByBookId($idLibro);
@@ -47,6 +53,7 @@ require_once '../../src/Views/layout/header.php';
                 </div>
                 <div class="btn-group">
                     <a href="print-labels.php?id_libro=<?= $idLibro ?>" target="_blank" class="btn btn-outline-dark"><i class="fas fa-print me-2"></i>Stampa Etichette</a>
+                    <a href="all-copies.php" class="btn btn-warning"><i class="fas fa-list me-2"></i>Tutte le Copie</a>
                     <button class="btn btn-success shadow-sm" onclick="openCopyModal('add')"><i class="fas fa-plus me-2"></i>Aggiungi Copia</button>
                 </div>
             </div>
@@ -112,7 +119,6 @@ require_once '../../src/Views/layout/header.php';
                             <label class="form-label">RFID *</label>
                             <div class="input-group">
                                 <input type="text" name="rfid" id="rfid" class="form-control font-monospace" required placeholder="SCAN-123">
-                                <button type="button" class="btn btn-outline-secondary" onclick="generateRFID()"><i class="fas fa-random"></i></button>
                             </div>
                         </div>
                         <div class="mb-3">

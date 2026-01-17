@@ -157,7 +157,7 @@ require_once '../../src/Views/layout/header.php';
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
-                                        <a href="inventory.php?id_libro=<?= $b['id_libro'] ?>" class="btn btn-light btn-sm text-success" title="Inventario"><i class="fas fa-boxes"></i></a>
+                                        <a href="inventory.php?id_libro=<?= $b['id_libro'] ?>" class="btn btn-light btn-sm text-success" title="Gestisci Copie"><i class="fas fa-boxes"></i></a>
                                         <button class="btn btn-light btn-sm text-primary" onclick='openModal("edit", <?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>)'><i class="fas fa-edit"></i></button>
                                         <form action="process-book.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare questo libro?');">
                                             <input type="hidden" name="action" value="delete">
