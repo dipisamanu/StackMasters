@@ -112,7 +112,6 @@ require_once '../../src/Views/layout/header.php';
                             <label class="form-label">RFID *</label>
                             <div class="input-group">
                                 <input type="text" name="rfid" id="rfid" class="form-control font-monospace" required placeholder="SCAN-123">
-                                <button type="button" class="btn btn-outline-secondary" onclick="generateRFID()"><i class="fas fa-random"></i></button>
                             </div>
                         </div>
                         <div class="mb-3">
