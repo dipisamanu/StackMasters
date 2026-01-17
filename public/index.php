@@ -213,7 +213,7 @@ require_once '../src/Views/layout/header.php';
                     <div class="icon-wrapper bg-warning bg-opacity-10 text-warning">
                         <i class="fas fa-laptop-code"></i>
                     </div>
-                    <h3 class="fw-bold mb-1 text-dark">H24</h3>
+                    <h3 class="fw-bold mb-1 text-dark">24/7</h3>
                     <p class="text-muted small text-uppercase fw-bold ls-1 mb-0">Servizi Digitali</p>
                 </div>
             </div>
