@@ -59,7 +59,7 @@ echo "
         }
 
         .stat-card {
-            background: #f8fafc;
+            background: #f8fafc; 
             padding: 35px;
             border-radius: 24px;
             border: 2px solid #e2e8f0;
@@ -201,6 +201,8 @@ try {
     foreach ($bookIds as $idInventario) {
         try {
             $condizioneUscita = $conditions[$idInventario] ?? 'BUONO';
+            // FIX: Conversione esplicita in maiuscolo per evitare errore ENUM 'Data truncated'
+            $condizioneUscita = strtoupper($condizioneUscita);
             
             $stmtUpdateCond = $db->prepare("UPDATE inventari SET condizione = ? WHERE id_inventario = ?");
             $stmtUpdateCond->execute([$condizioneUscita, $idInventario]);

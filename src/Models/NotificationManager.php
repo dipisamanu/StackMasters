@@ -27,7 +27,19 @@ class NotificationManager {
         }
     }
 
-    public function send(int $id_utente, string $category, string $urgency, string $titolo, string $messaggio, string $link = null): bool {
+    /**
+     * Invia una notifica all'utente.
+     * 
+     * @param int $id_utente ID destinatario
+     * @param string $category Categoria (usata per logica interna, non salvata direttamente)
+     * @param string $urgency Livello urgenza (HIGH/LOW)
+     * @param string $titolo Titolo notifica
+     * @param string $messaggio Corpo notifica
+     * @param string|null $link Link azione (opzionale)
+     * @param bool $forceNoEmail Se true, non invia l'email automatica (utile se si invia un template custom a parte)
+     * @return bool
+     */
+    public function send(int $id_utente, string $category, string $urgency, string $titolo, string $messaggio, string $link = null, bool $forceNoEmail = false): bool {
         $stmt = $this->pdo->prepare("SELECT email, nome, notifiche_attive, quiet_hours_start, quiet_hours_end FROM utenti WHERE id_utente = ?");
         $stmt->execute([$id_utente]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -36,17 +48,25 @@ class NotificationManager {
 
         $statoEmail = 'NON_RICHIESTA';
 
-        if ($user['notifiche_attive']) {
-            $statoEmail = 'DA_INVIARE'; // Semplificato per debug: prova sempre a inviare se attive
+        // Se l'utente ha le notifiche attive E non è stato richiesto di sopprimere l'email
+        if ($user['notifiche_attive'] && !$forceNoEmail) {
+            $statoEmail = 'DA_INVIARE'; 
         }
 
+        // Mappiamo l'urgenza o la categoria al tipo visivo (INFO, WARNING, DANGER, SUCCESS)
         $visualType = 'INFO';
+        if ($urgency === self::URGENCY_HIGH) {
+            $visualType = 'DANGER';
+        } elseif ($category === 'SUCCESS') {
+            $visualType = 'SUCCESS';
+        }
 
+        // FIX: Rimosso $category dall'array execute perché non c'è placeholder corrispondente nella query
         $sql = "INSERT INTO notifiche_web (id_utente, tipo, titolo, messaggio, link_azione, stato_email, data_creazione) VALUES (?, ?, ?, ?, ?, ?, NOW())";
-        $this->pdo->prepare($sql)->execute([$id_utente, $visualType, $category, $titolo, $messaggio, $link, $statoEmail]);
+        $this->pdo->prepare($sql)->execute([$id_utente, $visualType, $titolo, $messaggio, $link, $statoEmail]);
         $notificaId = $this->pdo->lastInsertId();
 
-        // Tenta l'invio immediato
+        // Tenta l'invio immediato solo se richiesto
         if ($statoEmail === 'DA_INVIARE' && $this->emailService) {
             $this->deliverEmail($notificaId, $user['email'], $titolo, $messaggio);
         }

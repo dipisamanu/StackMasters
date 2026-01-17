@@ -163,7 +163,7 @@ echo "
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Ottaviodipisa\StackMasters\Models\Loan;
+use Ottaviodipisa\StackMasters\Services\LoanService;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaRestituzionePDF;
 
 $returnsData = $_POST['returns'] ?? [];
@@ -187,7 +187,7 @@ if (empty($returnsData)) {
 
 try {
     $db = Database::getInstance()->getConnection();
-    $loanModel = new Loan();
+    $loanService = new LoanService();
 
     $successi = [];
     $utenteDatiPDF = null;
@@ -213,7 +213,8 @@ try {
                 $utenteDatiPDF = $utente;
             }
 
-            $res = $loanModel->registraRestituzione($idInventario, $condizione, $commento);
+            // 5.2 Esecuzione Business Logic (Service)
+            $res = $loanService->registraRestituzione($idInventario, $condizione, $commento);
 
             // CORREZIONE: Aggiunto ISBN alla query
             $stmtL = $db->prepare("SELECT l.titolo, l.isbn FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
@@ -225,11 +226,20 @@ try {
                 'titolo' => $infoLibro['titolo'] ?: "Asset #$idInventario",
                 'isbn' => $infoLibro['isbn'] ?? 'N/D',
                 'condizione' => $condizione,
-                'multa' => $res['multa_generata'] ?? 0,
-                'condizione_partenza' => $res['condizione_partenza'] ?? 'BUONO' // Assicurati che il modello lo ritorni
+                'multa' => $res['multa_totale'] ?? 0
             ];
 
-            echo "<div class='log-row success'><div class='flex flex-col'><span class='text-[10px] font-extrabold text-slate-400 uppercase tracking-tighter'>Copia #$idInventario</span><span class='font-bold text-slate-700 text-sm'>" . htmlspecialchars(substr($infoLibro['titolo'], 0, 45)) . "...</span></div><div class='flex items-center gap-3'>" . ((isset($res['multa_generata']) && $res['multa_generata'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "<span class='badge badge-success'>RIENTRATO</span></div></div>";
+            echo "
+            <div class='log-row success'>
+                <div class='flex flex-col'>
+                    <span class='text-[10px] font-extrabold text-slate-400 uppercase tracking-tighter'>Copia #$idInventario</span>
+                    <span class='font-bold text-slate-700 text-sm'>" . htmlspecialchars(substr($titolo, 0, 45)) . "...</span>
+                </div>
+                <div class='flex items-center gap-3'>
+                    " . ((isset($res['multa_totale']) && $res['multa_totale'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "
+                    <span class='badge badge-success'>RIENTRATO</span>
+                </div>
+            </div>";
 
         } catch (Exception $e) {
             echo "<div class='log-row error'><div class='flex flex-col'><span class='text-[10px] font-extrabold text-red-400 uppercase tracking-tighter'>Copia #$idInventario</span><span class='font-bold text-red-800 text-sm'>" . htmlspecialchars($e->getMessage()) . "</span></div><span class='badge badge-error'>RIFIUTATO</span></div>";

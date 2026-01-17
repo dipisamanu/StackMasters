@@ -155,7 +155,7 @@ CREATE TABLE inventari
     id_inventario        INT AUTO_INCREMENT PRIMARY KEY,
     id_libro             INT NOT NULL,
     id_rfid              INT UNIQUE,
-    stato                ENUM ('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'SMARRITO', 'FUORI_CATALOGO') DEFAULT 'DISPONIBILE',
+    stato                ENUM ('DISPONIBILE', 'IN_PRESTITO', 'NON_IN_PRESTITO', 'PRENOTATO', 'SMARRITO', 'FUORI_CATALOGO') DEFAULT 'DISPONIBILE',
     condizione           ENUM ('BUONO', 'USURATO', 'DANNEGGIATO', 'SMARRITO')                        DEFAULT 'BUONO',
     condizione_originale ENUM ('BUONO', 'USURATO', 'DANNEGGIATO', 'SMARRITO')                        DEFAULT 'BUONO',
     collocazione         VARCHAR(20),
