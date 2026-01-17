@@ -1,251 +1,214 @@
 <?php
 /**
- * registra-prestito.php - ELABORAZIONE SEQUENZIALE FINALE
- * Percorso: dashboard/librarian/registra-prestito.php
+ * Interfaccia Prestito Rapido (Solo Codice Fiscale)
+ * File: dashboard/librarian/new-loan.php
+ * Invia i dati a: registra-prestito.php per la generazione del PDF e salvataggio.
  */
+require_once __DIR__ . '/../../src/config/session.php';
 
-// 1. MONITORAGGIO ERRORI
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Verifica autorizzazione (Librarian/Admin)
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../../public/login.php');
+    exit;
+}
 
-echo "
+$nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
+
+?>
 <!DOCTYPE html>
-<html lang='it'>
+<html lang="it">
 <head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Finalizzazione Operazioni | StackMasters</title>
-    <script src='https://cdn.tailwindcss.com'></script>
-    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrazione Prestito - StackMasters</title>
+
+    <!-- Tailwind & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #f1f5f9; 
-            color: #0f172a; 
-            margin: 0;
-            padding: 60px 20px;
-            font-size: 18px; 
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
 
-        .main-card { 
-            max-width: 1100px; 
-            margin: 0 auto; 
-            background: #ffffff; 
-            border-radius: 30px; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); 
-            overflow: hidden; 
-        }
+        .theme-indigo { color: #4f46e5; }
+        .bg-theme-indigo { background-color: #4f46e5; }
 
-        .top-banner { 
-            background: #bf2121; 
-            padding: 60px 50px; 
-            color: white; 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 8px solid #9b1b1b;
-        }
+        .book-entry { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .content-area { padding: 50px; }
+        input::placeholder { color: #cbd5e1; font-weight: 400; }
+        .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 
-        .summary-header {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
-        .stat-card {
-            background: #f8fafc;
-            padding: 35px;
-            border-radius: 24px;
-            border: 2px solid #e2e8f0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .stat-card span { font-size: 0.9rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-card strong { font-size: 1.6rem; color: #bf2121; font-weight: 800; }
-
-        .operation-row {
-            background: white;
-            border: 1px solid #e2e8f0;
-            padding: 25px 30px;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .operation-row:hover { 
-            border-color: #bf2121; 
-            transform: scale(1.02);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-        }
-
-        .badge-pill {
-            padding: 10px 20px;
-            border-radius: 999px;
-            font-weight: 800;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-
-        .btn-main {
-            display: inline-flex;
-            align-items: center;
-            gap: 15px;
-            background: #bf2121;
-            color: white;
-            padding: 25px 60px;
-            border-radius: 20px;
-            font-weight: 800;
-            font-size: 1.4rem;
-            text-decoration: none;
-            transition: all 0.4s ease;
-            box-shadow: 0 20px 25px -5px rgba(191, 33, 33, 0.3);
-        }
-
-        .btn-main:hover {
-            background: #9b1b1b;
-            transform: translateY(-5px);
-            box-shadow: 0 25px 30px rgba(191, 33, 33, 0.4);
-        }
-
-        .section-label {
-            font-size: 1rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            color: #94a3b8;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+        /* Custom scrollbar per la coda */
+        #scanned-books-list::-webkit-scrollbar { width: 6px; }
+        #scanned-books-list::-webkit-scrollbar-track { background: transparent; }
+        #scanned-books-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-8">
 
-<div class='main-card'>
-    <div class='top-banner'>
-        <div>
-            <h1 class='text-5xl font-black uppercase tracking-tight'>Output Sessione</h1>
-            <p class='text-xl opacity-90 font-semibold mt-2'>Controllo Circolazione Volumi - ITIS Rossi</p>
+<div class="max-w-7xl mx-auto">
+    <!-- Header Istituzionale -->
+    <div class="bg-white rounded-2xl shadow-sm border-l-8 border-indigo-600 p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+            <div class="bg-indigo-50 p-4 rounded-xl text-indigo-600 text-3xl">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tight leading-none mb-1">Registrazione Prestito</h1>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Acquisizione rapida volumi in uscita</p>
+            </div>
         </div>
-        <i class='fas fa-sync-alt text-7xl opacity-20 animate-spin-slow'></i>
+        <div class="flex items-center gap-4">
+            <div class="text-right hidden md:block border-r pr-4 border-slate-100">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Operatore</p>
+                <p class="font-bold text-slate-700 leading-none"><?= htmlspecialchars($nomeCompleto) ?></p>
+            </div>
+            <a href="index.php" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+        </div>
     </div>
 
-    <div class='content-area'>";
+    <!-- Form Principale -->
+    <form id="loan-form" action="registra-prestito.php" method="POST" class="space-y-8">
 
-// 2. LOGICA BACKEND
-require_once __DIR__ . '/../../src/config/database.php';
-require_once __DIR__ . '/../../src/config/email.php'; // Inclusione esplicita di EmailService
-require_once __DIR__ . '/../../vendor/autoload.php';
+        <!-- SEZIONE SUPERIORE: INPUT E CODA -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-use Ottaviodipisa\StackMasters\Services\LoanService;
-use Ottaviodipisa\StackMasters\Helpers\RicevutaPrestitoPDF;
+            <!-- COLONNA SINISTRA: MODULI INPUT (5/12) -->
+            <div class="lg:col-span-5 space-y-6">
+                <!-- 1. IDENTIFICA UTENTE -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
 
-$userCode = $_POST['user_barcode'] ?? '';
-$bookIds  = $_POST['book_ids'] ?? [];
-$conditions = $_POST['conditions'] ?? [];
+                    <label class="relative z-10 block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                        <i class="fas fa-user-tag mr-2 text-indigo-500"></i>1. Identificazione Utente (CF)
+                    </label>
 
-echo "
-    <div class='section-label'><i class='fas fa-sliders-h'></i> Parametri di Ingresso</div>
-    <div class='summary-header'>
-        <div class='stat-card'>
-            <span>Codice Utente Rilevato</span>
-            <strong>" . htmlspecialchars($userCode) . "</strong>
+                    <div class="relative z-10">
+                        <i class="fas fa-id-card absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                        <input type="text" id="user_barcode" name="user_barcode"
+                               class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-lg font-mono uppercase focus:border-indigo-500 outline-none transition-all shadow-inner"
+                               placeholder="Inserisci o scansiona CF..." required autofocus autocomplete="off">
+                    </div>
+
+                    <!-- Il pannello del ruolo appare qui (popolato da scanner.js) -->
+                    <div id="user-info-display" class="mt-4 empty:hidden"></div>
+                </div>
+
+                <!-- 2. SCANSIONE LIBRI -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                        <i class="fas fa-barcode mr-2 text-indigo-500"></i>2. Acquisizione Volumi
+                    </label>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                        <input type="text" id="book_barcode"
+                               class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-lg font-mono focus:border-indigo-600 outline-none transition-all shadow-inner"
+                               placeholder="ID Inventario..." autocomplete="off">
+                    </div>
+                    <div class="mt-4 flex items-center justify-center gap-2">
+                        <span class="animate-pulse w-2 h-2 bg-green-500 rounded-full"></span>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Lettore Ottico Pronto</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLONNA DESTRA: RIEPILOGO SESSIONE (7/12) -->
+            <div class="lg:col-span-7">
+                <div class="bg-white rounded-3xl shadow-md border border-slate-100 flex flex-col h-full overflow-hidden min-h-[480px]">
+                    <div class="p-6 border-b bg-white flex justify-between items-center">
+                        <div>
+                            <h3 class="font-black text-slate-800 uppercase text-sm tracking-tight">
+                                <i class="fas fa-shopping-cart mr-2 text-indigo-600"></i>Coda di Uscita
+                            </h3>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase">Elementi pronti per la registrazione</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span id="books-count" class="bg-indigo-600 text-white text-xs px-4 py-1.5 rounded-full font-black shadow-lg shadow-indigo-200">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Lista dinamica dei libri -->
+                    <div id="scanned-books-list" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30">
+                        <div id="empty-list-msg" class="h-full flex flex-col items-center justify-center text-slate-300 py-20">
+                            <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-slate-100">
+                                <i class="fas fa-book-open text-3xl opacity-10"></i>
+                            </div>
+                            <p class="font-black uppercase text-[11px] tracking-widest text-slate-400 text-center">Nessun volume scansionato</p>
+                        </div>
+                    </div>
+
+                    <!-- Bottone di Conferma Finale -->
+                    <div class="p-6 bg-white border-t">
+                        <button type="submit" id="submit-btn" disabled
+                                class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white p-5 rounded-2xl font-black text-lg shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 uppercase tracking-tighter">
+                            Finalizza Prestito Complessivo <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class='stat-card'>
-            <span>Unità in Registro</span>
-            <strong>" . count($bookIds) . " Libri</strong>
+
+        <!-- SEZIONE INFERIORE: POLICY E INFO SCADENZE -->
+        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <div class="flex flex-col md:flex-row items-center gap-8">
+                <div class="md:w-1/4">
+                    <h4 class="text-lg font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Policy <span class="text-indigo-600">Circolazione</span></h4>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-widest">Termini di restituzione basati sul ruolo utente</p>
+                </div>
+                <div class="md:w-3/4 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Studenti</p>
+                        <p class="text-sm font-bold text-slate-700">Max 3 volumi</p>
+                        <p class="text-xs font-medium text-indigo-600">Durata: 14 giorni</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                        <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Docenti</p>
+                        <p class="text-sm font-bold text-slate-700">Max 5 volumi</p>
+                        <p class="text-xs font-medium text-emerald-600">Durata: 30 giorni</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Staff/Enti</p>
+                        <p class="text-sm font-bold text-slate-700">Max 10 volumi</p>
+                        <p class="text-xs font-medium text-slate-500">Durata: 45 giorni</p>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>";
+    </form>
+</div>
 
-if (empty($userCode) || empty($bookIds)) {
-    die("<div class='p-10 bg-red-100 text-red-800 rounded-3xl font-black text-center border-4 border-red-200 text-2xl'><i class='fas fa-exclamation-circle mb-4 text-5xl block'></i> DATI SESSIONE MANCANTI</div></div></div></body></html>");
-}
+<!-- Messaggi di Stato (Toasts) -->
+<div id="scan-status" class="fixed bottom-8 right-8 z-50 pointer-events-none opacity-0 transition-all duration-300 transform translate-y-2"></div>
 
-try {
-    $db = Database::getInstance()->getConnection();
-    $loanService = new LoanService();
+<!-- Script Scanner -->
+<script src="../../public/assets/js/scanner.js"></script>
 
-    $stmtU = $db->prepare("SELECT id_utente, nome, cognome, email, cf FROM utenti WHERE cf = :cf OR id_utente = :id LIMIT 1");
-    $stmtU->execute(['cf' => $userCode, 'id' => $userCode]);
-    $utente = $stmtU->fetch(PDO::FETCH_ASSOC);
+<script>
+    // Monitoraggio UI per attivazione bottone e conteggio
+    const list = document.getElementById('scanned-books-list');
+    const emptyMsg = document.getElementById('empty-list-msg');
+    const submitBtn = document.getElementById('submit-btn');
+    const countBadge = document.getElementById('books-count');
 
-    if (!$utente) {
-        die("<div class='p-10 bg-red-100 text-red-800 rounded-3xl font-black text-center border-4 border-red-200 text-2xl'><i class='fas fa-user-slash mb-4 text-5xl block'></i> UTENTE NON RICONOSCIUTO</div></div></div></body></html>");
-    }
+    const observer = new MutationObserver(() => {
+        const count = list.querySelectorAll('.book-entry').length;
+        countBadge.innerText = count;
 
-    $stmtMulte = $db->prepare("SELECT SUM(importo) as totale_multe FROM multe WHERE id_utente = :id_utente AND data_pagamento IS NULL");
-    $stmtMulte->execute(['id_utente' => $utente['id_utente']]);
-    $saldoMulte = $stmtMulte->fetch(PDO::FETCH_ASSOC);
-
-    if ($saldoMulte && $saldoMulte['totale_multe'] > 0) {
-        $importoFormattato = number_format($saldoMulte['totale_multe'], 2, ',', '.');
-        die("<div class='p-10 bg-yellow-100 text-yellow-800 rounded-3xl font-black text-center border-4 border-yellow-200 text-2xl'><i class='fas fa-hand-paper mb-4 text-5xl block'></i> PRESTITO BLOCCATO<p class='text-lg font-medium mt-4'>L'utente ha un saldo multe non pagato di €{$importoFormattato}.<br>È necessario regolarizzare la posizione prima di procedere.</p></div><div class='flex justify-center py-16'><a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'><i class='fas fa-arrow-left'></i> Nuova Scansione Rapida</a></div></div></div></body></html>");
-    }
-
-    echo "<div class='section-label'><i class='fas fa-user-shield'></i> Verifica Soggetto Abilitato</div><div class='bg-slate-900 text-white p-10 rounded-3xl mb-12 flex items-center justify-between border-b-8 border-emerald-500'><div><h2 class='text-4xl font-black mt-2'>" . strtoupper($utente['cognome']) . " " . strtoupper($utente['nome']) . "</h2><p class='text-slate-400 text-lg mt-1'>Codice Fiscale: <span class='font-mono'>" . $utente['cf'] . "</span></p></div><div class='text-right'><i class='fas fa-id-card-alt text-7xl opacity-40'></i></div></div>";
-
-    echo "<div class='section-label'><i class='fas fa-list-check'></i> Dettaglio Operazioni Automatizzate</div>";
-    $successi = [];
-
-    foreach ($bookIds as $idInventario) {
-        try {
-            $condizioneUscita = $conditions[$idInventario] ?? 'BUONO';
-
-            $stmtUpdateCond = $db->prepare("UPDATE inventari SET condizione = ? WHERE id_inventario = ?");
-            $stmtUpdateCond->execute([$condizioneUscita, $idInventario]);
-
-            $res = $loanService->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
-
-            // Estrai la data di scadenza dai dettagli restituiti dal Service
-            $scadenzaOttenuta = $res['details']['data_scadenza'];
-
-            $stmtL = $db->prepare("SELECT l.titolo FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
-            $stmtL->execute([$idInventario]);
-            $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
-
-            $successi[] = ['id_inventario' => $idInventario, 'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 'scadenza' => $scadenzaOttenuta];
-
-            echo "<div class='operation-row'><div class='flex items-center gap-6'><div class='w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-xl font-black border-2 border-emerald-200'>#$idInventario</div><div><span class='text-xs font-black text-slate-400 uppercase tracking-tighter'>Titolo Volume</span><div class='font-extrabold text-slate-800 text-xl'>" . htmlspecialchars($infoLibro['titolo']) . "</div></div></div><span class='badge-pill bg-emerald-600 text-white shadow-lg shadow-emerald-100'>Processato</span></div>";
-        } catch (Exception $e) {
-            $msgErrore = $e->getMessage();
-            if (str_contains($msgErrore, 'riservata per il ritiro')) {
-                preg_match('/ID:\s*(\d+)/', $msgErrore, $matches);
-                if (isset($matches[1])) {
-                    $stmtN = $db->prepare("SELECT nome, cognome FROM utenti WHERE id_utente = ?");
-                    $stmtN->execute([$matches[1]]);
-                    if ($uRes = $stmtN->fetch(PDO::FETCH_ASSOC)) $msgErrore = "Riservato per il ritiro di: <b class='text-red-900'>" . strtoupper($uRes['cognome']) . " " . strtoupper($uRes['nome']) . "</b>";
-                }
-            } elseif (str_contains($msgErrore, 'già in prestito')) {
-                $stmtP = $db->prepare("SELECT u.nome, u.cognome FROM prestiti p JOIN utenti u ON p.id_utente = u.id_utente WHERE p.id_inventario = ? AND p.data_restituzione IS NULL LIMIT 1");
-                $stmtP->execute([$idInventario]);
-                if ($uPoss = $stmtP->fetch(PDO::FETCH_ASSOC)) $msgErrore = "Attualmente in possesso di: <b class='text-red-900'>" . strtoupper($uPoss['cognome']) . " " . strtoupper($uPoss['nome']) . "</b>";
-            }
-            echo "<div class='operation-row border-red-200 bg-red-50/50'><div class='flex items-center gap-6'><div class='w-16 h-16 bg-red-100 text-red-700 rounded-2xl flex items-center justify-center text-xl font-black border-2 border-red-200'><i class='fas fa-ban'></i></div><div><span class='text-xs font-black text-red-400 uppercase tracking-tighter'>Anomalia Rilevata</span><div class='font-bold text-red-800 text-lg'>Copia #$idInventario - " . $msgErrore . "</div></div></div><span class='badge-pill bg-red-600 text-white shadow-lg shadow-red-100'>Rifiutato</span></div>";
+        if (count > 0) {
+            if (emptyMsg) emptyMsg.style.display = 'none';
+            submitBtn.disabled = false;
+        } else {
+            if (emptyMsg) emptyMsg.style.display = 'flex';
+            submitBtn.disabled = true;
         }
-    }
+    });
 
-    if (!empty($successi)) {
-        $pdfData = ['utente' => $utente, 'libri' => $successi, 'data_operazione' => date('d/m/Y H:i')];
-        $pdfFileName = RicevutaPrestitoPDF::genera($pdfData);
-        echo "<div class='mt-20 p-14 bg-emerald-600 rounded-[40px] text-center text-white shadow-2xl shadow-emerald-200 relative overflow-hidden'><i class='fas fa-check-double text-[12rem] absolute -bottom-10 -right-10 opacity-10'></i><i class='fas fa-cloud-arrow-down text-7xl mb-6'></i><h2 class='text-4xl font-black mb-4'>Operazione Finalizzata</h2><p class='text-emerald-100 text-xl mb-12 max-w-2xl mx-auto font-medium'>Il sistema ha aggiornato i database. La ricevuta digitale è pronta per l'archiviazione o la stampa.</p><a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-main bg-white text-emerald-700'><i class='fas fa-file-pdf'></i> SCARICA DOCUMENTO RICEVUTA</a></div>";
-    }
+    observer.observe(list, { childList: true });
+</script>
 
-} catch (Exception $e) {
-    echo "<div class='bg-red-700 text-white p-10 rounded-3xl font-black text-center'>ERRORE DI SISTEMA: " . $e->getMessage() . "</div>";
-}
-
-echo "<div class='flex justify-center py-16'><a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'><i class='fas fa-arrow-left'></i> Nuova Scansione Rapida</a></div></div></div></body></html>";
-require_once __DIR__ . '/../../src/Views/layout/footer.php';
-?>
+<?php require_once __DIR__ . '/../../src/Views/layout/footer.php'; ?>
+</body>
+</html>
