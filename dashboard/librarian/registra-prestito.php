@@ -202,7 +202,6 @@ try {
         try {
             $condizioneUscita = $conditions[$idInventario] ?? 'BUONO';
             
-            // Aggiorna la condizione nell'inventario PRIMA di registrare il prestito
             $stmtUpdateCond = $db->prepare("UPDATE inventari SET condizione = ? WHERE id_inventario = ?");
             $stmtUpdateCond->execute([$condizioneUscita, $idInventario]);
 
@@ -212,7 +211,8 @@ try {
             $stmtL->execute([$idInventario]);
             $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
 
-            $successi[] = ['id_inventario' => $idInventario, 'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 'scadenza' => $res['data_scadenza']];
+            // Aggiungo la condizione all'array per il PDF
+            $successi[] = ['id_inventario' => $idInventario, 'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 'scadenza' => $res['data_scadenza'], 'condizione' => $condizioneUscita];
 
             echo "<div class='operation-row'><div class='flex items-center gap-6'><div class='w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-xl font-black border-2 border-emerald-200'>#$idInventario</div><div><span class='text-xs font-black text-slate-400 uppercase tracking-tighter'>Titolo Volume</span><div class='font-extrabold text-slate-800 text-xl'>" . htmlspecialchars($infoLibro['titolo']) . "</div></div></div><span class='badge-pill bg-emerald-600 text-white shadow-lg shadow-emerald-100'>Processato</span></div>";
         } catch (Exception $e) {
@@ -236,12 +236,27 @@ try {
     if (!empty($successi)) {
         $pdfData = ['utente' => $utente, 'libri' => $successi, 'data_operazione' => date('d/m/Y H:i')];
         $pdfFileName = RicevutaPrestitoPDF::genera($pdfData);
-        echo "<div class='mt-20 p-14 bg-emerald-600 rounded-[40px] text-center text-white shadow-2xl shadow-emerald-200 relative overflow-hidden'><i class='fas fa-check-double text-[12rem] absolute -bottom-10 -right-10 opacity-10'></i><i class='fas fa-cloud-arrow-down text-7xl mb-6'></i><h2 class='text-4xl font-black mb-4'>Operazione Finalizzata</h2><p class='text-emerald-100 text-xl mb-12 max-w-2xl mx-auto font-medium'>Il sistema ha aggiornato i database. La ricevuta digitale è pronta per l'archiviazione o la stampa.</p><a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-main bg-white text-emerald-700'><i class='fas fa-file-pdf'></i> SCARICA DOCUMENTO RICEVUTA</a></div>";
+        // NUOVA GRAFICA BLOCCO SUCCESSO
+        echo "
+        <div class='mt-20 p-10 bg-white rounded-3xl text-center border-t-8 border-green-500 shadow-2xl'>
+            <i class='fas fa-check-circle text-green-500 text-6xl mb-4'></i>
+            <h2 class='text-3xl font-black text-slate-800 mb-2'>Operazione Finalizzata</h2>
+            <p class='text-slate-500 text-lg mb-8 max-w-2xl mx-auto'>Il sistema ha aggiornato i database. La ricevuta digitale è pronta per l'archiviazione o la stampa.</p>
+            <a href='../../public/assets/docs/$pdfFileName' target='_blank' class='inline-flex items-center gap-3 bg-slate-800 hover:bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg'>
+                <i class='fas fa-file-pdf'></i> SCARICA RICEVUTA
+            </a>
+        </div>";
     }
 
 } catch (Exception $e) {
     echo "<div class='bg-red-700 text-white p-10 rounded-3xl font-black text-center'>ERRORE DI SISTEMA: " . $e->getMessage() . "</div>";
 }
 
-echo "<div class='flex justify-center py-16'><a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'><i class='fas fa-arrow-left'></i> Nuova Scansione Rapida</a></div></div></div></body></html>";
+echo "
+    <div class='flex justify-center py-16'>
+        <a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'>
+            <i class='fas fa-arrow-left'></i> Nuova Scansione Rapida
+        </a>
+    </div>
+</div></div></body></html>";
 require_once __DIR__ . '/../../src/Views/layout/footer.php';
