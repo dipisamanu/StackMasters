@@ -1,0 +1,97 @@
+GUIDA AL VERSIONAMENTO E RILASCIO
+
+Questa guida spiega i concetti fondamentali relativi ai tag git, al versionamento semantico (Semantic Versioning 2.0.0), all'ordinamento delle versioni e alle buone pratiche di scrittura.
+
+1. TAGS IN GIT
+
+Un "tag" in Git è un riferimento specifico a un punto nella storia dei commit. A differenza dei branch, che si muovono man mano che si aggiungono nuovi commit, i tag sono generalmente immutabili e servono a "marcare" una versione specifica del codice (es. v1.0.0).
+
+I tag sono fondamentali per:
+- Identificare versioni stabili del software.
+- Permettere rollback precisi a versioni precedenti.
+- Creare release su piattaforme come GitHub o GitLab.
+
+2. VERSIONAMENTO SEMANTICO 2.0.0 (SemVer)
+
+Il sistema standard adottato è il Semantic Versioning 2.0.0. Il numero di versione deve seguire il formato X.Y.Z (Major.Minor.Patch).
+
+Struttura e Significato:
+- MAJOR (X): Versione principale. Si incrementa quando si apportano modifiche incompatibili con le API precedenti (breaking changes).
+  Esempio: Passare da 1.9.0 a 2.0.0 implica che il codice che funzionava con la v1 potrebbe non funzionare con la v2.
+
+- MINOR (Y): Versione secondaria. Si incrementa quando si aggiungono funzionalità in modo retrocompatibile (nuove feature che non rompono il codice esistente).
+  Esempio: Passare da 1.1.0 a 1.2.0.
+
+- PATCH (Z): Versione correttiva. Si incrementa quando si correggono bug in modo retrocompatibile.
+  Esempio: Passare da 1.0.0 a 1.0.1.
+
+Estensioni (Pre-release e Build):
+È possibile aggiungere etichette per versioni non stabili o metadati:
+- Pre-release: 1.0.0-alpha, 1.0.0-beta.1 (indica una versione instabile prima della release ufficiale).
+- Build metadata: 1.0.0+20130313144700 (informazioni aggiuntive ignorate nell'ordinamento).
+
+3. ORDINE DI PRECEDENZA DELLE VERSIONI
+
+L'ordinamento delle versioni determina quale versione è più recente o "maggiore" di un'altra. Le regole sono:
+
+1. Confrontare i numeri da sinistra a destra (Major, poi Minor, poi Patch).
+   - 1.0.0 < 2.0.0
+   - 2.0.0 < 2.1.0
+   - 2.1.0 < 2.1.1
+
+2. Una versione pre-release ha priorità inferiore rispetto alla versione normale associata.
+   - 1.0.0-alpha < 1.0.0
+
+3. Confronto tra pre-release:
+   - L'ordine alfabetico conta: 1.0.0-alpha < 1.0.0-beta
+   - L'ordine numerico conta: 1.0.0-beta.1 < 1.0.0-beta.2
+
+Esempio di ordine crescente:
+1.0.0-alpha < 1.0.0-alpha.1 < 1.0.0-beta < 1.0.0 < 1.0.1 < 1.1.0 < 2.0.0
+
+4. BUONE PRATICHE DI SCRITTURA
+
+Per mantenere una storia del progetto pulita e comprensibile, è fondamentale seguire delle convenzioni.
+
+Messaggi di Commit (Conventional Commits):
+Si consiglia di strutturare i messaggi di commit per facilitare la generazione automatica dei changelog e la decisione sul tipo di versione (Major/Minor/Patch).
+Formato: <tipo>: <descrizione breve>
+
+Tipi comuni:
+- feat: Una nuova funzionalità (corrisponde a MINOR).
+- fix: Correzione di un bug (corrisponde a PATCH).
+- docs: Modifiche alla documentazione.
+- style: Formattazione, punti e virgola mancanti, ecc. (nessun cambio di logica).
+- refactor: Ristrutturazione del codice senza aggiungere feature o correggere bug.
+- test: Aggiunta o correzione di test.
+- chore: Aggiornamento di task di build, dipendenze, ecc.
+- BREAKING CHANGE: Se presente nel footer o con un "!" dopo il tipo, indica una MAJOR release.
+
+Esempio Commit:
+feat: aggiunta autenticazione a due fattori
+
+Changelog:
+Mantenere un file CHANGELOG.md che elenca le modifiche notevoli per ogni versione.
+- Raggruppare per: Added, Changed, Deprecated, Removed, Fixed, Security.
+- Inserire sempre la data della release.
+
+5. QUANDO FARE UNA RELEASE
+
+Una release dovrebbe essere creata quando il software raggiunge uno stato stabile e testato.
+
+Momenti tipici:
+- Fine Sprint (Agile).
+- Feature Complete (funzionalità completate).
+- Hotfix (bug critici in produzione).
+
+Procedura:
+1. Testare sul branch principale.
+2. Aggiornare versione nei file di configurazione e CHANGELOG.
+3. Commit di release.
+4. Tag git (git tag -a v1.0.0 -m "Release v1.0.0").
+5. Push tag (git push origin v1.0.0).
+
+6. LA RELEASE È DEFINITIVA?
+
+Sì. Una volta creato un tag (es. v1.0.0), quel codice è immutabile.
+Se si trova un bug, si crea una nuova versione (es. v1.0.1). Non si sovrascrive mai un tag già pubblicato.

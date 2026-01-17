@@ -168,7 +168,6 @@ use Ottaviodipisa\StackMasters\Helpers\RicevutaRestituzionePDF;
 
 $returnsData = $_POST['returns'] ?? [];
 
-// Riepilogo Parametri
 echo "
     <div class='section-title'>Parametri di Ricezione</div>
     <div class='session-summary'>
@@ -183,9 +182,7 @@ echo "
     </div>";
 
 if (empty($returnsData)) {
-    die("<div class='p-6 bg-red-50 text-red-700 rounded-xl font-bold text-center border border-red-100 text-sm uppercase tracking-widest'>
-            Interruzione: Nessun dato pervenuto dal carrello di rientro.
-         </div></div></div></body></html>");
+    die("<div class='p-6 bg-red-50 text-red-700 rounded-xl font-bold text-center border border-red-100 text-sm uppercase tracking-widest'>Interruzione: Nessun dato pervenuto dal carrello di rientro.</div></div></div></body></html>");
 }
 
 try {
@@ -197,7 +194,6 @@ try {
 
     echo "<div class='section-title'>Registro Operazioni Asset</div>";
 
-    // 5. CICLO DI REGISTRAZIONE RESTITUZIONI
     foreach ($returnsData as $jsonData) {
         $item = json_decode($jsonData, true);
         $idInventario = (int)$item['id'];
@@ -205,12 +201,7 @@ try {
         $commento = $item['note'];
 
         try {
-            // 5.1 Identificazione Utente (prima della chiusura del prestito)
-            $stmtU = $db->prepare("
-                SELECT u.* FROM utenti u 
-                JOIN prestiti p ON u.id_utente = p.id_utente 
-                WHERE p.id_inventario = ? AND p.data_restituzione IS NULL
-            ");
+            $stmtU = $db->prepare("SELECT u.* FROM utenti u JOIN prestiti p ON u.id_utente = p.id_utente WHERE p.id_inventario = ? AND p.data_restituzione IS NULL");
             $stmtU->execute([$idInventario]);
             $utente = $stmtU->fetch(PDO::FETCH_ASSOC);
 
@@ -218,19 +209,22 @@ try {
                 throw new Exception("Prestito attivo non rilevato.");
             }
 
-            $utenteDatiPDF = $utente;
+            if ($utenteDatiPDF === null) {
+                $utenteDatiPDF = $utente;
+            }
 
             // 5.2 Esecuzione Business Logic (Service)
             $res = $loanService->registraRestituzione($idInventario, $condizione, $commento);
 
-            // 5.3 Recupero Titolo del volume
-            $stmtL = $db->prepare("SELECT l.titolo FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
+            // CORREZIONE: Aggiunto ISBN alla query
+            $stmtL = $db->prepare("SELECT l.titolo, l.isbn FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
-            $titolo = $stmtL->fetchColumn();
+            $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
 
             $successi[] = [
                 'id_inventario' => $idInventario,
-                'titolo' => $titolo ?: "Asset #$idInventario",
+                'titolo' => $infoLibro['titolo'] ?: "Asset #$idInventario",
+                'isbn' => $infoLibro['isbn'] ?? 'N/D',
                 'condizione' => $condizione,
                 'multa' => $res['multa_totale'] ?? 0
             ];
@@ -248,52 +242,20 @@ try {
             </div>";
 
         } catch (Exception $e) {
-            echo "
-            <div class='log-row error'>
-                <div class='flex flex-col'>
-                    <span class='text-[10px] font-extrabold text-red-400 uppercase tracking-tighter'>Copia #$idInventario</span>
-                    <span class='font-bold text-red-800 text-sm'>" . htmlspecialchars($e->getMessage()) . "</span>
-                </div>
-                <span class='badge badge-error'>RIFIUTATO</span>
-            </div>";
+            echo "<div class='log-row error'><div class='flex flex-col'><span class='text-[10px] font-extrabold text-red-400 uppercase tracking-tighter'>Copia #$idInventario</span><span class='font-bold text-red-800 text-sm'>" . htmlspecialchars($e->getMessage()) . "</span></div><span class='badge badge-error'>RIFIUTATO</span></div>";
         }
     }
 
-    // 6. AREA DOWNLOAD E RICEVUTA
     if (!empty($successi)) {
-        $datiPDF = [
-            'utente' => $utenteDatiPDF,
-            'libri' => $successi,
-            'data_operazione' => date('d/m/Y H:i')
-        ];
+        $datiPDF = ['utente' => $utenteDatiPDF, 'libri' => $successi, 'data_operazione' => date('d/m/Y H:i')];
+        $pdfFileName = RicevutaRestituzionePDF::genera($datiPDF);
 
-        $pdfFileName = RicevutaRestituzionePDF::genera($datiRicevuta ?? $datiPDF);
-
-        echo "
-        <div style='margin-top: 40px; padding-top: 30px; border-top: 1px dashed #e2e8f0; text-align: center;'>
-            <h2 class='text-xl font-bold text-slate-800 mb-2'>Ciclo di rientro completato</h2>
-            <p class='text-slate-500 text-sm mb-6'>Le pendenze degli utenti e lo stato dell'inventario sono stati aggiornati correttamente.</p>
-            
-            <a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'>
-                <i class='fas fa-file-pdf'></i> SCARICA RICEVUTA PDF
-            </a>
-            
-            <div class='mt-6'>
-                <a href='returns.php' class='text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest'>
-                    Inizia nuovo rientro &rarr;
-                </a>
-            </div>
-        </div>";
+        echo "<div style='margin-top: 40px; padding-top: 30px; border-top: 1px dashed #e2e8f0; text-align: center;'><h2 class='text-xl font-bold text-slate-800 mb-2'>Ciclo di rientro completato</h2><p class='text-slate-500 text-sm mb-6'>Le pendenze degli utenti e lo stato dell'inventario sono stati aggiornati correttamente.</p><a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'><i class='fas fa-file-pdf'></i> SCARICA RICEVUTA PDF</a><div class='mt-6'><a href='returns.php' class='text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest'>Inizia nuovo rientro &rarr;</a></div></div>";
     }
 
 } catch (Exception $e) {
-    echo "<div class='p-6 bg-red-100 text-red-700 rounded-xl font-bold text-center border-2 border-red-200 mt-4'>
-            ERRORE CRITICO DI SISTEMA: " . $e->getMessage() . "
-          </div>";
+    echo "<div class='p-6 bg-red-100 text-red-700 rounded-xl font-bold text-center border-2 border-red-200 mt-4'>ERRORE CRITICO DI SISTEMA: " . $e->getMessage() . "</div>";
 }
 
-echo "</div>"; // fine content-body
-echo "</div>"; // fine main-container
-echo "</body></html>";
-
+echo "</div></div></body></html>";
 require_once __DIR__ . '/../../src/Views/layout/footer.php';

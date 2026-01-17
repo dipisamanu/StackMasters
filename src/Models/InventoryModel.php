@@ -146,4 +146,16 @@ class InventoryModel
         $stmt = $this->db->prepare("DELETE FROM inventari WHERE id_inventario = ?");
         return $stmt->execute([$copyId]);
     }
+
+    public function getAllCopies(): array
+    {
+        $sql = "SELECT i.id_inventario, l.titolo, i.stato, r.rfid as codice_rfid
+                FROM inventari i
+                JOIN libri l ON i.id_libro = l.id_libro
+                LEFT JOIN rfid r ON i.id_rfid = r.id_rfid
+                ORDER BY i.id_inventario ASC";
+
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
