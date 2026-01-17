@@ -141,7 +141,7 @@ class EmailService {
                         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                             <tr>
                                 <td style="background-color: #bf2121; padding: 30px; text-align: center;">
-                                    <h1 style="margin: 0; color: #ffffff; font-size: 24px;">📚 Benvenuto nella Biblioteca ITIS Rossi!</h1>
+                                    <h1 style="margin: 0; color: #ffffff; font-size: 24px;">Benvenuto nella Biblioteca ITIS Rossi!</h1>
                                 </td>
                             </tr>
                             <tr>
@@ -174,7 +174,7 @@ class EmailService {
                                         </a>
                                     </div>
                                     <p style="margin: 20px 0 0 0; color: #333333; font-size: 16px; line-height: 1.6;">
-                                        <strong>⚠️ Attenzione:</strong> Questo link scadrà tra 24 ore.
+                                        <strong>⚠ Attenzione:</strong> Questo link scadrà tra 24 ore.
                                     </p>
                                     <p style="margin: 15px 0 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
                                         Se non hai effettuato questa registrazione, ignora questa email.
