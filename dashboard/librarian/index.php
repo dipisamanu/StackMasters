@@ -192,7 +192,7 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                     </div>
                     <h5 class="fw-bold">Stato Inventario</h5>
                     <p class="text-muted small mb-4">Controllo copie fisiche, collocazioni e perizia dello stato volumi.</p>
-                    <a href="inventory.php" class="btn btn-outline-warning w-100 mt-auto rounded-3 fw-bold">Gestisci Copie</a>
+                    <a href="all-copies.php" class="btn btn-outline-warning w-100 mt-auto rounded-3 fw-bold">Gestisci Copie</a>
                 </div>
             </div>
 
