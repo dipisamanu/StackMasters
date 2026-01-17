@@ -207,12 +207,19 @@ try {
 
             $res = $loanModel->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
 
-            $stmtL = $db->prepare("SELECT l.titolo FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
+            // CORREZIONE: Aggiunto ISBN alla query
+            $stmtL = $db->prepare("SELECT l.titolo, l.isbn FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
             $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
 
-            // Aggiungo la condizione all'array per il PDF
-            $successi[] = ['id_inventario' => $idInventario, 'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 'scadenza' => $res['data_scadenza'], 'condizione' => $condizioneUscita];
+            // Aggiungo ISBN e condizione all'array per il PDF
+            $successi[] = [
+                'id_inventario' => $idInventario, 
+                'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 
+                'isbn' => $infoLibro['isbn'] ?? 'N/D',
+                'scadenza' => $res['data_scadenza'], 
+                'condizione' => $condizioneUscita
+            ];
 
             echo "<div class='operation-row'><div class='flex items-center gap-6'><div class='w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-xl font-black border-2 border-emerald-200'>#$idInventario</div><div><span class='text-xs font-black text-slate-400 uppercase tracking-tighter'>Titolo Volume</span><div class='font-extrabold text-slate-800 text-xl'>" . htmlspecialchars($infoLibro['titolo']) . "</div></div></div><span class='badge-pill bg-emerald-600 text-white shadow-lg shadow-emerald-100'>Processato</span></div>";
         } catch (Exception $e) {
@@ -236,7 +243,6 @@ try {
     if (!empty($successi)) {
         $pdfData = ['utente' => $utente, 'libri' => $successi, 'data_operazione' => date('d/m/Y H:i')];
         $pdfFileName = RicevutaPrestitoPDF::genera($pdfData);
-        // NUOVA GRAFICA BLOCCO SUCCESSO
         echo "
         <div class='mt-20 p-10 bg-white rounded-3xl text-center border-t-8 border-green-500 shadow-2xl'>
             <i class='fas fa-check-circle text-green-500 text-6xl mb-4'></i>
