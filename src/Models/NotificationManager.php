@@ -4,24 +4,18 @@ namespace Ottaviodipisa\StackMasters\Models;
 use PDO;
 use Exception;
 
-// === FIX IMPORTANTE ===
-// Includiamo manualmente i file di configurazione perché le classi Database ed EmailService
-// nel tuo progetto sono definite nel namespace globale (senza namespace), quindi l'autoloader
-// PSR-4 di Composer non riesce a trovarle automaticamente in src/Core.
+// Includiamo manualmente i file di configurazione
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/email.php';
 
 class NotificationManager {
     private PDO $pdo;
-    private ?\EmailService $emailService = null;
+    private $emailService = null;
 
-    // Costanti per definire il tipo di notifica
-    const TYPE_REMINDER = 'REMINDER';  // Scadenze, Multe (Priorità Alta)
-    const TYPE_INFO = 'INFO';          // Prenotazioni, Info generali (Priorità Normale)
-
-    // Costanti per l'urgenza dell'email
-    const URGENCY_HIGH = 'HIGH';       // Invia subito, ignora le ore notturne
-    const URGENCY_LOW = 'LOW';         // Rispetta le "Quiet Hours" (differisce l'invio)
+    const TYPE_REMINDER = 'REMINDER';
+    const TYPE_INFO = 'INFO';
+    const URGENCY_HIGH = 'HIGH';
+    const URGENCY_LOW = 'LOW';
 
     public function __construct() {
         // === FIX ===
