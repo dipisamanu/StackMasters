@@ -148,7 +148,7 @@ echo "
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Ottaviodipisa\StackMasters\Models\Loan;
+use Ottaviodipisa\StackMasters\Services\LoanService;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaPrestitoPDF;
 
 $userCode = $_POST['user_barcode'] ?? '';
@@ -174,7 +174,7 @@ if (empty($userCode) || empty($bookIds)) {
 
 try {
     $db = Database::getInstance()->getConnection();
-    $loanModel = new Loan();
+    $loanService = new LoanService();
 
     $stmtU = $db->prepare("SELECT id_utente, nome, cognome, email, cf FROM utenti WHERE cf = :cf OR id_utente = :id LIMIT 1");
     $stmtU->execute(['cf' => $userCode, 'id' => $userCode]);
@@ -205,15 +205,16 @@ try {
             $stmtUpdateCond = $db->prepare("UPDATE inventari SET condizione = ? WHERE id_inventario = ?");
             $stmtUpdateCond->execute([$condizioneUscita, $idInventario]);
 
-            $res = $loanModel->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
+            $res = $loanService->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
 
+            // Estrai la data di scadenza dai dettagli restituiti dal Service
+            $scadenzaOttenuta = $res['details']['data_scadenza'];
             $stmtL = $db->prepare("SELECT l.titolo FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
             $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
 
             // Aggiungo la condizione all'array per il PDF
-            $successi[] = ['id_inventario' => $idInventario, 'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 'scadenza' => $res['data_scadenza'], 'condizione' => $condizioneUscita];
-
+            $successi[] = ['id_inventario' => $idInventario, 'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 'scadenza' => $scadenzaOttenuta];
             echo "<div class='operation-row'><div class='flex items-center gap-6'><div class='w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-xl font-black border-2 border-emerald-200'>#$idInventario</div><div><span class='text-xs font-black text-slate-400 uppercase tracking-tighter'>Titolo Volume</span><div class='font-extrabold text-slate-800 text-xl'>" . htmlspecialchars($infoLibro['titolo']) . "</div></div></div><span class='badge-pill bg-emerald-600 text-white shadow-lg shadow-emerald-100'>Processato</span></div>";
         } catch (Exception $e) {
             $msgErrore = $e->getMessage();
