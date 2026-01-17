@@ -4,6 +4,7 @@
  */
 
 use Ottaviodipisa\StackMasters\Models\NotificationManager;
+use Ottaviodipisa\StackMasters\Services\LoanService;
 use Dotenv\Dotenv;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -84,6 +85,15 @@ try {
                 AND DATE(P.scadenza_prestito) = DATE(NOW() - INTERVAL 1 DAY)";
 
     $runCheck($sqlLate, "RITARDO", NotificationManager::URGENCY_HIGH);
+
+    // 3. GESTIONE PRENOTAZIONI SCADUTE
+    echo "\n[INFO] Controllo Prenotazioni Scadute\n";
+    $loanService = new LoanService();
+    $logPrenotazioni = $loanService->gestisciPrenotazioniScadute();
+    foreach ($logPrenotazioni as $msg) {
+        echo "  > $msg\n";
+    }
+    echo "[INFO] Controllo Prenotazioni completato.\n";
 
     echo "\n--- [END] Cron job terminato ---\n";
 
