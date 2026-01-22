@@ -277,6 +277,7 @@ class LoanService
                 'status' => 'success',
                 'prestito_id' => $prestito['id_prestito'],
                 'multa_totale' => $multaTotale,
+                'condizione_partenza'=>$condizionePartenza,
                 'giorni_ritardo' => $giorniRitardo,
                 'messaggi' => $messaggi
             ];
@@ -510,11 +511,11 @@ class LoanService
      * @return int
      * @throws DateMalformedStringException
      */
-    private function calcolaGiorniRitardo(string $scadenza): int
-    {
-        $diff = new DateTime()->diff(new DateTime($scadenza));
+    private function calcolaGiorniRitardo($scadenza) {
+        $diff = (new DateTime())->diff(new DateTime($scadenza));
         return (new DateTime() > new DateTime($scadenza)) ? $diff->days : 0;
     }
+
 
 
     private function calcolaMulta(int $gg): float
