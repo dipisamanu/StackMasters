@@ -1,755 +1,459 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+/**
+ * Pagina di Registrazione Moderna
+ * File: public/register.php
+ */
 
 require_once __DIR__ . '/../src/config/session.php';
 
-// Recupera eventuali errori dalla sessione
+// Se già loggato, redirect
+if (Session::isLoggedIn()) {
+    header('Location: home.php');
+    exit;
+}
+
+// Recupera dati sessione
 $errors = $_SESSION['register_errors'] ?? [];
 $oldData = $_SESSION['register_data'] ?? [];
-unset($_SESSION['register_errors'], $_SESSION['register_data']);
+$flash = $_SESSION['flash'] ?? null;
 
-// Recupera flash message se esiste
-$flashMessage = null;
-if (isset($_SESSION['flash'])) {
-    $flashMessage = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash']);
 ?>
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Registrazione Utente - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrazione - BiblioSystem</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #9f3232 0%, #b57070 100%);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f0f2f5;
             min-height: 100vh;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 1000px;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin: 20px;
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #333;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .form-row {
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-bottom: 15px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .form-group {
-            flex: 1;
+        .card-register {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+            overflow: hidden;
+            background: white;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .register-sidebar {
+            background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
+            color: white;
             display: flex;
             flex-direction: column;
-            min-width: 250px;
+            justify-content: center;
+            padding: 4rem;
+            position: relative;
+            overflow: hidden;
         }
 
-        .form-group.full {
-            flex: 100%;
+        .register-sidebar::before {
+            content: '';
+            position: absolute;
+            top: -50px; right: -50px;
+            width: 300px; height: 300px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
         }
 
-        label {
+        .register-sidebar::after {
+            content: '';
+            position: absolute;
+            bottom: -50px; left: -50px;
+            width: 200px; height: 200px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            color: #0d6efd;
             font-weight: 600;
-            margin-bottom: 8px;
-            color: #555;
-            font-size: 0.9rem;
         }
 
-        input, select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-            background-color: #fff;
+        .form-control {
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            padding-left: 1rem;
         }
 
-        input:focus, select:focus {
-            outline: none;
-            border-color: #bf2121;
-            box-shadow: 0 0 0 3px rgba(191, 33, 33, 0.1);
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
         }
 
-        input.is-valid {
-            border-color: #28a745;
-        }
-
-        input.is-valid:focus {
-            border-color: #28a745;
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
-        }
-
-        input.is-invalid {
-            border-color: #dc3545;
-        }
-
-        input.is-invalid:focus {
-            border-color: #dc3545;
-            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
-        }
-
-        button {
-            font-family: inherit;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        button[type="submit"] {
-            width: 100%;
-            padding: 14px;
-            margin-top: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            background: #bf2121;
+        .btn-register {
+            background-color: #0d6efd;
             color: white;
             border: none;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
         }
 
-        button[type="submit"]:hover {
-            background: #931b1b;
+        .btn-register:hover,
+        .btn-register:focus,
+        .btn-register:active {
+            background-color: #0b5ed7;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+            outline: none;
         }
 
-        button[type="submit"]:active {
-            transform: scale(0.98);
+        .password-requirements {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
         }
 
-        #calcolaCFdiv {
+        .password-requirements::-webkit-scrollbar {
+            display: none;
+        }
+
+        .password-requirements span {
+            font-size: 0.8rem;
+            color: #adb5bd;
+            transition: color 0.3s;
             display: flex;
             align-items: center;
-            gap: 8px;
         }
 
-        #calcolaCFdiv input {
-            flex: 1;
-        }
-
-        .cf-counter {
-            font-size: 0.8rem;
-            color: #666;
-            white-space: nowrap;
-            padding: 0 5px;
-        }
+        .password-requirements span.valid { color: #198754; font-weight: 600; }
+        .password-requirements span i { font-size: 0.65rem; margin-right: 4px; }
 
         #btnCalcolaCF {
-            padding: 10px 16px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            color: #333;
-            border-radius: 6px;
-            font-weight: 600;
-            white-space: nowrap;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            height: 58px;
         }
 
-        #btnCalcolaCF:hover {
-            background-color: #e0e0e0;
-            border-color: #bbb;
-        }
-
-        #btnCalcolaCF:disabled {
-            background-color: #f5f5f5;
-            color: #aaa;
-            cursor: not-allowed;
-            border-color: #ddd;
-        }
-
-        .password-wrapper {
-            position: relative;
-            width: 100%;
-        }
-
-        .password-wrapper input {
-            padding-right: 70px;
-        }
-
-        .toggle-pass {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            border: none;
-            color: #666;
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 4px 8px;
-            cursor: pointer;
-        }
-
-        .toggle-pass:hover {
-            color: #bf2121;
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 4px;
-        }
-
-        .pw-requirements {
-            margin-top: 10px;
+        .input-group-text {
+            height: 58px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            align-items: center;
         }
-
-        .pw-item {
-            font-size: 0.7rem;
-            padding: 4px 10px;
-            border-radius: 12px;
-            border: 1px solid #ddd;
-            background-color: #f8f9fa;
-            color: #666;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            text-align: center;
-        }
-
-        .pw-item.invalid {
-            border-color: #ffcccc;
-            background-color: #fff5f5;
-            color: #cc0000;
-        }
-
-        .pw-item.valid {
-            border-color: #c3e6cb;
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .error {
-            font-size: 0.85rem;
-            color: #dc3545;
-            margin-top: 5px;
-            display: none;
-            font-weight: 500;
-        }
-
-        .alert {
-            padding: 12px 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            border: 1px solid;
-        }
-
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border-color: #c3e6cb;
-        }
-
-        .alert ul {
-            margin: 8px 0 0 20px;
-            padding: 0;
-        }
-
-        .login-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .login-link a {
-            color: #bf2121;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .login-link a:hover {
-            text-decoration: underline;
-        }
-
     </style>
 </head>
-
 <body>
 
-<div class="container">
-    <h2>Registrazione Utente</h2>
+<div class="container py-5">
+    <div class="card card-register mx-auto">
+        <div class="row g-0">
 
-    <form id="registrationForm" action="process-register.php" method="POST" novalidate>
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
-
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger">
-                <strong>Attenzione:</strong>
-                <ul>
-                    <?php foreach ($errors as $e): ?>
-                        <li><?= htmlspecialchars($e) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($flashMessage): ?>
-            <div class="alert alert-<?= $flashMessage['type'] === 'error' ? 'danger' : 'success' ?>">
-                <?= htmlspecialchars($flashMessage['message']) ?>
-            </div>
-        <?php endif; ?>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="nome">Nome *</label>
-                <input type="text" id="nome" name="nome" value="<?= htmlspecialchars($oldData['nome'] ?? '') ?>"
-                       required>
-                <div class="error" id="errNome">Inserisci il nome</div>
-            </div>
-
-            <div class="form-group">
-                <label for="cognome">Cognome *</label>
-                <input type="text" id="cognome" name="cognome"
-                       value="<?= htmlspecialchars($oldData['cognome'] ?? '') ?>" required>
-                <div class="error" id="errCognome">Inserisci il cognome</div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="dataNascita">Data di nascita *</label>
-                <input type="date" id="dataNascita" name="dataNascita" min="1900-01-01" max="2025-12-31"
-                       value="<?= htmlspecialchars($oldData['dataNascita'] ?? '') ?>" required>
-                <div class="error" id="errData">Inserisci una data valida</div>
-            </div>
-
-            <div class="form-group">
-                <label for="sesso">Sesso *</label>
-                <select id="sesso" name="sesso" required>
-                    <option value="">-- Seleziona --</option>
-                    <option value="M" <?= (isset($oldData['sesso']) && $oldData['sesso'] === 'M') ? 'selected' : '' ?>>
-                        Maschio
-                    </option>
-                    <option value="F" <?= (isset($oldData['sesso']) && $oldData['sesso'] === 'F') ? 'selected' : '' ?>>
-                        Femmina
-                    </option>
-                </select>
-                <div class="error" id="errSesso">Seleziona il sesso</div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="comune">Comune di nascita *</label>
-                <input type="text" id="comune" name="comune" value="<?= htmlspecialchars($oldData['comune'] ?? '') ?>"
-                       required>
-                <div class="error" id="errComune">Inserisci il comune di nascita</div>
-            </div>
-
-            <div class="form-group">
-                <label for="codiceFiscale">Codice Fiscale *</label>
-                <div id="calcolaCFdiv">
-                    <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16"
-                           value="<?= htmlspecialchars($oldData['codiceFiscale'] ?? '') ?>">
-                    <span id="cfCounter" class="cf-counter">0/16</span>
-                    <button type="button" id="btnCalcolaCF">Calcola</button>
-                </div>
-                <div class="error" id="errCF">Formato Codice Fiscale non valido</div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group full">
-                <label for="email">Email *</label>
-                <input type="email" id="email" name="email" value="<?= htmlspecialchars($oldData['email'] ?? '') ?>"
-                       required>
-                <div class="error" id="errEmail">Inserisci una email valida</div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="password">Password *</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" name="password" required>
-                    <button type="button" class="toggle-pass" id="togglePassword" tabindex="-1">Mostra</button>
-                </div>
-
-                <div class="pw-requirements" id="pwHelp">
-                    <div class="pw-item invalid" id="pwLen">8 caratteri</div>
-                    <div class="pw-item invalid" id="pwUpper">1 maiuscola</div>
-                    <div class="pw-item invalid" id="pwDigit">1 numero</div>
-                    <div class="pw-item invalid" id="pwSpecial">1 simbolo</div>
-                </div>
-
-                <div class="error" id="errPassword">
-                    La password non soddisfa i requisiti
+            <div class="col-lg-4 d-none d-lg-flex register-sidebar">
+                <div class="position-relative z-1 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-book-reader fa-4x mb-3"></i>
+                        <h2 class="fw-bold">BiblioSystem</h2>
+                    </div>
+                    <p class="opacity-75 fs-5">La tua biblioteca digitale, a portata di click.</p>
+                    <hr class="border-light opacity-25 my-4">
+                    <p class="small opacity-75">Unisciti a noi per accedere a migliaia di risorse, prenotare libri e gestire i tuoi prestiti online.</p>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="confermaPassword">Conferma password *</label>
-                <input type="password" id="confermaPassword" name="confermaPassword" required>
-                <div class="error" id="errConfermaPassword">
-                    Le due password non coincidono
+            <div class="col-lg-8 bg-white p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="fw-bold text-dark m-0">Crea Account</h3>
+                    <a href="index.php" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="fas fa-arrow-left me-1"></i> Home</a>
                 </div>
+
+                <?php if ($flash): ?>
+                    <div class="alert alert-<?= $flash['type'] === 'error' ? 'danger' : 'success' ?> shadow-sm border-0 rounded-3 mb-4">
+                        <i class="fas <?= $flash['type'] === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle' ?> me-2"></i>
+                        <?= htmlspecialchars($flash['message']) ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($errors)): ?>
+                    <div class="alert alert-danger shadow-sm border-0 rounded-3 mb-4">
+                        <ul class="mb-0 small ps-3">
+                            <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
+                <form id="registrationForm" action="process-register.php" method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="nome" name="nome" placeholder="Mario" value="<?= htmlspecialchars($oldData['nome'] ?? '') ?>" required>
+                                <label for="nome">Nome</label>
+                                <div class="invalid-feedback">Inserisci il nome.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="cognome" name="cognome" placeholder="Rossi" value="<?= htmlspecialchars($oldData['cognome'] ?? '') ?>" required>
+                                <label for="cognome">Cognome</label>
+                                <div class="invalid-feedback">Inserisci il cognome.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="dataNascita" name="dataNascita" min="1920-01-01" max="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($oldData['dataNascita'] ?? '') ?>" required>
+                                <label for="dataNascita">Data di Nascita</label>
+                                <div class="invalid-feedback">Data non valida.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="sesso" name="sesso" required>
+                                    <option value="" disabled <?= !isset($oldData['sesso']) ? 'selected' : '' ?>>Seleziona</option>
+                                    <option value="M" <?= ($oldData['sesso'] ?? '') === 'M' ? 'selected' : '' ?>>Maschio</option>
+                                    <option value="F" <?= ($oldData['sesso'] ?? '') === 'F' ? 'selected' : '' ?>>Femmina</option>
+                                </select>
+                                <label for="sesso">Sesso</label>
+                                <div class="invalid-feedback">Seleziona il sesso.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-5">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="comune" name="comune" placeholder="Roma" value="<?= htmlspecialchars($oldData['comune'] ?? '') ?>" required>
+                                <label for="comune">Comune di Nascita</label>
+                                <div class="invalid-feedback" id="errComune">Inserisci il comune.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="input-group has-validation">
+                                <div class="form-floating flex-grow-1">
+                                    <input type="text" class="form-control rounded-0 rounded-start" id="codiceFiscale" name="codiceFiscale" placeholder="CF" maxlength="16" value="<?= htmlspecialchars($oldData['codiceFiscale'] ?? '') ?>" style="border-right:0;" required>
+                                    <label for="codiceFiscale">Codice Fiscale</label>
+                                    <div class="invalid-feedback" id="errCF">Inserisci il codice fiscale.</div>
+                                </div>
+                                <button class="btn btn-light border" type="button" id="btnCalcolaCF" style="min-width: 80px;">
+                                    <i class="fas fa-magic text-primary"></i> <span class="d-none d-sm-inline">Calcola</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" value="<?= htmlspecialchars($oldData['email'] ?? '') ?>" required>
+                        <label for="email">Indirizzo Email</label>
+                        <div class="invalid-feedback">Inserisci un'email valida.</div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="input-group has-validation">
+                                <div class="form-floating flex-grow-1">
+                                    <input type="password" class="form-control border-end-0 rounded-0 rounded-start" id="password" name="password" placeholder="Password" required>
+                                    <label for="password">Password</label>
+                                    <div class="invalid-feedback">Password richiesta.</div>
+                                </div>
+                                <span class="input-group-text bg-white border-start-0" style="cursor: pointer;" onclick="togglePass('password', this)">
+                                    <i class="far fa-eye text-muted"></i>
+                                </span>
+                            </div>
+                            <div class="password-requirements mt-2 d-flex">
+                                <span id="req-len"><i class="fas fa-circle"></i> 8 caratteri</span>
+                                <span id="req-upper"><i class="fas fa-circle"></i> Maiuscola</span>
+                                <span id="req-num"><i class="fas fa-circle"></i> Numero</span>
+                                <span id="req-spec"><i class="fas fa-circle"></i> Speciale</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group has-validation">
+                                <div class="form-floating flex-grow-1">
+                                    <input type="password" class="form-control border-end-0 rounded-0 rounded-start" id="confermaPassword" name="confermaPassword" placeholder="Conferma" required>
+                                    <label for="confermaPassword">Conferma Password</label>
+                                    <div class="invalid-feedback">Le password non coincidono.</div>
+                                </div>
+                                <span class="input-group-text bg-white border-start-0" style="cursor: pointer;" onclick="togglePass('confermaPassword', this)">
+                                    <i class="far fa-eye text-muted"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-register w-100 text-white shadow-sm mb-3">
+                        REGISTRATI <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+
+                    <p class="text-center text-muted mb-0">
+                        Hai già un account? <a href="login.php" class="text-primary fw-bold text-decoration-none">Accedi qui</a>
+                    </p>
+                </form>
             </div>
         </div>
-
-        <button type="submit">Registrati</button>
-
-    </form>
-    <div class="login-link">
-        Hai già un account? <a href="login.php">Accedi ora</a>
     </div>
 </div>
 
 <script>
+    // Toggle Password Visibility
+    function togglePass(inputId, iconSpan) {
+        const input = document.getElementById(inputId);
+        const icon = iconSpan.querySelector('i');
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         const form = document.getElementById("registrationForm");
-        if (!form) return;
+        const passInput = document.getElementById("password");
+        const confirmInput = document.getElementById("confermaPassword");
 
-        const ui = {
-            pass: document.getElementById("password"),
-            conf: document.getElementById("confermaPassword"),
-            toggle: document.getElementById("togglePassword")
-        };
+        // Array Comuni
+        let comuniDB = [];
 
-        const fieldsConfig = [
-            {id: "nome", err: "errNome"},
-            {id: "cognome", err: "errCognome"},
-            {id: "sesso", err: "errSesso"},
-            {id: "comune", err: "errComune"},
-            {
-                id: "dataNascita",
-                err: "errData",
-                check: function (val) {
-                    if (!val) return false;
-                    const d = new Date(val);
-                    const min = new Date("1900-01-01");
-                    const max = new Date("2025-12-31");
-                    return d >= min && d <= max;
-                }
-            },
-            {
-                id: "codiceFiscale",
-                err: "errCF",
-                check: function (val) {
-                    return val !== "" && /^[A-Z0-9]{16}$/i.test(val);
-                }
-            },
-            {
-                id: "email",
-                err: "errEmail",
-                check: function (val) {
-                    return val !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-                }
-            }
-        ];
-
-        function toggleError(id, show) {
-            const el = document.getElementById(id);
-            if (el) el.style.display = show ? "block" : "none";
-        }
-
-        function checkPasswordRules(pw) {
-            return {
-                len: pw.length >= 8,
-                upper: /[A-Z]/.test(pw),
-                digit: /[0-9]/.test(pw),
-                special: /[\W_]/.test(pw)
-            };
-        }
-
-        function updatePasswordUI() {
-            if (!ui.pass) return;
-            const val = ui.pass.value;
-            const rules = checkPasswordRules(val);
-
-            const map = {
-                pwLen: rules.len,
-                pwUpper: rules.upper,
-                pwDigit: rules.digit,
-                pwSpecial: rules.special
+        // Validazione Password Live
+        passInput.addEventListener("input", function() {
+            const val = this.value;
+            const reqs = {
+                'req-len': val.length >= 8,
+                'req-upper': /[A-Z]/.test(val),
+                'req-num': /[0-9]/.test(val),
+                'req-spec': /[\W_]/.test(val)
             };
 
-            for (let id in map) {
+            for (const [id, isValid] of Object.entries(reqs)) {
                 const el = document.getElementById(id);
-                if (el) {
-                    el.classList.toggle("valid", map[id]);
-                    el.classList.toggle("invalid", !map[id]);
-                }
-            }
-
-            toggleError("errPassword", false);
-
-            if (ui.conf && ui.conf.value !== "") {
-                toggleError("errConfermaPassword", val !== ui.conf.value);
-            }
-        }
-
-        function validateForm(e) {
-            let isValid = true;
-
-            fieldsConfig.forEach(field => {
-                const el = document.getElementById(field.id);
-                const val = el ? el.value.trim() : "";
-                let fieldOk = true;
-
-                if (field.check) {
-                    fieldOk = field.check(val);
+                const icon = el.querySelector('i');
+                if (isValid) {
+                    el.classList.add('valid');
+                    icon.classList.remove('fa-circle');
+                    icon.classList.add('fa-check-circle');
                 } else {
-                    fieldOk = val !== "";
-                }
-
-                if (!fieldOk) {
-                    toggleError(field.err, true);
-                    isValid = false;
-                } else {
-                    toggleError(field.err, false);
-                }
-            });
-
-            if (ui.pass && ui.conf) {
-                const pwRules = checkPasswordRules(ui.pass.value);
-                const isPwSecure = Object.values(pwRules).every(Boolean);
-
-                if (!isPwSecure) {
-                    toggleError("errPassword", true);
-                    isValid = false;
-                }
-
-                if (ui.pass.value !== ui.conf.value) {
-                    toggleError("errConfermaPassword", true);
-                    isValid = false;
+                    el.classList.remove('valid');
+                    icon.classList.add('fa-circle');
+                    icon.classList.remove('fa-check-circle');
                 }
             }
 
-            if (!isValid) e.preventDefault();
-        }
-
-        if (ui.pass) {
-            ui.pass.addEventListener("input", updatePasswordUI);
-            updatePasswordUI();
-        }
-
-        if (ui.conf) {
-            ui.conf.addEventListener("input", () => {
-                if (ui.pass) {
-                    toggleError("errConfermaPassword", ui.pass.value !== ui.conf.value);
-                }
-            });
-        }
-
-        if (ui.toggle && ui.pass) {
-            ui.toggle.addEventListener("click", () => {
-                const isPassword = ui.pass.type === "password";
-                ui.pass.type = isPassword ? "text" : "password";
-                ui.toggle.textContent = isPassword ? "Nascondi" : "Mostra";
-            });
-        }
-
-        form.addEventListener("submit", validateForm);
-    });
-
-    // CODICE FISCALE
-    let elencoComuni = [];
-    const CF_LEN = 16;
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const ui = {
-            btn: document.getElementById("btnCalcolaCF"),
-            input: document.getElementById("codiceFiscale"),
-            counter: document.getElementById("cfCounter"),
-            errCF: document.getElementById("errCF"),
-            errComune: document.getElementById("errComune"),
-            fields: {
-                nome: document.getElementById("nome"),
-                cognome: document.getElementById("cognome"),
-                nascita: document.getElementById("dataNascita"),
-                sesso: document.getElementById("sesso"),
-                comune: document.getElementById("comune")
-            }
-        };
-
-        function toggleError(el, msg = "") {
-            if (!el) return;
-            el.style.display = msg ? "block" : "none";
-            el.textContent = msg;
-        }
-
-        function setStatus(isValid) {
-            ui.input.classList.toggle('is-valid', isValid);
-            ui.input.classList.toggle('is-invalid', !isValid);
-        }
-
-        function resetUI() {
-            ui.input.classList.remove('is-valid', 'is-invalid');
-            toggleError(ui.errCF, "");
-            toggleError(ui.errComune, "");
-
-            const len = ui.input.value.length;
-            if (ui.counter) ui.counter.textContent = `${len}/${CF_LEN}`;
-
-            if (len === 0) {
-                ui.btn.textContent = "Calcola";
-                ui.btn.disabled = false;
-            } else {
-                ui.btn.textContent = "Verifica";
-                ui.btn.disabled = len !== CF_LEN;
-            }
-        }
-
-        function processaCF() {
-            const dati = {};
-            let formValido = true;
-
-            for (let key in ui.fields) {
-                const val = ui.fields[key].value.toUpperCase().trim();
-                dati[key] = val;
-                if (!val) formValido = false;
-            }
-
-            if (!formValido) {
-                toggleError(ui.errCF, "Compila tutti i dati anagrafici prima di calcolare/verificare il CF.");
-                ui.input.classList.add('is-invalid');
-                return;
-            }
-
-            const cfGenerato = generaCodiceFiscale(dati, ui.errComune);
-
-            if (!cfGenerato) {
-                ui.input.classList.add('is-invalid');
-                return;
-            }
-
-            const cfInput = ui.input.value;
-
-            if (cfInput.length === 0) {
-                ui.input.value = cfGenerato;
-                setStatus(true);
-                toggleError(ui.errCF, "");
-                resetUI();
-                ui.input.classList.add('is-valid');
-            } else {
-                if (cfInput === cfGenerato) {
-                    setStatus(true);
-                    toggleError(ui.errCF, "");
-                } else {
-                    setStatus(false);
-                    const msgErrore = analizzaIncongruenzaCF(cfInput, cfGenerato);
-                    toggleError(ui.errCF, msgErrore);
-                }
-            }
-        }
-
-        if (ui.input) {
-            ui.input.addEventListener("input", () => {
-                ui.input.value = ui.input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                resetUI();
-            });
-        }
-
-        Object.values(ui.fields).forEach(field => {
-            if (field) {
-                field.addEventListener("input", resetUI);
-                field.addEventListener("change", resetUI);
-            }
+            if(confirmInput.value) checkMatch();
         });
 
-        if (ui.btn) {
-            ui.btn.disabled = true;
-            ui.btn.textContent = "Caricamento...";
+        confirmInput.addEventListener("input", checkMatch);
 
-            fetch('/StackMasters/public/assets/data/comuni.json')
-                .then(r => r.ok ? r.json() : Promise.reject("Errore"))
-                .then(data => {
-                    elencoComuni = data;
-                    console.log(`Caricati ${data.length} comuni.`);
-                    resetUI();
-                })
-                .catch(e => {
-                    console.error(e);
-                    ui.btn.textContent = "Errore DB";
-                    toggleError(ui.errCF, "Errore caricamento database comuni.");
-                });
-
-            ui.btn.addEventListener("click", processaCF);
-        }
-
-        resetUI();
-    });
-
-    function analizzaIncongruenzaCF(inserito, atteso) {
-        if (inserito.length !== 16) return `Lunghezza errata: ${inserito.length} caratteri invece di 16.`;
-        const segComune = inserito.substring(11, 15);
-        const attComune = atteso.substring(11, 15);
-        if (segComune !== attComune) return "Il comune di nascita non corrisponde.";
-        return "Dati non corrispondenti al CF inserito.";
-    }
-
-    function generaCodiceFiscale(dati, errEl) {
-        if (errEl) errEl.style.display = "none";
-        const comuneTrovato = elencoComuni.find(c => c.nome.toUpperCase() === dati.comune);
-        if (!comuneTrovato) {
-            if (errEl) {
-                errEl.textContent = `Comune "${dati.comune}" non trovato.`;
-                errEl.style.display = "block";
+        function checkMatch() {
+            if (confirmInput.value !== passInput.value) {
+                confirmInput.setCustomValidity("Le password non coincidono");
+                confirmInput.classList.add('is-invalid');
+                confirmInput.classList.remove('is-valid');
+            } else {
+                confirmInput.setCustomValidity("");
+                confirmInput.classList.remove('is-invalid');
+                confirmInput.classList.add('is-valid');
             }
-            return null;
         }
-        let cf = getCodice(dati.cognome, false) + getCodice(dati.nome, true) +
-            getDataSesso(dati.nascita, dati.sesso) + comuneTrovato.codiceCatastale;
-        return cf + calcolaCin(cf);
-    }
 
-    function getVocCons(str) {
-        return {v: str.replace(/[^AEIOU]/g, ''), c: str.replace(/[^B-DF-HJ-NP-TV-Z]/g, '')};
-    }
+        // Caricamento Comuni JSON
+        fetch('/StackMasters/public/assets/data/comuni.json')
+            .then(r => r.json())
+            .then(data => { comuniDB = data; })
+            .catch(err => console.error("Errore comuni:", err));
 
-    function getCodice(str, isNome) {
-        const {v, c} = getVocCons(str);
-        if (isNome && c.length >= 4) return c[0] + c[2] + c[3];
-        return (c + v + "XXX").substring(0, 3);
-    }
+        // Calcolo Codice Fiscale
+        document.getElementById('btnCalcolaCF').addEventListener('click', function() {
+            const inputs = {
+                nome: document.getElementById('nome').value.trim().toUpperCase(),
+                cognome: document.getElementById('cognome').value.trim().toUpperCase(),
+                data: document.getElementById('dataNascita').value,
+                sesso: document.getElementById('sesso').value,
+                comune: document.getElementById('comune').value.trim().toUpperCase()
+            };
 
-    function getDataSesso(iso, sesso) {
-        const [anno, mese, giorno] = iso.split('-');
-        const codMesi = "ABCDEHLMPRST";
-        const gg = parseInt(giorno) + (sesso === 'F' ? 40 : 0);
-        return anno.substr(2) + codMesi[parseInt(mese) - 1] + (gg < 10 ? '0' + gg : gg);
-    }
+            // Reset errori
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
-    function calcolaCin(cf) {
-        const values = {
-            0: 1, 1: 0, 2: 5, 3: 7, 4: 9, 5: 13, 6: 15, 7: 17, 8: 19, 9: 21,
-            A: 1, B: 0, C: 5, D: 7, E: 9, F: 13, G: 15, H: 17, I: 19, J: 21,
-            K: 2, L: 4, M: 18, N: 20, O: 11, P: 3, Q: 6, R: 8, S: 12, T: 14,
-            U: 16, V: 10, W: 22, X: 25, Y: 24, Z: 23
-        };
-        let sum = 0;
-        for (let i = 0; i < 15; i++) {
-            const c = cf[i];
-            sum += (i % 2 === 0) ? values[c] : ((c >= '0' && c <= '9') ? parseInt(c) : c.charCodeAt(0) - 65);
+            // Validazione campi base
+            if (!inputs.nome || !inputs.cognome || !inputs.data || !inputs.sesso || !inputs.comune) {
+                alert("Compila tutti i dati anagrafici prima di calcolare.");
+                return;
+            }
+
+            // Cerca Comune
+            const comuneTrovato = comuniDB.find(c => c.nome.toUpperCase() === inputs.comune);
+            if (!comuneTrovato) {
+                const comEl = document.getElementById('comune');
+                comEl.classList.add('is-invalid');
+                document.getElementById('errComune').innerText = "Comune non trovato nel database.";
+                return;
+            }
+
+            // Generazione
+            const cf = calcolaCF(inputs.nome, inputs.cognome, inputs.data, inputs.sesso, comuneTrovato.codiceCatastale);
+            const cfInput = document.getElementById('codiceFiscale');
+            cfInput.value = cf;
+            cfInput.classList.add('is-valid'); // Feedback verde
+        });
+
+        // Funzioni Helper CF Minimizzate
+        function calcolaCF(nome, cognome, data, sesso, codCat) {
+            const voc = str => str.replace(/[^AEIOU]/g, '');
+            const cons = str => str.replace(/[^B-DF-HJ-NP-TV-Z]/g, '');
+
+            const getCod = (str, isNome) => {
+                const c = cons(str), v = voc(str);
+                const t = c + v + 'XXX';
+                if (isNome && c.length >= 4) return c[0] + c[2] + c[3];
+                return t.substring(0, 3);
+            };
+
+            const [Y, M, D] = data.split('-');
+            const mesi = 'ABCDEHLMPRST';
+            const gg = parseInt(D) + (sesso === 'F' ? 40 : 0);
+
+            let tempCF = getCod(cognome, false) + getCod(nome, true) +
+                Y.substring(2) + mesi[parseInt(M)-1] + (gg < 10 ? '0'+gg : gg) + codCat;
+
+            // Calcolo CIN
+            const pari = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const dispari = {0:1,1:0,2:5,3:7,4:9,5:13,6:15,7:17,8:19,9:21,A:1,B:0,C:5,D:7,E:9,F:13,G:15,H:17,I:19,J:21,K:2,L:4,M:18,N:20,O:11,P:3,Q:6,R:8,S:12,T:14,U:16,V:10,W:22,X:25,Y:24,Z:23};
+            let s = 0;
+            for(let i=0; i<15; i++) {
+                let char = tempCF[i];
+                if((i+1)%2 === 0) s += pari.indexOf(char); // Pari (0-based index su stringa è dispari)
+                else s += dispari[(!isNaN(char) ? parseInt(char) : char)];
+            }
+            return tempCF + String.fromCharCode(65 + (s % 26));
         }
-        return String.fromCharCode((sum % 26) + 65);
-    }
+
+        // Validazione Form al Submit
+        form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
 </script>
 
 </body>
