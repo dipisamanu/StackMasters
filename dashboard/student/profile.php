@@ -13,7 +13,6 @@ $db = Database::getInstance()->getConnection();
 $userId = Session::getUserId();
 $flash = Session::getFlash();
 
-// 1. Determina Ruolo e Link di Ritorno
 $currentRole = Session::getMainRole();
 $isAdmin = ($currentRole === 'Admin');
 
@@ -23,7 +22,7 @@ $dashboardLink = match ($currentRole) {
     default => 'index.php'
 };
 
-// 2. Recupera Dati Utente
+// Recupero Dati Utente
 try {
     $stmt = $db->prepare("
         SELECT 
@@ -47,7 +46,7 @@ try {
     die("Errore sistema: " . $e->getMessage());
 }
 
-// 4. Badge (Solo se non è admin, opzionale)
+// Badge (Solo se non è admin, opzionale)
 $badges = [];
 if (!$isAdmin) {
     try {

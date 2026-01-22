@@ -1,13 +1,10 @@
-
 <?php
 /**
+ * Legge le notifiche 'DA_INVIARE' e simula l'invio email scrivendo su file log.
  * FILE: scripts/cron_email.php
- * DESCRIZIONE: Legge le notifiche 'DA_INVIARE' e simula l'invio email scrivendo su file log.
  */
 
-use Ottaviodipisa\StackMasters\Core\Database;
 use Dotenv\Dotenv;
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
 if (file_exists(__DIR__ . '/../.env')) {
@@ -33,7 +30,7 @@ $stmt = $pdo->query($sql);
 $count = 0;
 
 while ($row = $stmt->fetch()) {
-    // --- SIMULAZIONE INVIO ---
+    // SIMULAZIONE INVIO
     $txt = "=== EMAIL LOG " . date('Y-m-d H:i:s') . " ===\n";
     $txt .= "To: {$row['email']} ({$row['nome']})\n";
     $txt .= "Subject: {$row['titolo']}\n";
@@ -43,7 +40,7 @@ while ($row = $stmt->fetch()) {
     // Scrittura su file (FILE_APPEND aggiunge in coda)
     file_put_contents($logFile, $txt, FILE_APPEND);
 
-    // --- AGGIORNAMENTO DB ---
+    // AGGIORNAMENTO DB
     // Segniamo come INVIATA per non spedirla due volte
     $upd = $pdo->prepare("UPDATE notifiche_web SET stato_email = 'INVIATA', data_invio_email = NOW() WHERE id_notifica = ?");
     $upd->execute([$row['id_notifica']]);

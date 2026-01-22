@@ -85,7 +85,7 @@ $sql = "
             FROM utenti_ruoli ur2 
             JOIN ruoli r2 ON ur2.id_ruolo = r2.id_ruolo 
             WHERE ur2.id_utente = u.id_utente 
-            ORDER BY r2.priorita ASC 
+            ORDER BY r2.priorita 
             LIMIT 1
         ) as main_role_id,
         COUNT(*) OVER() as total_records
@@ -131,10 +131,18 @@ require_once '../../src/Views/layout/header.php';
 ?>
 
     <style>
-        html, body { height: 100%; }
-        body { display: flex; flex-direction: column; }
-        .content-wrapper { flex: 1 0 auto; }
-        footer { flex-shrink: 0; }
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        footer {
+            flex-shrink: 0;
+        }
 
         .dashboard-container {
             width: 100%;
@@ -214,12 +222,14 @@ require_once '../../src/Views/layout/header.php';
                 </nav>
             </div>
             <div>
-                <a href="index.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Torna alla Dashboard</a>
+                <a href="index.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Torna
+                    alla Dashboard</a>
             </div>
         </div>
 
         <?php if ($flash): ?>
-            <div class="alert alert-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?> alert-dismissible fade show shadow-sm border-0 border-start border-4 border-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?> mb-4" role="alert">
+            <div class="alert alert-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?> alert-dismissible fade show shadow-sm border-0 border-start border-4 border-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?> mb-4"
+                 role="alert">
                 <i class="fas <?= $flash['type'] === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?> me-2"></i>
                 <?= htmlspecialchars($flash['message']) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -235,12 +245,15 @@ require_once '../../src/Views/layout/header.php';
 
                 <form method="GET" action="users.php" class="d-flex gap-2 w-100 w-md-auto" style="max-width: 400px;">
                     <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-search"></i></span>
-                        <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Cerca utente..." value="<?= htmlspecialchars($search) ?>">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i
+                                    class="fas fa-search"></i></span>
+                        <input type="text" name="q" class="form-control border-start-0 bg-light"
+                               placeholder="Cerca utente..." value="<?= htmlspecialchars($search) ?>">
                         <button class="btn btn-primary px-4" type="submit">Cerca</button>
                     </div>
-                    <?php if($search): ?>
-                        <a href="users.php" class="btn btn-light border" title="Reset filtri"><i class="fas fa-times"></i></a>
+                    <?php if ($search): ?>
+                        <a href="users.php" class="btn btn-light border" title="Reset filtri"><i
+                                    class="fas fa-times"></i></a>
                     <?php endif; ?>
                 </form>
             </div>
@@ -269,7 +282,8 @@ require_once '../../src/Views/layout/header.php';
                             $userRoles = !empty($u['ruoli_nomi']) ? explode('|', $u['ruoli_nomi']) : [];
                             ?>
                             <tr class="<?= $isCurrentUser ? 'bg-warning bg-opacity-10' : '' ?>">
-                                <td class="ps-4" style="cursor: pointer;" onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
+                                <td class="ps-4" style="cursor: pointer;"
+                                    onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle me-3 shadow-sm">
                                             <?= strtoupper(substr($u['nome'], 0, 1) . substr($u['cognome'], 0, 1)) ?>
@@ -277,31 +291,35 @@ require_once '../../src/Views/layout/header.php';
                                         <div>
                                             <div class="fw-bold text-dark">
                                                 <?= htmlspecialchars($u['cognome'] . ' ' . $u['nome']) ?>
-                                                <?php if($isCurrentUser): ?>
-                                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.6rem;">TU</span>
+                                                <?php if ($isCurrentUser): ?>
+                                                    <span class="badge bg-warning text-dark ms-2"
+                                                          style="font-size: 0.6rem;">TU</span>
                                                 <?php endif; ?>
                                             </div>
                                             <div class="text-muted small">ID: #<?= $u['id_utente'] ?></div>
                                         </div>
                                     </div>
                                 </td>
-                                <td style="cursor: pointer;" onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
+                                <td style="cursor: pointer;"
+                                    onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <i class="far fa-envelope text-muted small" style="width: 16px;"></i>
                                         <span class="text-dark small"><?= htmlspecialchars($u['email']) ?></span>
                                     </div>
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="far fa-id-card text-muted small" style="width: 16px;"></i>
-                                        <span class="text-muted small" style="font-family: monospace;"><?= htmlspecialchars($u['cf']) ?></span>
+                                        <span class="text-muted small"
+                                              style="font-family: monospace;"><?= htmlspecialchars($u['cf']) ?></span>
                                     </div>
                                 </td>
-                                <td style="cursor: pointer;" onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
+                                <td style="cursor: pointer;"
+                                    onclick="window.location='user_details.php?id=<?= $u['id_utente'] ?>'">
                                     <div class="d-flex flex-wrap gap-1">
                                         <?php if (empty($userRoles)): ?>
                                             <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal border">Nessuno</span>
                                         <?php else: ?>
                                             <?php foreach ($userRoles as $r):
-                                                $badgeClass = match($r) {
+                                                $badgeClass = match ($r) {
                                                     'Admin' => 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25',
                                                     'Bibliotecario' => 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25',
                                                     'Docente' => 'bg-info bg-opacity-10 text-info border border-info border-opacity-25',
@@ -317,17 +335,22 @@ require_once '../../src/Views/layout/header.php';
                                     <?php if ($isCurrentUser): ?>
                                         <span class="text-muted small fst-italic"><i class="fas fa-lock me-1"></i>Protetto</span>
                                     <?php else: ?>
-                                        <form class="d-flex justify-content-end align-items-center gap-2" method="POST" action="users.php">
+                                        <form class="d-flex justify-content-end align-items-center gap-2" method="POST"
+                                              action="users.php">
                                             <input type="hidden" name="action" value="update_role">
                                             <input type="hidden" name="user_id" value="<?= $u['id_utente'] ?>">
-                                            <select name="role_id" class="form-select form-select-sm role-select py-1" style="width: 140px;" onclick="event.stopPropagation();">
+                                            <select name="role_id" class="form-select form-select-sm role-select py-1"
+                                                    style="width: 140px;" onclick="stopPropagation();">
                                                 <?php foreach ($roles as $role): ?>
                                                     <option value="<?= $role['id_ruolo'] ?>" <?= ($u['main_role_id'] == $role['id_ruolo']) ? 'selected' : '' ?>>
                                                         <?= htmlspecialchars($role['nome']) ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <button type="submit" class="btn btn-sm btn-light border text-primary shadow-sm" title="Salva Modifiche" onclick="event.stopPropagation(); return confirm('Modificare il ruolo di questo utente?');">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-light border text-primary shadow-sm"
+                                                    title="Salva Modifiche"
+                                                    onclick="stopPropagation(); return confirm('Modificare il ruolo di questo utente?');">
                                                 <i class="fas fa-save"></i>
                                             </button>
                                         </form>
@@ -340,23 +363,9 @@ require_once '../../src/Views/layout/header.php';
                 </table>
             </div>
 
-            <?php if ($totalPages > 1): ?>
-                <div class="card-footer bg-white py-3 border-top-0">
-                    <nav>
-                        <ul class="pagination pagination-sm justify-content-center mb-0">
-                            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                                <a class="page-link border-0 bg-transparent" href="?page=<?= $page - 1 ?>&q=<?= urlencode($search) ?>"><i class="fas fa-chevron-left me-1"></i> Precedente</a>
-                            </li>
-                            <li class="page-item disabled">
-                                <span class="page-link border-0 text-dark fw-bold px-3"><?= $page ?> / <?= $totalPages ?></span>
-                            </li>
-                            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                                <a class="page-link border-0 bg-transparent" href="?page=<?= $page + 1 ?>&q=<?= urlencode($search) ?>">Successivo <i class="fas fa-chevron-right ms-1"></i></a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-            <?php endif; ?>
+            <?php
+            include '../../src/Views/components/pagination.php';
+            ?>
         </div>
     </div>
 

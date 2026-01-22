@@ -23,7 +23,7 @@ try {
     if (in_array($action, ['create', 'update'])) {
         validateBookData($_POST);
 
-        // 1. GESTIONE UPLOAD IMMAGINE
+        // GESTIONE UPLOAD IMMAGINE
         // Gestiamo il file qui e passiamo l'URL risultante al modello tramite $_POST
         if (isset($_FILES['copertina']) && $_FILES['copertina']['error'] === UPLOAD_ERR_OK) {
             // Definiamo il percorso di upload relativo alla cartella public
@@ -46,7 +46,7 @@ try {
         }
     }
 
-    // 2. ESECUZIONE AZIONI
+    // ESECUZIONE AZIONI
     if ($action === 'create') {
         // Il Model userà internamente linkAuthorByName() leggendo $_POST['autore']
         $bookModel->create($_POST);
@@ -71,7 +71,7 @@ try {
 
 } catch (Exception $e) {
     // In caso di errore, salviamo il messaggio e i dati inseriti per non doverli riscrivere
-    $_SESSION['flash_error'] = "⚠️ Errore durante l'operazione: " . $e->getMessage();
+    $_SESSION['flash_error'] = "<i class='fas fa-exclamation-triangle'></i> Errore durante l'operazione: " . $e->getMessage();
     $_SESSION['form_data'] = $_POST;
 }
 
@@ -81,8 +81,10 @@ exit;
 
 /**
  * Validazione dei dati obbligatori e dell'integrità dei campi
+ * @throws Exception
  */
-function validateBookData(array $data) {
+function validateBookData(array $data): void
+{
     if (empty(trim($data['titolo']))) {
         throw new Exception("Il titolo del libro è un campo obbligatorio.");
     }

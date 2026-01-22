@@ -11,11 +11,10 @@ Session::requireRole('Admin');
 
 $db = Database::getInstance()->getConnection();
 
-// --- FILTRI E ORDINAMENTO ---
+// FILTRI E ORDINAMENTO
 $sortOrder = isset($_GET['sort']) && $_GET['sort'] === 'asc' ? 'ASC' : 'DESC';
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
 
-// Query per recuperare utenti con multe pendenti
 $query = "
     SELECT u.id_utente, u.nome, u.cognome, u.email, u.cf, SUM(m.importo) as totale_multe
     FROM utenti u

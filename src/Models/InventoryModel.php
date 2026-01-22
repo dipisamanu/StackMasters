@@ -21,7 +21,7 @@ class InventoryModel
                 FROM inventari i
                 LEFT JOIN rfid r ON i.id_rfid = r.id_rfid
                 WHERE i.id_libro = ?
-                ORDER BY i.collocazione ASC";
+                ORDER BY i.collocazione";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$bookId]);
@@ -33,7 +33,7 @@ class InventoryModel
      */
     public function findFirstFreeLocation(): string
     {
-        // 1. Prendi tutte le collocazioni occupate
+        // Prendi tutte le collocazioni occupate
         $stmt = $this->db->query("SELECT collocazione FROM inventari");
         $occupied = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
@@ -45,7 +45,7 @@ class InventoryModel
             }
         }
 
-        // 2. Algoritmo di ricerca: Lettera(A-Z) + Ripiano(1-9) + Posizione(01-99)
+        // Algoritmo di ricerca: Lettera(A-Z) + Ripiano(1-9) + Posizione(01-99)
         foreach (range('A', 'Z') as $letter) {
             for ($shelf = 1; $shelf <= 9; $shelf++) {
                 for ($pos = 1; $pos <= 99; $pos++) {
@@ -65,6 +65,9 @@ class InventoryModel
         return "FULL";
     }
 
+    /**
+     * @throws Exception
+     */
     public function addCopy(int $bookId, string $rfidCode, string $collocazione, string $condizione = 'BUONO'): bool
     {
         try {
@@ -122,6 +125,9 @@ class InventoryModel
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function updateCopy(int $copyId, string $collocazione, string $condizione, string $stato): bool
     {
         $collocazione = strtoupper(trim($collocazione));
@@ -136,6 +142,9 @@ class InventoryModel
         return $stmt->execute([':coll' => $collocazione, ':cond' => $condizione, ':stato' => $stato, ':id' => $copyId]);
     }
 
+    /**
+     * @throws Exception
+     */
     public function deleteCopy(int $copyId): bool
     {
         $check = $this->db->prepare("SELECT stato FROM inventari WHERE id_inventario = ?");
@@ -153,7 +162,7 @@ class InventoryModel
                 FROM inventari i
                 JOIN libri l ON i.id_libro = l.id_libro
                 LEFT JOIN rfid r ON i.id_rfid = r.id_rfid
-                ORDER BY i.id_inventario ASC";
+                ORDER BY i.id_inventario";
 
         $stmt = $this->db->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

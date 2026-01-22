@@ -1,10 +1,12 @@
 <?php
 /**
- * Process Reset Password - Backend Cambio Password
+ * Backend Cambio Password
  * File: public/process-reset-password.php
  */
 
-// 1. Sessioni e Config
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/../src/config/session.php';
 require_once __DIR__ . '/../src/config/database.php';
 
@@ -39,11 +41,11 @@ if (strlen($password) < 8) {
 try {
     $db = getDB();
 
-    // 2. Calcola Hash del Token per confronto DB
+    // Calcola Hash del Token per confronto DB
     // Nel forgot-password il token viene salvato come md5($random_bytes)
     $tokenHash = md5($token);
 
-    // 3. Verifica Token valido e non scaduto
+    // Verifica Token valido e non scaduto
     $stmt = $db->prepare("
         SELECT id_utente 
         FROM utenti 
@@ -60,7 +62,7 @@ try {
         exit;
     }
 
-    // 4. Aggiorna Password e Pulisce Token
+    // Aggiorna Password e Pulisce Token
     $newPasswordHash = password_hash($password, PASSWORD_DEFAULT);
 
     $update = $db->prepare("
@@ -75,7 +77,7 @@ try {
 
     $update->execute([$newPasswordHash, $user['id_utente']]);
 
-    // 5. Successo -> Login
+    // Successo -> Login
     $_SESSION['login_success'] = 'Password aggiornata con successo! Ora puoi accedere.';
     header('Location: login.php');
     exit;

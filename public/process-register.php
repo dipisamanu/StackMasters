@@ -1,10 +1,11 @@
 <?php
+/**
+ * File: public/process-register.php
+ */
 
-// ABILITA ERRORI PER DEBUG (commentare in produzione)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Verifica percorsi
 $basePath = __DIR__ . '/../src/config/';
 
 if (!file_exists($basePath . 'database.php')) {
@@ -21,13 +22,11 @@ require_once $basePath . 'database.php';
 require_once $basePath . 'session.php';
 require_once $basePath . 'email.php';
 
-// Solo richieste POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: register.php');
     exit;
 }
 
-// Verifica CSRF token
 if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
     die("Token CSRF non valido. Riprova.");
 }
@@ -46,7 +45,6 @@ $email = strtolower(trim($_POST['email'] ?? ''));
 $password = $_POST['password'] ?? '';
 $confermaPassword = $_POST['confermaPassword'] ?? '';
 
-// DEBUG: Verifica dati ricevuti
 error_log("=== INIZIO REGISTRAZIONE ===");
 error_log("Nome: $nome");
 error_log("Cognome: $cognome");
@@ -58,7 +56,7 @@ error_log("Comune: $comune");
 
 // VALIDAZIONI LATO SERVER
 
-// 1. Campi obbligatori
+// Campi obbligatori
 if (empty($nome)) $errors[] = "Il nome è obbligatorio";
 if (empty($cognome)) $errors[] = "Il cognome è obbligatorio";
 if (empty($dataNascita)) $errors[] = "La data di nascita è obbligatoria";
@@ -67,29 +65,18 @@ if (empty($comune)) $errors[] = "Il comune di nascita è obbligatorio";
 if (empty($email)) $errors[] = "L'email è obbligatoria";
 if (empty($password)) $errors[] = "La password è obbligatoria";
 
-// 2. Validazione email
+// Validazione email
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors[] = "Formato email non valido";
 }
 
-// 3. Validazione password
+// Validazione password
 if (strlen($password) < 8) {
     $errors[] = "La password deve essere di almeno 8 caratteri";
 }
-if (!preg_match('/[A-Z]/', $password)) {
-    $errors[] = "La password deve contenere almeno una lettera maiuscola";
-}
-if (!preg_match('/[0-9]/', $password)) {
-    $errors[] = "La password deve contenere almeno un numero";
-}
-if (!preg_match('/[\W_]/', $password)) {
-    $errors[] = "La password deve contenere almeno un simbolo speciale";
-}
-if ($password !== $confermaPassword) {
-    $errors[] = "Le due password non coincidono";
-}
+$errors = checkPassword($password, $errors, $confermaPassword);
 
-// 4. Validazione data di nascita
+// Validazione data di nascita
 $dataNascitaObj = DateTime::createFromFormat('Y-m-d', $dataNascita);
 if (!$dataNascitaObj || $dataNascitaObj->format('Y-m-d') !== $dataNascita) {
     $errors[] = "Data di nascita non valida";
@@ -101,7 +88,7 @@ if (!$dataNascitaObj || $dataNascitaObj->format('Y-m-d') !== $dataNascita) {
     }
 }
 
-// 5. Validazione Codice Fiscale
+// Validazione Codice Fiscale
 if (!empty($codiceFiscale)) {
     if (!preg_match('/^[A-Z0-9]{16}$/', $codiceFiscale)) {
         $errors[] = "Formato Codice Fiscale non valido (deve essere 16 caratteri alfanumerici)";
@@ -110,7 +97,7 @@ if (!empty($codiceFiscale)) {
     $errors[] = "Il Codice Fiscale è obbligatorio. Usa il bottone 'Calcola'";
 }
 
-// 6. Verifica se email o CF già esistenti
+// Verifica se email o CF già esistenti
 if (empty($errors)) {
     try {
         $stmt = $db->prepare("SELECT id_utente FROM utenti WHERE email = ? OR cf = ?");
@@ -133,25 +120,25 @@ if (!empty($errors)) {
     exit;
 }
 
-// TUTTO OK - Procedi con registrazione
+// TUTTO OK - Procede con registrazione
 
 try {
     error_log("=== INIZIO TRANSAZIONE ===");
     $db->beginTransaction();
 
-    // 1. Hash password
+    // Hash password
     $passwordHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
     error_log("Password hashata");
 
-    // 2. Genera token verifica (16 byte = 32 caratteri hex)
+    // Genera token verifica (16 byte = 32 caratteri hex)
     $token = bin2hex(random_bytes(16));
     error_log("Token generato: " . strlen($token) . " caratteri");
 
-    // 3. Scadenza verifica: 24 ore
+    // Scadenza verifica: 24 ore
     $scadenzaVerifica = date('Y-m-d H:i:s', strtotime('+24 hours'));
     error_log("Scadenza verifica: $scadenzaVerifica");
 
-    // 4. Inserisci utente
+    // Inserisci utente
     $sql = "
         INSERT INTO utenti 
         (cf, nome, cognome, email, password, data_nascita, sesso, comune_nascita, 
@@ -199,7 +186,7 @@ try {
     $stmtAssegna->execute([$userId, $ruoloStudente['id_ruolo']]);
     error_log("Ruolo assegnato");
 
-    // 6. INSERISCI LOG REGISTRAZIONE (CORRETTO)
+    // INSERISCI LOG REGISTRAZIONE
     $db->prepare("
         INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
         VALUES (?, 'CREAZIONE_UTENTE', ?, INET_ATON(?))
@@ -209,7 +196,7 @@ try {
         $_SERVER['REMOTE_ADDR']
     ]);
 
-    // 7. Invia email di verifica (se il servizio esiste)
+    // Invia email di verifica (se il servizio esiste)
     if (function_exists('getEmailService')) {
         try {
             $emailService = getEmailService();
@@ -228,7 +215,7 @@ try {
     $db->commit();
     error_log("=== TRANSAZIONE COMPLETATA ===");
 
-    // Successo! Reindirizza con messaggio
+    // Successo
     Session::setFlash('success', "Registrazione completata! Controlla la tua email ($email) per verificare l'account. Il link scade tra 24 ore.");
     header('Location: login.php');
     exit;

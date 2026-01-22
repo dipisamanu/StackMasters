@@ -4,25 +4,18 @@
  * File: dashboard/librarian/index.php
  */
 
-// 1. Configurazione Sessioni e Database
 require_once __DIR__ . '/../../src/config/session.php';
 require_once __DIR__ . '/../../src/config/database.php';
 
-// 2. Protezione Accesso (Controlla che l'utente sia autenticato e abbia il ruolo corretto)
+// Protezione Accesso (Controlla che l'utente sia autenticato e abbia il ruolo corretto)
 Session::requireLogin();
 Session::requireRole('Bibliotecario');
 
-// Se l'utente è Admin, potrebbe essere reindirizzato qui se ha anche il ruolo Bibliotecario
-// Ma se è Admin, dovrebbe vedere la dashboard Admin
 if (Session::isAdmin()) {
-    // Opzionale: reindirizza admin alla sua dashboard se preferito
-    // header('Location: ../admin/index.php');
-    // exit;
+    header('Location: ../admin/index.php');
 }
 
-// 3. Recupero Dati Utente
-// $nomeUtente = $_SESSION['user_name'] ?? 'Collega';
-// 3. Recupero Dati Utente tramite la classe Session
+// Recupero Dati Utente
 $nomeUtente = Session::getNomeCompleto() ?? 'Collega';
 $ruoloPrimario = Session::getMainRole();
 $userId = Session::getUserId();
@@ -56,7 +49,7 @@ try {
 $labelArea = "Area Personale";
 $colorArea = "indigo"; // Default per Staff/Admin
 
-switch($ruoloPrimario) {
+switch ($ruoloPrimario) {
     case 'Studente':
         $labelArea = "Area Studente";
         $colorArea = "danger"; // Rosso
@@ -74,55 +67,165 @@ switch($ruoloPrimario) {
         break;
 }
 
-// 4. Inclusione Header
 require_once __DIR__ . '/../../src/Views/layout/header.php';
 ?>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
 
-        /* Design Card Premium */
-        .card-lms { border: none; border-radius: 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: white; height: 100%; display: flex; flex-direction: column; border: 1px solid #e2e8f0; }
-        .card-lms:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); border-color: #cbd5e1; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
 
-        /* Pulsanti Operativi Front-Desk */
-        .btn-prestito { background-color: #4f46e5; color: white; border: none; font-weight: 700; padding: 12px; border-radius: 14px; transition: all 0.2s; }
-        .btn-prestito:hover { background-color: #4338ca; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .card-lms {
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e2e8f0;
+        }
 
-        .btn-restituzione { background-color: #10b981; color: white; border: none; font-weight: 700; padding: 12px; border-radius: 14px; transition: all 0.2s; }
-        .btn-restituzione:hover { background-color: #059669; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .card-lms:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+        }
 
-        .icon-box { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 1.25rem; }
-        .fw-black { font-weight: 900; }
+        .btn-prestito {
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            font-weight: 700;
+            padding: 12px;
+            border-radius: 14px;
+            transition: all 0.2s;
+        }
 
-        .section-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
-        .section-label::after { content: ""; height: 1px; flex-grow: 1; background: #e2e8f0; }
+        .btn-prestito:hover {
+            background-color: #4338ca;
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
 
-        /* Indicatori Numerici Area Personale */
-        .mini-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #f1f5f9; min-width: 70px; }
-        .mini-stat-label { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 2px; }
-        .mini-stat-value { font-weight: 900; font-size: 1.1rem; }
+        .btn-restituzione {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            font-weight: 700;
+            padding: 12px;
+            border-radius: 14px;
+            transition: all 0.2s;
+        }
 
-        /* Pulsante Accesso Area Personale con Hover Pieno */
-        .btn-personal-access { padding: 14px; border-radius: 14px; font-weight: 800; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.025em; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; border-width: 2px; border-style: solid; }
+        .btn-restituzione:hover {
+            background-color: #059669;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
 
-        .btn-personal-indigo { background: rgba(79, 70, 229, 0.05); color: #4f46e5; border-color: rgba(79, 70, 229, 0.2); }
-        .btn-personal-indigo:hover { background: #4f46e5; color: white; border-color: #4f46e5; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3); }
+        .icon-box {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+        }
 
-        .btn-personal-danger { background: rgba(239, 68, 68, 0.05); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
-        .btn-personal-danger:hover { background: #ef4444; color: white; border-color: #ef4444; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); }
+        .fw-black {
+            font-weight: 900;
+        }
 
-        .btn-personal-warning { background: rgba(245, 158, 11, 0.05); color: #b45309; border-color: rgba(245, 158, 11, 0.2); }
-        .btn-personal-warning:hover { background: #f59e0b; color: white; border-color: #f59e0b; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3); }
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-        .btn-personal-success { background: rgba(16, 185, 129, 0.05); color: #065f46; border-color: rgba(16, 185, 129, 0.2); }
-        .btn-personal-success:hover { background: #10b981; color: white; border-color: #10b981; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+        .section-label::after {
+            content: "";
+            height: 1px;
+            flex-grow: 1;
+            background: #e2e8f0;
+        }
 
-        .role-badge { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; letter-spacing: 0.05em; border: 1px solid rgba(0,0,0,0.05); }
-        .badge-indigo { background: #e0e7ff; color: #4338ca; }
-        .badge-danger { background: #fee2e2; color: #b91c1c; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
+        .mini-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+            min-width: 70px;
+        }
+
+        .mini-stat-label {
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .mini-stat-value {
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+
+        .btn-personal-access {
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.025em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            border-width: 2px;
+            border-style: solid;
+        }
+
+        .btn-personal-success {
+            background: rgba(16, 185, 129, 0.05);
+            color: #065f46;
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-personal-success:hover {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        .role-badge {
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.05em;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
     </style>
 
     <div class="container py-5">
@@ -135,9 +238,11 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                             <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-lg">
                                 <i class="fas fa-user-shield"></i>
                             </div>
-                            <h1 class="fw-black text-slate-800 display-6 uppercase tracking-tight m-0">Area Bibliotecario</h1>
+                            <h1 class="fw-black text-slate-800 display-6 uppercase tracking-tight m-0">Area
+                                Bibliotecario</h1>
                         </div>
-                        <p class="text-muted">Benvenuto, <strong><?= htmlspecialchars($nomeUtente) ?></strong>. Gestisci la biblioteca o controlla i tuoi prestiti.</p>
+                        <p class="text-muted">Benvenuto, <strong><?= htmlspecialchars($nomeUtente) ?></strong>. Gestisci
+                            la biblioteca o controlla i tuoi prestiti.</p>
                     </div>
                     <div>
                         <span class="role-badge badge-<?= $colorArea ?>">Sessione: <?= htmlspecialchars($ruoloPrimario) ?></span>
@@ -146,7 +251,7 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
             </div>
         </div>
 
-        <!-- SEZIONE 1: GESTIONE OPERATIVA -->
+        <!-- GESTIONE OPERATIVA -->
         <div class="section-label">Registro Operativo e Circolazione</div>
         <div class="row g-4 mb-5">
             <div class="col-md-12">
@@ -154,17 +259,20 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                     <div class="row align-items-center">
                         <div class="col-lg-7">
                             <h4 class="fw-bold mb-1">Front-Desk Circolazione</h4>
-                            <p class="text-muted small mb-lg-0">Interfaccia rapida per scansione barcode e registrazione dei movimenti asset.</p>
+                            <p class="text-muted small mb-lg-0">Interfaccia rapida per scansione barcode e registrazione
+                                dei movimenti asset.</p>
                         </div>
                         <div class="col-lg-5">
                             <div class="row g-3">
                                 <div class="col-6">
-                                    <a href="new-loan.php" class="btn btn-prestito w-100 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                                    <a href="new-loan.php"
+                                       class="btn btn-prestito w-100 d-flex align-items-center justify-content-center gap-2 shadow-sm">
                                         <i class="fas fa-sign-out-alt"></i> PRESTITO
                                     </a>
                                 </div>
                                 <div class="col-6">
-                                    <a href="returns.php" class="btn btn-restituzione w-100 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                                    <a href="returns.php"
+                                       class="btn btn-restituzione w-100 d-flex align-items-center justify-content-center gap-2 shadow-sm">
                                         <i class="fas fa-sign-in-alt"></i> RIENTRO
                                     </a>
                                 </div>
@@ -180,8 +288,10 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                         <i class="fas fa-book"></i>
                     </div>
                     <h5 class="fw-bold">Gestione Catalogo</h5>
-                    <p class="text-muted small mb-4">Modifica metadati, gestisci autori e importa nuovi volumi via ISBN.</p>
-                    <a href="books.php" class="btn btn-outline-danger w-100 mt-auto rounded-3 fw-bold">Vai al Catalogo</a>
+                    <p class="text-muted small mb-4">Modifica metadati, gestisci autori e importa nuovi volumi via
+                        ISBN.</p>
+                    <a href="books.php" class="btn btn-outline-danger w-100 mt-auto rounded-3 fw-bold">Vai al
+                        Catalogo</a>
                 </div>
             </div>
 
@@ -191,8 +301,10 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                         <i class="fas fa-barcode"></i>
                     </div>
                     <h5 class="fw-bold">Stato Inventario</h5>
-                    <p class="text-muted small mb-4">Controllo copie fisiche, collocazioni e perizia dello stato volumi.</p>
-                    <a href="all-copies.php" class="btn btn-outline-warning w-100 mt-auto rounded-3 fw-bold">Gestisci Copie</a>
+                    <p class="text-muted small mb-4">Controllo copie fisiche, collocazioni e perizia dello stato
+                        volumi.</p>
+                    <a href="all-copies.php" class="btn btn-outline-warning w-100 mt-auto rounded-3 fw-bold">Gestisci
+                        Copie</a>
                 </div>
             </div>
 
@@ -202,13 +314,14 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                         <i class="fas fa-list-check"></i>
                     </div>
                     <h5 class="fw-bold">Registro Prestiti</h5>
-                    <p class="text-muted small mb-4">Visione globale dei prestiti attivi e monitoraggio dei ritardi degli utenti.</p>
+                    <p class="text-muted small mb-4">Visione globale dei prestiti attivi e monitoraggio dei ritardi
+                        degli utenti.</p>
                     <a href="lista-prestiti.php" class="btn btn-outline-info w-100 mt-auto rounded-3 fw-bold">Monitoraggio</a>
                 </div>
             </div>
         </div>
 
-        <!-- SEZIONE 2: AREA PERSONALE (COORDINATA AL RUOLO) -->
+        <!-- AREA PERSONALE (COORDINATA AL RUOLO) -->
         <div class="section-label">La Mia Attività (Profilo Lettore)</div>
         <div class="row g-4">
             <!-- PRESTITI PERSONALI -->
@@ -236,7 +349,8 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                         </div>
                     </div>
 
-                    <p class="text-muted small mb-5">Hai attualmente <strong><?= $statsPersonali['totale'] ?></strong> volumi in carico.
+                    <p class="text-muted small mb-5">Hai attualmente <strong><?= $statsPersonali['totale'] ?></strong>
+                        volumi in carico.
                         <?php if ($statsPersonali['in_scadenza'] > 0): ?>
                             <span class="text-warning font-bold">Attenzione: <?= $statsPersonali['in_scadenza'] ?> libri scadono tra meno di 3gg.</span>
                         <?php endif; ?>
@@ -248,7 +362,7 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                 </div>
             </div>
 
-            <!-- GAMIFICATION -->
+            <!-- GAMIFICATION (?) -->
             <div class="col-md-6">
                 <div class="card card-lms shadow-sm p-5 border-bottom border-5 border-success">
                     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -259,7 +373,8 @@ require_once __DIR__ . '/../../src/Views/layout/header.php';
                             <h5 class="fw-bold m-0">Badge & XP</h5>
                         </div>
                     </div>
-                    <p class="text-muted small mb-5">Continua a leggere per aumentare il tuo livello e sbloccare badge esclusivi come lettore Staff dell'ITIS Rossi.</p>
+                    <p class="text-muted small mb-5">Continua a leggere per aumentare il tuo livello e sbloccare badge
+                        esclusivi come lettore Staff dell'ITIS Rossi.</p>
 
                     <a href="../student/profile.php" class="btn-personal-access btn-personal-success shadow-sm">
                         <i class="fas fa-trophy"></i> Vedi i miei traguardi

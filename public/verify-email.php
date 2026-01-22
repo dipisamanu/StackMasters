@@ -45,15 +45,15 @@ if (empty($token) || strlen($token) !== 32) {
             $message = "Email verificata con successo! Ora puoi effettuare il login.";
             $success = true;
 
-            // Log dell'evento (AZIONE CORRETTA)
+            // Log dell'evento
             $stmtLog = $db->prepare("
                 INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
                 VALUES (?, 'VERIFICA_EMAIL', ?, INET_ATON(?))
             ");
             $stmtLog->execute([
-                    $user['id_utente'],
-                    "Email verificata per utente: " . $user['email'],
-                    $_SERVER['REMOTE_ADDR']
+                $user['id_utente'],
+                "Email verificata per utente: " . $user['email'],
+                $_SERVER['REMOTE_ADDR']
             ]);
         }
 
@@ -101,9 +101,6 @@ if (empty($token) || strlen($token) !== 32) {
             font-size: 80px;
             margin-bottom: 20px;
         }
-
-        .success { color: #28a745; }
-        .error { color: #dc3545; }
 
         h1 {
             color: #333;

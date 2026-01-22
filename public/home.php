@@ -15,7 +15,7 @@ require_once __DIR__ . '/../src/Models/BookModel.php';
 
 $bookModel = new BookModel();
 
-// 1. Recupero Dati tramite Stored Procedures
+// Recupero Dati
 // Novità (Ultimi inseriti)
 $newArrivals = $bookModel->getHomeSection('NOVITA', 10);
 
@@ -42,7 +42,6 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
             --gap: 20px;
         }
 
-        /* Hero Section ridotta e moderna */
         .hero-mini {
             background: linear-gradient(135deg, #1a1a1a 0%, #3a0e0e 100%);
             color: white;
@@ -52,12 +51,11 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
-        /* Horizontal Scroller Container */
         .books-scroller {
             display: flex;
             overflow-x: auto;
             gap: var(--gap);
-            padding: 20px 5px 40px 5px; /* Padding bottom per l'ombra hover */
+            padding: 20px 5px 40px 5px;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
             scroll-snap-type: x mandatory;
@@ -81,7 +79,6 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
             background: #aaa;
         }
 
-        /* Book Card */
         .book-card-mini {
             flex: 0 0 var(--card-width);
             width: var(--card-width);
@@ -138,7 +135,6 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
             text-overflow: ellipsis;
         }
 
-        /* Badges */
         .trend-badge {
             position: absolute;
             top: 10px;
@@ -183,11 +179,10 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
         .see-all {
             font-size: 0.9rem;
             text-decoration: none;
-            color: var(--primary-red, #dc3545);
+            color: #dc3545;
             font-weight: 600;
         }
 
-        /* Top List Style */
         .top-list-item {
             display: flex;
             align-items: center;
@@ -320,7 +315,7 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
     </div>
 
 <?php
-// --- Helper Functions interne alla pagina ---
+// Helper Functions interne alla pagina
 function getCoverUrl($path)
 {
     if (empty($path)) return 'assets/img/placeholder.png';

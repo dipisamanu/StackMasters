@@ -19,7 +19,6 @@ if (empty($code)) {
 try {
     $db = Database::getInstance()->getConnection();
 
-    // Query limitata rigorosamente alla colonna 'cf'
     $sql = "SELECT u.id_utente, u.nome, u.cognome, u.email, r.nome as ruolo
             FROM utenti u
             LEFT JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente

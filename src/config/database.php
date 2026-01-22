@@ -4,7 +4,6 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-// Carica .env (se presente) dalla root del progetto
 $projectRoot = dirname(__DIR__, 2);
 if (file_exists($projectRoot . '/.env')) {
     try {
@@ -13,6 +12,9 @@ if (file_exists($projectRoot . '/.env')) {
         throw new Exception("Errore caricamento .env: " . $e->getMessage());
     }
 }
+/**
+ * @throws Exception
+ */
 function getEnvVar(string $key): string
 {
     if (!isset($_ENV[$key])) {

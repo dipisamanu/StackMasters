@@ -8,7 +8,7 @@ require_once __DIR__ . '/../Helpers/IsbnValidator.php';
 
 class OpenLibraryService
 {
-    private const API_URL = 'https://openlibrary.org/api/books';
+    private const string API_URL = 'https://openlibrary.org/api/books';
 
     public function fetchByIsbn(string $isbn): ?array
     {
@@ -54,11 +54,10 @@ class OpenLibraryService
         }
 
         $descrizione = '';
-        if (isset($info['excerpts']) && !empty($info['excerpts'])) {
+        if (!empty($info['excerpts'])) {
             $descrizione = $info['excerpts'][0]['text'] ?? '';
         }
 
-        $imgUrl = '';
         if (isset($info['cover']['medium'])) {
             $imgUrl = $info['cover']['medium'];
         } elseif (isset($data[$queryKey]['cover']['large'])) {

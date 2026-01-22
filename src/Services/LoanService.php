@@ -1,6 +1,7 @@
 <?php
 
 namespace Ottaviodipisa\StackMasters\Services;
+
 use Database;
 use DateMalformedStringException;
 use DateTime;
@@ -17,13 +18,9 @@ class LoanService
 {
     private PDO $db;
     private NotificationManager $notifier;
-
-    // Configurazione multe
-    private const GIORNI_TOLLERANZA = 3;
-    private const IMPORTO_MULTA_GIORNALIERA = 0.50;
-
-    // Configurazione prenotazioni
-    private const ORE_RISERVA_PRENOTAZIONE = 48;
+    private const int GIORNI_TOLLERANZA = 3;
+    private const float IMPORTO_MULTA_GIORNALIERA = 0.50;
+    private const int ORE_RISERVA_PRENOTAZIONE = 48;
 
     /**
      * @throws Exception
@@ -51,7 +48,6 @@ class LoanService
         }
 
         try {
-            // 1. RECUPERA DATI UTENTE E LIBRO
             $utente = $this->getUtenteCompleto($utenteId);
             if (!$utente) {
                 throw new Exception("Utente non trovato (ID: $utenteId)");
@@ -62,52 +58,42 @@ class LoanService
                 throw new Exception("Copia libro non trovata (ID Inventario: $inventarioId)");
             }
 
-            // 2. CONTROLLI PRELIMINARI
             $this->verificaMultePendenti($utenteId);
             $this->verificaBloccoAccount($utente);
             $this->verificaLimitiPrestito($utente);
             $this->verificaDisponibilitaCopia($copia);
 
-            // 3. GESTIONE PRENOTAZIONI (Logica Avanzata)
             // Verifica se la copia è riservata ad altri o se l'utente ha prenotazioni pendenti
             $this->gestisciPrenotazioniPrimaDelPrestito($copia['id_libro'], $inventarioId, $utenteId);
-            
+
             // Verifica se l'utente aveva una prenotazione attiva per questo libro (per chiuderla)
             $prenotazione = $this->verificaPrenotazione($utenteId, $copia['id_libro']);
 
-            // 4. CALCOLA DATA SCADENZA
             $dataScadenza = $this->calcolaDataScadenza($utente['durata_prestito']);
 
-            // 5. REGISTRA IL PRESTITO
             $prestitoId = $this->creaPrestito($utenteId, $inventarioId, $dataScadenza);
 
-            // 6. AGGIORNA STATO COPIA
             $this->aggiornaStatoCopia($inventarioId, 'IN_PRESTITO');
 
-            // 7. INCREMENTA CONTATORE PRESTITI
             $this->incrementaPrestitiUtente($utenteId, $utente['id_ruolo']);
 
-            // 8. GESTISCI PRENOTAZIONE (CHIUSURA)
             $messaggioPrenotazione = '';
             if ($prenotazione) {
                 $this->completaPrenotazione($prenotazione['id_prenotazione']);
                 $messaggioPrenotazione = "Prenotazione #{$prenotazione['id_prenotazione']} completata";
             }
 
-            // 9. NOTIFICA SUCCESSIVO IN CODA (Se l'utente ha preso una copia diversa da quella assegnata, libera la sua vecchia assegnazione)
-            // Nota: gestisciPrenotazioniPrimaDelPrestito si occupa già di riassegnare eventuali copie prenotate ma non ritirate.
+            // Se l'utente ha preso una copia diversa da quella assegnata, libera la sua vecchia assegnazione
 
-            // 10. LOG AUDIT
             $this->logAzione($utenteId, 'MODIFICA_PRESTITO', "Prestito #$prestitoId registrato - Libro: {$copia['titolo']}");
 
-            // 11. COMMIT TRANSAZIONE
             if (!$isTransactionManagedExternally) {
                 $this->db->commit();
             }
 
             // Notifica Email Diretta (Stilizzata)
-            $this->inviaEmailConferma($utente, $copia, $dataScadenza, $prestitoId);
-            
+            $this->inviaEmailConferma($utente, $copia, $dataScadenza);
+
             // Notifica Interna (Campanella) - NO EMAIL (già inviata sopra)
             try {
                 $this->notifier->send(
@@ -172,7 +158,7 @@ class LoanService
             if ($importoMulta > 0) {
                 $this->registraMulta($prestito['id_utente'], $giorniRitardo, $importoMulta, 'RITARDO', "Ritardo di $giorniRitardo gg.");
                 $multaTotale += $importoMulta;
-                $messaggi[] = "⚠️ Multa per ritardo: €$importoMulta ($giorniRitardo giorni)";
+                $messaggi[] = "<i class='fas fa-exclamation-triangle'></i> Multa per ritardo: €$importoMulta ($giorniRitardo giorni)";
             }
 
             // Mappa priorità condizioni per confronto
@@ -191,7 +177,7 @@ class LoanService
                 $penaleStato = 0.0;
 
                 if ($valoreLibro <= 0) {
-                    throw new Exception("Danno rilevato ({$condizione}), ma impossibile calcolare la penale: il valore di copertina del libro non è impostato.");
+                    throw new Exception("Danno rilevato ($condizione), ma impossibile calcolare la penale: il valore di copertina del libro non è impostato.");
                 }
 
                 switch (strtoupper($condizione)) {
@@ -212,36 +198,34 @@ class LoanService
                 if ($penaleStato > 0) {
                     $this->registraMulta($prestito['id_utente'], null, $penaleStato, 'DANNI', "Stato: $condizione (da $condizionePartenza). " . $commentoDanno);
                     $multaTotale += $penaleStato;
-                    $messaggi[] = "⚠️ Addebito per danni ($condizione): €$penaleStato";
+                    $messaggi[] = "<i class='fas fa-exclamation-triangle'></i> Addebito per danni ($condizione): €$penaleStato";
                 }
             }
 
             $this->completaPrestito($prestito['id_prestito']);
-            
-            // --- LOGICA ASSEGNAZIONE / STATO FINALE ---
-            
+
             // Se il libro è DANNEGGIATO o SMARRITO, non può essere rimesso in circolo
             if ($condizione === 'DANNEGGIATO' || $condizione === 'SMARRITO') {
                 $nuovoStato = ($condizione === 'SMARRITO') ? 'SMARRITO' : 'NON_IN_PRESTITO';
                 $this->aggiornaStatoCopia($inventarioId, $nuovoStato, $condizione);
-                $messaggi[] = "⛔ Libro ritirato dalla circolazione (Stato: $nuovoStato)";
-                
+                $messaggi[] = "<i class='fas fa-ban'></i> Libro ritirato dalla circolazione (Stato: $nuovoStato)";
+
                 // Se c'erano prenotazioni, NON possiamo assegnare QUESTA copia.
-                // Bisognerebbe cercare un'altra copia disponibile per la prenotazione, ma per ora la lasciamo in coda.
-                // (Il sistema assegnerà un'altra copia quando rientrerà)
+                // Bisognerebbe cercare un'altra copia disponibile per la prenotazione, per ora la lasciamo in coda.
+                // Il sistema assegnerà un'altra copia quando rientrerà
             } else {
                 // Se il libro è BUONO o USURATO, può essere prestato
                 $prenotazioneSuccessiva = $this->getPrenotazioneSuccessiva($prestito['id_libro']);
-                
+
                 if ($prenotazioneSuccessiva) {
                     $this->assegnaPrenotazione($prenotazioneSuccessiva['id_prenotazione'], $inventarioId);
                     $this->aggiornaStatoCopia($inventarioId, 'PRENOTATO', $condizione);
-                    $messaggi[] = "📢 Libro riservato per: {$prenotazioneSuccessiva['nome']} {$prenotazioneSuccessiva['cognome']} (48h)";
-                    
+                    $messaggi[] = "<i class='fas fa-bullhorn'></i> Libro riservato per: {$prenotazioneSuccessiva['nome']} {$prenotazioneSuccessiva['cognome']} (48h)";
+
                     // Notifica Interna (Campanella) - NO EMAIL (invio quella stilizzata sotto)
                     $this->notifier->send(
                         $prenotazioneSuccessiva['id_utente'],
-                        NotificationManager::TYPE_INFO,
+                        NotificationManager::TYPE_REMINDER,
                         NotificationManager::URGENCY_HIGH,
                         "Il libro che aspettavi è disponibile!",
                         "È arrivato il tuo turno per '{$prestito['titolo']}'. Hai 48 ore per passare in biblioteca.",
@@ -255,7 +239,7 @@ class LoanService
 
                 } else {
                     $this->aggiornaStatoCopia($inventarioId, 'DISPONIBILE', $condizione);
-                    $messaggi[] = "✅ Libro tornato disponibile";
+                    $messaggi[] = "<i class='fas fa-check-circle'></i> Libro tornato disponibile";
                 }
             }
 
@@ -274,7 +258,6 @@ class LoanService
             }
 
             // Notifiche Post-Commit per chi restituisce (Multe)
-            // Qui lasciamo l'email automatica perché non abbiamo un template specifico per le multe
             try {
                 if ($multaTotale > 0) {
                     $this->notifier->send(
@@ -291,7 +274,7 @@ class LoanService
             }
 
             return [
-                'status' => 'success', // Aggiunto per compatibilità
+                'status' => 'success',
                 'prestito_id' => $prestito['id_prestito'],
                 'multa_totale' => $multaTotale,
                 'giorni_ritardo' => $giorniRitardo,
@@ -320,7 +303,7 @@ class LoanService
             $scadute = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($scadute as $pren) {
-                // Notifica scadenza (Lasciamo email automatica per ora, o creiamo template "Prenotazione Scaduta")
+                // Notifica scadenza prenotazione
                 $this->notifier->send(
                     (int)$pren['id_utente'],
                     'PRENOTAZIONE',
@@ -335,8 +318,8 @@ class LoanService
                 // Controlla stato copia
                 $copiaInfo = $this->getCopiaConLibro((int)$pren['copia_libro']);
                 if ($copiaInfo['stato'] === 'IN_PRESTITO') {
-                     $log[] = "Prenotazione #{$pren['id_prenotazione']} scaduta. La copia #{$pren['copia_libro']} risulta già in prestito. Nessuna riassegnazione.";
-                     continue;
+                    $log[] = "Prenotazione #{$pren['id_prenotazione']} scaduta. La copia #{$pren['copia_libro']} risulta già in prestito. Nessuna riassegnazione.";
+                    continue;
                 }
 
                 // Cerca successore
@@ -345,9 +328,9 @@ class LoanService
                 if ($prenotazioneSuccessiva) {
                     $this->assegnaPrenotazione($prenotazioneSuccessiva['id_prenotazione'], (int)$pren['copia_libro']);
                     $this->aggiornaStatoCopia((int)$pren['copia_libro'], 'PRENOTATO');
-                    
+
                     $log[] = "Prenotazione #{$pren['id_prenotazione']} scaduta. Copia #{$pren['copia_libro']} riassegnata a utente {$prenotazioneSuccessiva['id_utente']}.";
-                    
+
                     // Notifica Interna - NO EMAIL
                     $this->notifier->send(
                         $prenotazioneSuccessiva['id_utente'],
@@ -381,28 +364,29 @@ class LoanService
     /**
      * @throws Exception
      */
-    private function gestisciPrenotazioniPrimaDelPrestito(int $libroId, int $inventarioId, int $utenteId): void {
+    private function gestisciPrenotazioniPrimaDelPrestito(int $libroId, int $inventarioId, int $utenteId): void
+    {
         // 1. Se l'utente ha prenotazioni per questo libro, cancellale (le sta ritirando ora)
         // Se la prenotazione aveva una copia assegnata DIVERSA da quella che sta prendendo, libera l'altra copia.
         $stmt = $this->db->prepare("SELECT id_prenotazione, copia_libro FROM prenotazioni WHERE id_libro = ? AND id_utente = ?");
         $stmt->execute([$libroId, $utenteId]);
         $existing = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         foreach ($existing as $res) {
             $this->db->prepare("DELETE FROM prenotazioni WHERE id_prenotazione = ?")->execute([$res['id_prenotazione']]);
-            
+
             if ($res['copia_libro']) {
                 $assignedCopyId = (int)$res['copia_libro'];
                 // Se la copia assegnata non è quella che sta prendendo ora
                 if ($assignedCopyId !== $inventarioId) {
-                     // Cerca un altro utente a cui dare quella copia
-                     $successore = $this->getPrenotazioneSuccessiva($libroId);
-                     if ($successore) {
-                         $this->assegnaPrenotazione($successore['id_prenotazione'], $assignedCopyId);
-                         $this->aggiornaStatoCopia($assignedCopyId, 'PRENOTATO');
-                     } else {
-                         $this->aggiornaStatoCopia($assignedCopyId, 'DISPONIBILE');
-                     }
+                    // Cerca un altro utente a cui dare quella copia
+                    $successore = $this->getPrenotazioneSuccessiva($libroId);
+                    if ($successore) {
+                        $this->assegnaPrenotazione($successore['id_prenotazione'], $assignedCopyId);
+                        $this->aggiornaStatoCopia($assignedCopyId, 'PRENOTATO');
+                    } else {
+                        $this->aggiornaStatoCopia($assignedCopyId, 'DISPONIBILE');
+                    }
                 }
             }
         }
@@ -476,15 +460,19 @@ class LoanService
         return (int)$this->db->lastInsertId();
     }
 
-    private function calcolaDataScadenza(int $giorni): string {
+    private function calcolaDataScadenza(int $giorni): string
+    {
         return date('Y-m-d H:i:s', strtotime("+$giorni days"));
     }
 
-    private function aggiornaStatoCopia(int $id, string $stato, ?string $cond = null): void {
+    private function aggiornaStatoCopia(int $id, string $stato, ?string $cond = null): void
+    {
+
+        /** @noinspection SqlWithoutWhere */
         $sql = "UPDATE inventari SET stato = ?";
         $params = [$stato];
-        if ($cond) { 
-            $sql .= ", condizione = ?"; 
+        if ($cond) {
+            $sql .= ", condizione = ?";
             $params[] = strtoupper($cond);
         }
         $sql .= " WHERE id_inventario = ?";
@@ -492,15 +480,18 @@ class LoanService
         $this->db->prepare($sql)->execute($params);
     }
 
-    private function incrementaPrestitiUtente(int $uid, int $rid): void {
+    private function incrementaPrestitiUtente(int $uid, int $rid): void
+    {
         $this->db->prepare("UPDATE utenti_ruoli SET prestiti_tot = prestiti_tot + 1 WHERE id_utente = ? AND id_ruolo = ?")->execute([$uid, $rid]);
     }
 
-    private function completaPrenotazione(int $pid): void {
+    private function completaPrenotazione(int $pid): void
+    {
         $this->db->prepare("UPDATE prenotazioni SET copia_libro = NULL, data_disponibilita = NULL, scadenza_ritiro = NULL WHERE id_prenotazione = ?")->execute([$pid]);
     }
 
-    private function getPrestitoAttivo(int $iid): ?array {
+    private function getPrestitoAttivo(int $iid): ?array
+    {
         $sql = "SELECT p.*, u.nome, u.cognome, u.email, l.id_libro, l.titolo, l.valore_copertina, ur.id_ruolo, i.condizione
                 FROM prestiti p 
                 JOIN utenti u ON p.id_utente = u.id_utente 
@@ -517,61 +508,73 @@ class LoanService
      * Calcola i giorni di ritardo usando i timestamp per massima compatibilità.
      * @param string $scadenza
      * @return int
+     * @throws DateMalformedStringException
      */
-    private function calcolaGiorniRitardo($scadenza) {
-    $diff = (new DateTime())->diff(new DateTime($scadenza));
-    return (new DateTime() > new DateTime($scadenza)) ? $diff->days : 0;
-}
+    private function calcolaGiorniRitardo(string $scadenza): int
+    {
+        $diff = new DateTime()->diff(new DateTime($scadenza));
+        return (new DateTime() > new DateTime($scadenza)) ? $diff->days : 0;
+    }
 
 
-    private function calcolaMulta(int $gg): float {
+    private function calcolaMulta(int $gg): float
+    {
         return ($gg > self::GIORNI_TOLLERANZA) ? round(($gg - self::GIORNI_TOLLERANZA) * self::IMPORTO_MULTA_GIORNALIERA, 2) : 0.0;
     }
 
-    private function registraMulta(int $uid, ?int $gg, float $imp, string $causa, ?string $comm): void {
+    private function registraMulta(int $uid, ?int $gg, float $imp, string $causa, ?string $comm): void
+    {
         $this->db->prepare("INSERT INTO multe (id_utente, giorni, importo, causa, commento, data_creazione) VALUES (?, ?, ?, ?, ?, NOW())")->execute([$uid, $gg, $imp, $causa, $comm]);
     }
 
-    private function completaPrestito(int $pid): void {
+    private function completaPrestito(int $pid): void
+    {
         $this->db->prepare("UPDATE prestiti SET data_restituzione = NOW() WHERE id_prestito = ?")->execute([$pid]);
     }
 
-    private function incrementaStreakRestituzioni(int $uid, int $rid): void {
+    private function incrementaStreakRestituzioni(int $uid, int $rid): void
+    {
         $this->db->prepare("UPDATE utenti_ruoli SET streak_restituzioni = streak_restituzioni + 1 WHERE id_utente = ? AND id_ruolo = ?")->execute([$uid, $rid]);
     }
 
-    private function resetStreakRestituzioni(int $uid, int $rid): void {
+    private function resetStreakRestituzioni(int $uid, int $rid): void
+    {
         $this->db->prepare("UPDATE utenti_ruoli SET streak_restituzioni = 0 WHERE id_utente = ? AND id_ruolo = ?")->execute([$uid, $rid]);
     }
 
-    private function getUtenteCompleto(int $uid): ?array {
+    private function getUtenteCompleto(int $uid): ?array
+    {
         $sql = "SELECT u.*, r.id_ruolo, r.nome as nome_ruolo, r.durata_prestito, r.limite_prestiti FROM utenti u JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente JOIN ruoli r ON ur.id_ruolo = r.id_ruolo WHERE u.id_utente = ? ORDER BY r.priorita LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$uid]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    private function getCopiaConLibro(int $iid): ?array {
+    private function getCopiaConLibro(int $iid): ?array
+    {
         $sql = "SELECT i.*, l.id_libro, l.titolo, l.valore_copertina FROM inventari i JOIN libri l ON i.id_libro = l.id_libro WHERE i.id_inventario = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$iid]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    private function getPrenotazioneSuccessiva(int $lid): ?array {
+    private function getPrenotazioneSuccessiva(int $lid): ?array
+    {
         $sql = "SELECT p.*, u.nome, u.cognome, u.email, u.id_utente FROM prenotazioni p JOIN utenti u ON p.id_utente = u.id_utente WHERE p.id_libro = ? AND p.copia_libro IS NULL AND p.scadenza_ritiro IS NULL ORDER BY p.data_richiesta LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$lid]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    private function assegnaPrenotazione(int $pid, int $iid): void {
+    private function assegnaPrenotazione(int $pid, int $iid): void
+    {
         $dispo = date('Y-m-d H:i:s');
         $scad = date('Y-m-d H:i:s', strtotime('+' . self::ORE_RISERVA_PRENOTAZIONE . ' hours'));
         $this->db->prepare("UPDATE prenotazioni SET copia_libro = ?, data_disponibilita = ?, scadenza_ritiro = ? WHERE id_prenotazione = ?")->execute([$iid, $dispo, $scad, $pid]);
     }
 
-    private function verificaSbloccaUtente(int $uid): void {
+    private function verificaSbloccaUtente(int $uid): void
+    {
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM prestiti WHERE id_utente = ? AND data_restituzione IS NULL AND scadenza_prestito < NOW()");
         $stmt->execute([$uid]);
         if ($stmt->fetchColumn() == 0) {
@@ -579,7 +582,8 @@ class LoanService
         }
     }
 
-    private function logAzione(int $uid, string $act, string $det): void {
+    private function logAzione(int $uid, string $act, string $det): void
+    {
         $ip = $_SERVER['REMOTE_ADDR'] ?? null;
         $ipLong = ($ip && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) ? ip2long($ip) : null;
         $this->db->prepare("INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address, timestamp) VALUES (?, ?, ?, ?, NOW())")->execute([$uid, $act, $det, $ipLong]);
@@ -587,7 +591,7 @@ class LoanService
 
     // --- METODI NOTIFICA EMAIL ---
 
-    private function inviaEmailConferma(array $utente, array $copia, string $dataScadenza, int $prestitoId): void
+    private function inviaEmailConferma(array $utente, array $copia, string $dataScadenza): void
     {
         require_once __DIR__ . '/../config/email.php';
         try {

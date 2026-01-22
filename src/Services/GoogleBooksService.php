@@ -9,7 +9,7 @@ require_once __DIR__ . '/../Helpers/IsbnValidator.php';
 class GoogleBooksService
 {
     // Aggiungo &country=IT per tentare di ottenere prezzi italiani
-    private const API_URL = 'https://www.googleapis.com/books/v1/volumes?country=IT&q=isbn:';
+    private const string API_URL = 'https://www.googleapis.com/books/v1/volumes?country=IT&q=isbn:';
 
     public function fetchByIsbn(string $isbn): ?array
     {
@@ -65,7 +65,7 @@ class GoogleBooksService
             'isbn' => $cleanIsbn,
             'copertina' => $imgUrl,
             'categorie' => $categories,
-            'prezzo' => $prezzo // NUOVO CAMPO
+            'prezzo' => $prezzo
         ];
     }
 }

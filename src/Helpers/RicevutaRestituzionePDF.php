@@ -54,7 +54,7 @@ class RicevutaRestituzionePDF
         </style>
         <h4 class="section-title">Dati del Lettore</h4>
         <table class="info-table">
-            <tr><td width="25%"><b>Nominativo:</b></td><td width="75%">' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
+            <tr><td style="width: 25%;"><b>Nominativo:</b></td><td style="width: 75%;">' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
             <tr><td><b>Data Operazione:</b></td><td>' . $dataOp . '</td></tr>
         </table>
         <br><br>
@@ -62,7 +62,6 @@ class RicevutaRestituzionePDF
         $pdf->writeHTML($html, true, false, true, false, '');
 
         $pdf->SetFont('helvetica', 'B', 9);
-        // CORREZIONE: Aggiunta colonna ISBN e larghezze aggiornate
         $header = ['ID', 'Titolo', 'ISBN', 'Cond. Uscita', 'Cond. Rientro', 'Addebito'];
         $w = [15, 60, 30, 25, 25, 25];
         

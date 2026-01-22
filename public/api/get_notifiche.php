@@ -1,7 +1,8 @@
 <?php
-// FILE: public/api/get_notifiche.php
-
-// 1. Includiamo i file di configurazione
+/**
+ * Endpoint API per la gestione delle notifiche utente
+ * FILE: public/api/get_notifiche.php
+ */
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/Models/NotificationManager.php';
 // Se hai session.php, includilo, altrimenti usa session_start qui sotto
@@ -30,8 +31,7 @@ try {
             $notify->markAsRead($input['id'], $_SESSION['user_id']);
             echo json_encode(['success' => true]);
         }
-    }
-    // SE È UNA GET (Polling automatico) -> Scarica lista
+    } // SE È UNA GET (Polling automatico) -> Scarica lista
     else {
         // Scarica le ultime 10 notifiche
         $list = $notify->getUserNotifications($_SESSION['user_id'], 10);

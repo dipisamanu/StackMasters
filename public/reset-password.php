@@ -21,9 +21,15 @@ if (isset($_SESSION['reset_error'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuova Password - Biblioteca ITIS Rossi</title>
     <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* Stile condiviso base */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #9f3232 0%, #b57070 100%);
@@ -33,36 +39,85 @@ if (isset($_SESSION['reset_error'])) {
             align-items: center;
             padding: 20px;
         }
+
         .container {
             background: white;
             padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-width: 500px;
             width: 100%;
         }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { color: #bf2121; margin-bottom: 10px; }
-        .alert { padding: 15px; border-radius: 8px; margin-bottom: 25px; }
-        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
-        input {
-            width: 100%; padding: 12px; border: 2px solid #e0e0e0;
-            border-radius: 8px; font-size: 15px; transition: 0.3s;
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
         }
-        input:focus { border-color: #bf2121; outline: none; }
+
+        .header h1 {
+            color: #bf2121;
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: #bf2121;
+            outline: none;
+        }
 
         .btn {
-            width: 100%; padding: 15px; background: #bf2121; color: white;
-            border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
-            font-size: 16px; margin-top: 10px;
+            width: 100%;
+            padding: 15px;
+            background: #bf2121;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
         }
-        .btn:hover { background: #931b1b; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
 
-        /* --- STILE REQUISITI PASSWORD --- */
+        .btn:hover {
+            background: #931b1b;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         .password-requirements {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -71,8 +126,17 @@ if (isset($_SESSION['reset_error'])) {
             margin-top: 15px;
             font-size: 0.9rem;
         }
-        .password-requirements p { margin-bottom: 10px; font-weight: 600; color: #555; }
-        .req-list { list-style: none; }
+
+        .password-requirements p {
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .req-list {
+            list-style: none;
+        }
+
         .req-item {
             margin-bottom: 5px;
             display: flex;
@@ -81,23 +145,42 @@ if (isset($_SESSION['reset_error'])) {
             color: #666;
             transition: all 0.3s ease;
         }
-        .req-item i { font-style: normal; font-weight: bold; width: 15px; text-align: center; }
 
-        /* Classi dinamiche JS */
-        .req-item.valid { color: #28a745; }
-        .req-item.valid i::before { content: '✓'; }
-        .req-item.invalid i::before { content: '•'; font-size: 1.2em; }
+        .req-item i {
+            font-style: normal;
+            font-weight: bold;
+            width: 15px;
+            text-align: center;
+        }
+
+        .req-item.valid {
+            color: #28a745;
+        }
+
+        .req-item.valid i::before {
+            content: '\f00c';
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+        }
+
+        .req-item.invalid i::before {
+            content: '\f111';
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.5em;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>Imposta Nuova Password</h1>
+        <h1><i class="fas fa-key"></i> Imposta Nuova Password</h1>
         <p>Scegli una password sicura per il tuo account.</p>
     </div>
 
     <?php if (!empty($error)): ?>
-        <div class="alert alert-danger">⚠️ <?= htmlspecialchars($error) ?></div>
+        <div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error) ?>
+        </div>
     <?php endif; ?>
 
     <?php if (empty($token)): ?>
@@ -126,11 +209,14 @@ if (isset($_SESSION['reset_error'])) {
 
             <div class="form-group" style="margin-top: 20px;">
                 <label for="confirm_password">Conferma Password</label>
-                <input type="password" name="confirm_password" id="confirm_password" required placeholder="Ripeti la password">
-                <small id="match-msg" style="display:block; margin-top:5px; color:#dc3545; display:none;">Le password non coincidono</small>
+                <input type="password" name="confirm_password" id="confirm_password" required
+                       placeholder="Ripeti la password">
+                <small id="match-msg" style="display:block; margin-top:5px; color:#dc3545; display:none;">Le password
+                    non coincidono</small>
             </div>
 
-            <button type="submit" class="btn" id="submitBtn" disabled>Salva Password</button>
+            <button type="submit" class="btn" id="submitBtn" disabled><i class="fas fa-save"></i> Salva Password
+            </button>
         </form>
     <?php endif; ?>
 </div>

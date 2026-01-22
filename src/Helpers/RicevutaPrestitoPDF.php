@@ -53,7 +53,7 @@ class RicevutaPrestitoPDF
         </style>
         <h4 class="section-title">Dati del Lettore</h4>
         <table class="info-table">
-            <tr><td width="25%"><b>Nominativo:</b></td><td width="75%">' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
+            <tr><td style="width: 25%;"><b>Nominativo:</b></td><td style="width: 75%;">' . htmlspecialchars($utente['nome'] . ' ' . $utente['cognome']) . '</td></tr>
             <tr><td><b>Codice Fiscale:</b></td><td>' . htmlspecialchars($utente['cf'] ?? 'N/D') . '</td></tr>
             <tr><td><b>Data Operazione:</b></td><td>' . $dataOp . '</td></tr>
         </table>

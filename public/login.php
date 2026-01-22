@@ -8,7 +8,6 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Include la gestione della sessione per prima cosa
 require_once '../src/config/session.php';
 require_once '../src/config/database.php';
 
@@ -18,12 +17,12 @@ if (Session::isLoggedIn()) {
     exit;
 }
 
-// --- GESTIONE POPUP ---
+// GESTIONE POPUP
 $popupType = '';
 $popupTitle = '';
 $popupMessage = '';
 
-// 1. Controlla i messaggi Flash (es. dalla Registrazione)
+// Controlla i messaggi Flash (es. dalla Registrazione)
 if (Session::hasFlash()) {
     $flash = Session::getFlash();
     if ($flash['type'] === 'success') {
@@ -37,7 +36,7 @@ if (Session::hasFlash()) {
     }
 }
 
-// 2. Controlla errori di Login (da process-login.php)
+// Controlla errori di Login (da process-login.php)
 if (isset($_SESSION['login_error'])) {
     $errorMsg = $_SESSION['login_error'];
     unset($_SESSION['login_error']);
@@ -46,15 +45,14 @@ if (isset($_SESSION['login_error'])) {
     if (stripos($errorMsg, 'bloccato') !== false) {
         $popupType = 'blocked';
         $popupTitle = 'Account Bloccato';
-        $popupMessage = $errorMsg;
     } else {
         $popupType = 'error';
         $popupTitle = 'Errore di Accesso';
-        $popupMessage = $errorMsg;
     }
+    $popupMessage = $errorMsg;
 }
 
-// 3. Controlli Legacy/Fallback
+// Controlli Legacy/Fallback
 if (isset($_SESSION['login_success'])) {
     $popupType = 'success';
     $popupTitle = 'Successo';
@@ -75,6 +73,7 @@ if (isset($_SESSION['login_warning'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Biblioteca ITIS Rossi</title>
     <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -224,8 +223,13 @@ if (isset($_SESSION['login_warning'])) {
             background: #ddd;
         }
 
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
+        .divider::before {
+            left: 0;
+        }
+
+        .divider::after {
+            right: 0;
+        }
 
         .register-link {
             text-align: center;
@@ -254,7 +258,7 @@ if (isset($_SESSION['login_warning'])) {
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.3s;
         }
 
@@ -267,19 +271,29 @@ if (isset($_SESSION['login_warning'])) {
             max-width: 400px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             animation: slideInModal 0.3s;
             position: relative;
         }
 
         @keyframes fadeIn {
-            from {opacity: 0}
-            to {opacity: 1}
+            from {
+                opacity: 0
+            }
+            to {
+                opacity: 1
+            }
         }
 
         @keyframes slideInModal {
-            from {transform: translateY(-50px); opacity: 0;}
-            to {transform: translateY(0); opacity: 1;}
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .close-modal {
@@ -327,20 +341,53 @@ if (isset($_SESSION['login_warning'])) {
         }
 
         /* Stili specifici per tipo */
-        .type-success .modal-icon { color: #28a745; }
-        .type-success .modal-btn { background: #28a745; color: white; }
-        .type-success .modal-btn:hover { background: #218838; }
+        .type-success .modal-icon {
+            color: #28a745;
+        }
 
-        .type-error .modal-icon { color: #dc3545; }
-        .type-error .modal-btn { background: #dc3545; color: white; }
-        .type-error .modal-btn:hover { background: #c82333; }
+        .type-success .modal-btn {
+            background: #28a745;
+            color: white;
+        }
 
-        .type-blocked .modal-icon { color: #ffc107; }
-        .type-blocked .modal-btn { background: #ffc107; color: #333; }
-        .type-blocked .modal-btn:hover { background: #e0a800; }
+        .type-success .modal-btn:hover {
+            background: #218838;
+        }
 
-        .type-warning .modal-icon { color: #ffc107; }
-        .type-warning .modal-btn { background: #ffc107; color: #333; }
+        .type-error .modal-icon {
+            color: #dc3545;
+        }
+
+        .type-error .modal-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .type-error .modal-btn:hover {
+            background: #c82333;
+        }
+
+        .type-blocked .modal-icon {
+            color: #ffc107;
+        }
+
+        .type-blocked .modal-btn {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .type-blocked .modal-btn:hover {
+            background: #e0a800;
+        }
+
+        .type-warning .modal-icon {
+            color: #ffc107;
+        }
+
+        .type-warning .modal-btn {
+            background: #ffc107;
+            color: #333;
+        }
 
     </style>
 </head>
@@ -374,7 +421,7 @@ if (isset($_SESSION['login_warning'])) {
             <label for="password">Password</label>
             <div class="password-wrapper">
                 <input type="password" id="password" name="password" required>
-                <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+                <button type="button" class="toggle-password" id="togglePassword"><i class="fas fa-eye"></i></button>
             </div>
         </div>
 
@@ -394,7 +441,7 @@ if (isset($_SESSION['login_warning'])) {
 
 <script>
     // Logica del Modal
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const modal = document.getElementById("infoModal");
         const closeBtn = document.querySelector(".close-modal");
         const okBtn = document.getElementById("modalBtn");
@@ -417,16 +464,16 @@ if (isset($_SESSION['login_warning'])) {
 
             if (pType === 'success') {
                 if (pTitle.toLowerCase().includes('verifica')) {
-                     modalIcon.innerHTML = '📧';
+                    modalIcon.innerHTML = '<i class="fas fa-envelope"></i>';
                 } else {
-                     modalIcon.innerHTML = '✅';
+                    modalIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
                 }
             } else if (pType === 'error') {
-                modalIcon.innerHTML = '❌';
+                modalIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
             } else if (pType === 'blocked') {
-                modalIcon.innerHTML = '🔒';
+                modalIcon.innerHTML = '<i class="fas fa-lock"></i>';
             } else if (pType === 'warning') {
-                modalIcon.innerHTML = '⚠️';
+                modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
             }
 
             modal.style.display = "block";
@@ -439,14 +486,13 @@ if (isset($_SESSION['login_warning'])) {
         closeBtn.onclick = closeModal;
         okBtn.onclick = closeModal;
 
-        window.onclick = function(event) {
-            if (event.target == modal) {
+        window.onclick = function (event) {
+            if (event.target === modal) {
                 closeModal();
             }
         }
     });
 </script>
-<!-- Include script di validazione se esiste -->
 <script src="assets/js/login_validation.js"></script>
 </body>
 </html>

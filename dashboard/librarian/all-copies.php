@@ -18,7 +18,7 @@ require_once '../../src/Views/layout/header.php';
 <div class="container-fluid py-4">
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <h6 class="text-uppercase text-muted small mb-1">Inventario</h6>
+            <h6 class="text-uppercase text-muted small mb-1"><i class="fas fa-boxes me-1"></i> Inventario</h6>
             <h2 class="fw-bold text-danger mb-0">Tutte le Copie</h2>
         </div>
     </div>
@@ -46,12 +46,16 @@ require_once '../../src/Views/layout/header.php';
                             <td>
                                 <?php
                                 $bg = 'secondary';
-                                if ($copy['stato'] == 'DISPONIBILE') $bg = 'success';
-                                if ($copy['stato'] == 'IN_PRESTITO') $bg = 'warning';
-                                if ($copy['stato'] == 'SMARRITO') $bg = 'danger';
-                                if ($copy['stato'] == 'FUORI_CATALOGO') $bg = 'dark';
+                                $icon = 'question-circle';
+                                if ($copy['stato'] == 'DISPONIBILE') { $bg = 'success'; $icon = 'check-circle'; }
+                                if ($copy['stato'] == 'IN_PRESTITO') { $bg = 'warning'; $icon = 'clock'; }
+                                if ($copy['stato'] == 'SMARRITO') { $bg = 'danger'; $icon = 'exclamation-triangle'; }
+                                if ($copy['stato'] == 'FUORI_CATALOGO') { $bg = 'dark'; $icon = 'archive'; }
                                 ?>
-                                <span class="badge bg-<?= $bg ?>"><?= str_replace('_', ' ', htmlspecialchars($copy['stato'])) ?></span>
+                                <span class="badge bg-<?= $bg ?>">
+                                    <i class="fas fa-<?= $icon ?> me-1"></i>
+                                    <?= str_replace('_', ' ', htmlspecialchars($copy['stato'])) ?>
+                                </span>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -25,9 +25,9 @@ $userId = $_SESSION['user_id'];
 $nomeCompleto = Session::getNomeCompleto();
 $reservationModel = new ReservationModel();
 
-// ------------------------------------------------------------------
-// 1. RECUPERO PRESTITI (Logica originale mantenuta)
-// ------------------------------------------------------------------
+// --------------------------------
+//  RECUPERO PRESTITI
+// --------------------------------
 $prestitiAttivi = [];
 $storicoPrestiti = [];
 
@@ -72,9 +72,9 @@ try {
     error_log("Errore recupero prestiti: " . $e->getMessage());
 }
 
-// ------------------------------------------------------------------
-// 2. RECUPERO PRENOTAZIONI (Nuova Logica Issue 6.3)
-// ------------------------------------------------------------------
+// --------------------------------
+// RECUPERO PRENOTAZIONI
+// --------------------------------
 $prenotazioni = [];
 try {
     // Usa il modello per ottenere dati puliti e posizione in coda calcolata
@@ -140,10 +140,6 @@ require_once '../../src/Views/layout/header.php';
             background-color: #2c3e50;
             color: white;
         }
-
-        .text-alert-danger { color: #dc3545; font-weight: bold; }
-        .text-alert-warning { color: #fd7e14; font-weight: bold; }
-        .text-alert-success { color: #198754; font-weight: bold; }
     </style>
 
     <div class="dashboard-header">
@@ -314,7 +310,7 @@ require_once '../../src/Views/layout/header.php';
                                     </thead>
                                     <tbody>
                                     <?php foreach ($prenotazioni as $pr):
-                                        // Se copia_libro non è NULL, significa che è pronta
+                                        // Se copia_libro non è NULL -> pronta
                                         $isReady = !empty($pr['copia_libro']);
                                         $imgPr = !empty($pr['immagine_copertina']) && str_starts_with($pr['immagine_copertina'], 'http') ? $pr['immagine_copertina'] : '../../public/uploads/covers/' . ($pr['immagine_copertina'] ?? 'default.jpg');
                                         ?>
