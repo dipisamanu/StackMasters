@@ -1,7 +1,7 @@
 <?php
 /**
- * test-prestito.php - Script di Test Automatico per la Registrazione Prestiti
- * Percorso: public/debug/test-prestito.php
+ * Script di Test Automatico per la Registrazione Prestiti
+ * FILE: public/debug/test-prestito.php
  *
  * Esegue test automatici per verificare la logica di blocco per multe
  * e per libri non disponibili.
@@ -12,7 +12,6 @@ error_reporting(E_ALL);
 
 header('Content-Type: text/html; charset=utf-8');
 
-// CORREZIONE PERCORSO: Aggiunto un '../' per risalire dalla cartella /debug
 require_once __DIR__ . '/../../src/config/database.php';
 
 // Stile per un output leggibile
@@ -32,6 +31,7 @@ echo <<<HTML
     .output { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; }
     code { background: #e0e7ff; color: #4338ca; padding: 2px 5px; border-radius: 4px; font-weight: 600; }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <div class="container">
     <h1><i class="fas fa-vial"></i> Test Suite: Registrazione Prestito</h1>
 HTML;
@@ -40,7 +40,7 @@ try {
     $db = Database::getInstance()->getConnection();
     $db->beginTransaction();
 
-    // --- SETUP DATI DI TEST ---
+    // SETUP DATI DI TEST
     // Utente 1 (con multa)
     $db->exec("INSERT INTO utenti (id_utente, cf, nome, cognome, email, password, consenso_privacy) VALUES (999991, 'UTENTEMULTA', 'Mario', 'Multato', 'multato@test.com', 'test', 1)");
     $db->exec("INSERT INTO multe (id_multa, id_utente, importo, causa) VALUES (999991, 999991, 15.50, 'RITARDO')");
@@ -61,8 +61,9 @@ try {
     $db->exec("INSERT INTO prestiti (id_prestito, id_inventario, id_utente, data_restituzione) VALUES (999991, 999992, 999993, NULL)");
 
 
-    // --- FUNZIONE PER ESEGUIRE TEST ---
-    function run_test($title, $post_data, $expected_string) {
+    // FUNZIONE PER ESEGUIRE TEST
+    function run_test($title, $post_data, $expected_string): void
+    {
         echo '<div class="test-case"><div class="test-header"><p class="test-title">' . $title . '</p></div><div class="test-body">';
         
         $_POST = $post_data;
@@ -72,9 +73,9 @@ try {
         $output = ob_get_clean();
 
         if (strpos($output, $expected_string) !== false) {
-            echo '<p><span class="result pass">PASS</span> Il test ha prodotto l\'output atteso.</p>';
+            echo '<p><span class="result pass"><i class="fas fa-check"></i> PASS</span> Il test ha prodotto l\'output atteso.</p>';
         } else {
-            echo '<p><span class="result fail">FAIL</span> L\'output non corrisponde a quanto atteso.</p>';
+            echo '<p><span class="result fail"><i class="fas fa-times"></i> FAIL</span> L\'output non corrisponde a quanto atteso.</p>';
             echo '<p><b>Atteso:</b> una stringa contenente <code>' . htmlspecialchars($expected_string) . '</code></p>';
         }
         
@@ -83,7 +84,7 @@ try {
         echo '</div></div>';
     }
 
-    // --- ESECUZIONE DEI TEST ---
+    // ESECUZIONE DEI TEST
 
     // Test 1: Blocco per multa
     run_test(
@@ -107,9 +108,9 @@ try {
     );
 
 
-    // --- PULIZIA ---
+    // PULIZIA
     $db->rollBack();
-    echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'>✅ Transazione annullata. Il database è stato ripristinato allo stato originale.</p>";
+    echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'><i class='fas fa-check-circle'></i> Transazione annullata. Il database è stato ripristinato allo stato originale.</p>";
 
 } catch (Exception $e) {
     if (isset($db) && $db->inTransaction()) {

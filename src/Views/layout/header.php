@@ -1,6 +1,6 @@
 <?php
 /**
- * Layout Header - Navbar Full Width 100%
+ * Layout Header
  * File: src/Views/layout/header.php
  */
 
@@ -48,7 +48,8 @@ if ($userName !== 'Utente') {
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
 
     <link rel="stylesheet" href="<?= $basePath ?>css/style.css">
     <link rel="icon" type="image/png" href="../../../public/assets/img/itisrossi.png">
@@ -62,7 +63,7 @@ if ($userName !== 'Utente') {
         html, body {
             margin: 0;
             padding: 0;
-            overflow-x: hidden; /* Evita scroll orizzontale */
+            overflow-x: hidden;
             width: 100%;
         }
 
@@ -79,7 +80,7 @@ if ($userName !== 'Utente') {
             max-width: 100%;
             height: var(--nav-height);
             background-color: #ffffff;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding: 0;
             position: sticky;
             top: 0;
@@ -87,7 +88,7 @@ if ($userName !== 'Utente') {
         }
 
         .navbar .container-fluid {
-            padding-left: 2rem !important;  /* Spazio laterale bilanciato */
+            padding-left: 2rem !important;
             padding-right: 2rem !important;
             max-width: 100%;
         }
@@ -141,6 +142,7 @@ if ($userName !== 'Utente') {
             border: 1px solid #e2e8f0;
             transition: all 0.2s;
         }
+
         .notification-icon-wrapper:hover {
             background-color: #f1f5f9;
             color: var(--primary-color);
@@ -158,30 +160,40 @@ if ($userName !== 'Utente') {
             border: 2px solid white;
         }
 
-        /* Dropdown */
         .dropdown-menu {
             border: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
             border-radius: 12px;
             padding: 10px;
             margin-top: 10px !important;
         }
+
         .dropdown-item {
             border-radius: 8px;
             padding: 8px 16px;
             font-weight: 500;
             color: #475569;
         }
+
         .dropdown-item:hover {
             background-color: #f8fafc;
             color: var(--primary-color);
         }
 
-        .content-wrapper { flex: 1; }
+        .content-wrapper {
+            flex: 1;
+        }
 
         @media (max-width: 991px) {
-            .navbar { height: auto; padding: 0.5rem 0; }
-            .navbar .container-fluid { padding-left: 1rem !important; padding-right: 1rem !important; }
+            .navbar {
+                height: auto;
+                padding: 0.5rem 0;
+            }
+
+            .navbar .container-fluid {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
         }
     </style>
 </head>
@@ -195,7 +207,8 @@ if ($userName !== 'Utente') {
             <span>BiblioSystem</span>
         </a>
 
-        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
+                data-bs-target="#mainNav">
             <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -216,13 +229,18 @@ if ($userName !== 'Utente') {
                 <?php if (isset($_SESSION['user_id'])): ?>
 
                     <div class="dropdown">
-                        <a class="nav-link hidden-arrow notification-icon-wrapper position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link hidden-arrow notification-icon-wrapper position-relative" href="#"
+                           id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-bell"></i>
                             <span id="notification-badge" class="badge-pulse" style="display: none;"></span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" id="notification-list" style="min-width: 320px; max-height: 400px; overflow-y: auto;">
-                            <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted ls-1">Notifiche</h6></li>
-                            <li><hr class="dropdown-divider my-1"></li>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown"
+                            id="notification-list" style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted ls-1">Notifiche</h6>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider my-1">
+                            </li>
                             <li id="notification-list-body" class="text-center py-4 text-muted small">
                                 <i class="fas fa-spinner fa-spin me-2"></i>Caricamento...
                             </li>
@@ -236,10 +254,12 @@ if ($userName !== 'Utente') {
                     <script src="<?= $rootUrl ?>assets/js/notification.js"></script>
 
                     <div class="dropdown">
-                        <a class="nav-link d-flex align-items-center gap-2 p-0" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link d-flex align-items-center gap-2 p-0" href="#" role="button"
+                           data-bs-toggle="dropdown">
                             <div class="text-end d-none d-lg-block" style="line-height: 1.2;">
                                 <div class="fw-bold text-dark small lh-1"><?= htmlspecialchars($_SESSION['nome_completo']) ?></div>
-                                <div class="text-muted small" style="font-size: 0.7rem;"><?= htmlspecialchars($currentRole) ?></div>
+                                <div class="text-muted small"
+                                     style="font-size: 0.7rem;"><?= htmlspecialchars($currentRole) ?></div>
                             </div>
                             <div class="user-avatar">
                                 <?= $initials ?>
@@ -248,17 +268,17 @@ if ($userName !== 'Utente') {
 
                         <ul class="dropdown-menu dropdown-menu-end animate slideIn">
                             <?php
-                            $dash = match($currentRole) {
+                            $dash = match ($currentRole) {
                                 'Bibliotecario' => 'dashboard/librarian/index.php',
                                 'Admin' => 'dashboard/admin/index.php',
                                 default => 'dashboard/student/index.php'
                             };
-                            $profileLink = match($currentRole) {
+                            $profileLink = match ($currentRole) {
                                 'Admin' => 'dashboard/admin/profile.php',
                                 default => 'dashboard/student/profile.php'
                             };
 
-                            if($rootUrl == './') {
+                            if ($rootUrl == './') {
                                 $finalDash = '../' . $dash;
                                 $finalProfile = '../' . $profileLink;
                             } else {
@@ -276,16 +296,24 @@ if ($userName !== 'Utente') {
                                 <div class="small text-muted"><?= htmlspecialchars($currentRole) ?></div>
                             </li>
 
-                            <li><a class="dropdown-item" href="<?= $finalDash ?>"><i class="fas fa-tachometer-alt me-2 text-primary opacity-75"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="<?= $finalProfile ?>"><i class="fas fa-user-cog me-2 text-secondary opacity-75"></i>Profilo</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="<?= $rootUrl ?>logout.php"><i class="fas fa-sign-out-alt me-2 opacity-75"></i>Esci</a></li>
+                            <li><a class="dropdown-item" href="<?= $finalDash ?>"><i
+                                            class="fas fa-tachometer-alt me-2 text-primary opacity-75"></i>Dashboard</a>
+                            </li>
+                            <li><a class="dropdown-item" href="<?= $finalProfile ?>"><i
+                                            class="fas fa-user-cog me-2 text-secondary opacity-75"></i>Profilo</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item text-danger" href="<?= $rootUrl ?>logout.php"><i
+                                            class="fas fa-sign-out-alt me-2 opacity-75"></i>Esci</a></li>
                         </ul>
                     </div>
 
                 <?php else: ?>
-                    <a href="<?= $rootUrl ?>login.php" class="btn btn-outline-primary rounded-pill px-4 fw-bold btn-sm me-2">Accedi</a>
-                    <a href="<?= $rootUrl ?>register.php" class="btn btn-primary rounded-pill px-4 fw-bold btn-sm shadow-sm">Registrati</a>
+                    <a href="<?= $rootUrl ?>login.php"
+                       class="btn btn-outline-primary rounded-pill px-4 fw-bold btn-sm me-2">Accedi</a>
+                    <a href="<?= $rootUrl ?>register.php"
+                       class="btn btn-primary rounded-pill px-4 fw-bold btn-sm shadow-sm">Registrati</a>
                 <?php endif; ?>
             </div>
         </div>

@@ -8,7 +8,6 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: text/html; charset=utf-8');
 
-// Inclusione delle dipendenze necessarie (con percorsi corretti da /debug)
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/Models/Fine.php';
 require_once __DIR__ . '/../../src/Helpers/RicevutaPagamentoPDF.php';
@@ -33,6 +32,7 @@ echo <<<HTML
     .check { margin-bottom: 0.5rem; }
     .pdf-link { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #4f46e5; color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 600; }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <div class="container">
     <h1><i class="fas fa-receipt"></i> Test Suite: Pagamento e Quietanza</h1>
 HTML;
@@ -44,7 +44,7 @@ try {
     $db = Database::getInstance()->getConnection();
     $db->beginTransaction();
 
-    // --- 1. SETUP DATI DI TEST ---
+    // SETUP DATI DI TEST
     $testUserId = 999998;
     $testFineAmount = 25.50;
     $db->exec("INSERT INTO utenti (id_utente, cf, nome, cognome, email, password, consenso_privacy) VALUES ($testUserId, 'UTENTETESTQ', 'Franco', 'Quietanza', 'quietanza@test.com', 'test', 1)");
@@ -52,7 +52,7 @@ try {
 
     echo '<div class="test-case"><div class="test-header"><p class="test-title">Test: Pagamento completo e generazione PDF</p></div><div class="test-body">';
 
-    // --- 2. ESECUZIONE LOGICA (usando i metodi reali del modello) ---
+    // ESECUZIONE LOGICA
     $fineModel = new Fine();
     $pdfHelper = new RicevutaPagamentoPDF();
 
@@ -67,43 +67,43 @@ try {
     $pdfFileName = $pdfHelper->generateQuietanza($userData, $totalToPay);
     $pdfFileToClean = __DIR__ . '/../assets/docs/' . $pdfFileName;
 
-    // --- 3. VERIFICA RISULTATI ---
+    // VERIFICA RISULTATI
     $allTestsPassed = true;
 
     // Verifica 1: Il PDF è stato creato?
     echo '<div class="check">';
     if (file_exists($pdfFileToClean)) {
-        echo '<span class="result pass">PASS</span> Il file PDF <code>' . htmlspecialchars($pdfFileName) . '</code> è stato generato correttamente.';
+        echo '<span class="result pass"><i class="fas fa-check"></i> PASS</span> Il file PDF <code>' . htmlspecialchars($pdfFileName) . '</code> è stato generato correttamente.';
     } else {
-        echo '<span class="result fail">FAIL</span> Il file PDF non è stato trovato nel percorso atteso.';
+        echo '<span class="result fail"><i class="fas fa-times"></i> FAIL</span> Il file PDF non è stato trovato nel percorso atteso.';
         $allTestsPassed = false;
     }
     echo '</div>';
 
     // Verifica 2: Le multe sono state saldate nel DB?
     $remainingBalance = $fineModel->getUserBalance($testUserId)['debito_totale'];
-    
+
     echo '<div class="check">';
     if ($remainingBalance == 0) {
-        echo '<span class="result pass">PASS</span> Le multe per l\'utente di test risultano saldate nel database (Debito residuo: 0€).';
+        echo '<span class="result pass"><i class="fas fa-check"></i> PASS</span> Le multe per l\'utente di test risultano saldate nel database (Debito residuo: 0€).';
     } else {
-        echo '<span class="result fail">FAIL</span> Le multe non risultano saldate. Debito residuo: ' . $remainingBalance . '€.</span>';
+        echo '<span class="result fail"><i class="fas fa-times"></i> FAIL</span> Le multe non risultano saldate. Debito residuo: ' . $remainingBalance . '€.</span>';
         $allTestsPassed = false;
     }
     echo '</div>';
-    
+
     // Verifica 3: L'importo da pagare era corretto?
     echo '<div class="check">';
     if ($totalToPay == $testFineAmount) {
-        echo '<span class="result pass">PASS</span> L\'importo totale da saldare (<code>' . $totalToPay . '€</code>) è stato calcolato correttamente.';
+        echo '<span class="result pass"><i class="fas fa-check"></i> PASS</span> L\'importo totale da saldare (<code>' . $totalToPay . '€</code>) è stato calcolato correttamente.';
     } else {
-        echo '<span class="result fail">FAIL</span> L\'importo calcolato (<code>' . $totalToPay . '€</code>) non corrisponde a quello atteso (<code>' . $testFineAmount . '€</code>).';
+        echo '<span class="result fail"><i class="fas fa-times"></i> FAIL</span> L\'importo calcolato (<code>' . $totalToPay . '€</code>) non corrisponde a quello atteso (<code>' . $testFineAmount . '€</code>).';
         $allTestsPassed = false;
     }
     echo '</div>';
 
     if ($allTestsPassed && file_exists($pdfFileToClean)) {
-        echo "<a href='../assets/docs/" . htmlspecialchars($pdfFileName) . "' target='_blank' class='pdf-link'>Visualizza PDF Generato</a>";
+        echo "<a href='../assets/docs/" . htmlspecialchars($pdfFileName) . "' target='_blank' class='pdf-link'><i class='fas fa-file-pdf'></i> Visualizza PDF Generato</a>";
     }
 
     echo '</div></div>';
@@ -114,17 +114,11 @@ try {
     echo "<pre>" . $e->getTraceAsString() . "</pre>";
     echo "</div>";
 } finally {
-    // --- 4. PULIZIA ---
+    // PULIZIA
     if ($db && $db->inTransaction()) {
         $db->rollBack();
-        echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'>✅ Transazione annullata. Il database è stato ripristinato.</p>";
+        echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'><i class='fas fa-check-circle'></i> Transazione annullata. Il database è stato ripristinato.</p>";
     }
-    
-    // CORREZIONE: La riga seguente è stata commentata per permettere la visualizzazione del PDF.
-    // if ($pdfFileToClean && file_exists($pdfFileToClean)) {
-    //     unlink($pdfFileToClean);
-    //     echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'>✅ File PDF di test cancellato.</p>";
-    // }
 }
 
 echo "</div>";

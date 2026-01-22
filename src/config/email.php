@@ -7,7 +7,6 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use Dotenv\Dotenv;
 
-// Carica .env (se presente) dalla root del progetto
 $projectRoot = dirname(__DIR__, 2);
 if (file_exists($projectRoot . '/.env')) {
     try {
@@ -187,7 +186,7 @@ class EmailService {
                                         </a>
                                     </div>
                                     <p style="margin: 20px 0 0 0; color: #333333; font-size: 16px; line-height: 1.6;">
-                                        <strong>⚠ Attenzione:</strong> Questo link scadrà tra 24 ore.
+                                        <strong><i class="fas fa-exclamation-triangle"></i> Attenzione:</strong> Questo link scadrà tra 24 ore.
                                     </p>
                                     <p style="margin: 15px 0 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
                                         Se non hai effettuato questa registrazione, ignora questa email.

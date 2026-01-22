@@ -4,30 +4,24 @@
  * Spostato in /public/debug/
  */
 
-// Abilita la visualizzazione degli errori per il debug
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// Imposta l'header per una visualizzazione pulita del testo
 header('Content-Type: text/plain; charset=utf-8');
 
 echo "--- Inizio Test Calcolo Multe Notturne (da /debug) ---\n\n";
 
-// CORREZIONE PERCORSO E NOME FILE: Aggiunto un '../' e cambiato nome a multe-notturne.php
 require_once __DIR__ . '/../../src/utils/multe-notturne.php';
 
-// Usa la classe dal suo namespace
 use Ottaviodipisa\StackMasters\utils\MulteNotturne\CalcolaMulteCron;
 
 try {
-    // Avvia il buffer di output per catturare l'eco (i log) dello script
+    // Buffer di output per catturare i log dello script
     ob_start();
 
-    // Crea un'istanza della classe e lancia il processo di calcolo
     $cron = new CalcolaMulteCron();
     $cron->esegui();
 
-    // Recupera l'output catturato e lo pulisce
     $output = ob_get_clean();
 
     echo "--- Esecuzione Completata ---\n\n";

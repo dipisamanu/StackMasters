@@ -1,6 +1,6 @@
 <?php
 /**
- * AJAX Endpoint - Trova primo scaffale libero (Fix Ruolo Array)
+ * AJAX Endpoint - Trova primo scaffale libero
  * File: dashboard/librarian/ajax-get-location.php
  */
 
@@ -8,7 +8,6 @@
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-// Avvia buffer
 ob_start();
 
 header('Content-Type: application/json');
@@ -17,18 +16,18 @@ try {
     require_once '../../src/config/session.php';
     require_once '../../src/Models/InventoryModel.php';
 
-    // 1. Recupera il dato grezzo dalla sessione
+    // Recupera il dato grezzo dalla sessione
     $roleData = $_SESSION['ruolo_principale'] ?? $_SESSION['role'] ?? null;
 
-    // 2. Estrai il nome del ruolo (gestisce sia Stringa che Array)
+    // Estrai il nome del ruolo (gestisce sia Stringa che Array)
     $roleName = '';
     if (is_array($roleData)) {
-        $roleName = $roleData['nome'] ?? ''; // Se è un array, prendi la chiave 'nome'
+        $roleName = $roleData['nome'] ?? ''; // Se è un array, prende la chiave 'nome'
     } elseif (is_string($roleData)) {
         $roleName = $roleData; // Se è già stringa
     }
 
-    // 3. Controllo permessi
+    // Controllo permessi
     if (!isset($_SESSION['user_id']) || $roleName !== 'Bibliotecario') {
         $debugInfo = [
             'user_id' => $_SESSION['user_id'] ?? 'NULL',

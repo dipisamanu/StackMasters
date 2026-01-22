@@ -2,7 +2,6 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Carica session.php - ora funziona!
 require_once __DIR__ . '/../src/config/session.php';
 
 // Recupera eventuali errori dalla sessione
@@ -204,7 +203,7 @@ if (isset($_SESSION['flash'])) {
 
         .toggle-pass:hover {
             color: #bf2121;
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
             border-radius: 4px;
         }
 
@@ -319,13 +318,15 @@ if (isset($_SESSION['flash'])) {
         <div class="form-row">
             <div class="form-group">
                 <label for="nome">Nome *</label>
-                <input type="text" id="nome" name="nome" value="<?= htmlspecialchars($oldData['nome'] ?? '') ?>" required>
+                <input type="text" id="nome" name="nome" value="<?= htmlspecialchars($oldData['nome'] ?? '') ?>"
+                       required>
                 <div class="error" id="errNome">Inserisci il nome</div>
             </div>
 
             <div class="form-group">
                 <label for="cognome">Cognome *</label>
-                <input type="text" id="cognome" name="cognome" value="<?= htmlspecialchars($oldData['cognome'] ?? '') ?>" required>
+                <input type="text" id="cognome" name="cognome"
+                       value="<?= htmlspecialchars($oldData['cognome'] ?? '') ?>" required>
                 <div class="error" id="errCognome">Inserisci il cognome</div>
             </div>
         </div>
@@ -333,7 +334,8 @@ if (isset($_SESSION['flash'])) {
         <div class="form-row">
             <div class="form-group">
                 <label for="dataNascita">Data di nascita *</label>
-                <input type="date" id="dataNascita" name="dataNascita" min="1900-01-01" max="2025-12-31" value="<?= htmlspecialchars($oldData['dataNascita'] ?? '') ?>" required>
+                <input type="date" id="dataNascita" name="dataNascita" min="1900-01-01" max="2025-12-31"
+                       value="<?= htmlspecialchars($oldData['dataNascita'] ?? '') ?>" required>
                 <div class="error" id="errData">Inserisci una data valida</div>
             </div>
 
@@ -341,8 +343,12 @@ if (isset($_SESSION['flash'])) {
                 <label for="sesso">Sesso *</label>
                 <select id="sesso" name="sesso" required>
                     <option value="">-- Seleziona --</option>
-                    <option value="M" <?= (isset($oldData['sesso']) && $oldData['sesso'] === 'M') ? 'selected' : '' ?>>Maschio</option>
-                    <option value="F" <?= (isset($oldData['sesso']) && $oldData['sesso'] === 'F') ? 'selected' : '' ?>>Femmina</option>
+                    <option value="M" <?= (isset($oldData['sesso']) && $oldData['sesso'] === 'M') ? 'selected' : '' ?>>
+                        Maschio
+                    </option>
+                    <option value="F" <?= (isset($oldData['sesso']) && $oldData['sesso'] === 'F') ? 'selected' : '' ?>>
+                        Femmina
+                    </option>
                 </select>
                 <div class="error" id="errSesso">Seleziona il sesso</div>
             </div>
@@ -351,14 +357,16 @@ if (isset($_SESSION['flash'])) {
         <div class="form-row">
             <div class="form-group">
                 <label for="comune">Comune di nascita *</label>
-                <input type="text" id="comune" name="comune" value="<?= htmlspecialchars($oldData['comune'] ?? '') ?>" required>
+                <input type="text" id="comune" name="comune" value="<?= htmlspecialchars($oldData['comune'] ?? '') ?>"
+                       required>
                 <div class="error" id="errComune">Inserisci il comune di nascita</div>
             </div>
 
             <div class="form-group">
                 <label for="codiceFiscale">Codice Fiscale *</label>
                 <div id="calcolaCFdiv">
-                    <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16" value="<?= htmlspecialchars($oldData['codiceFiscale'] ?? '') ?>">
+                    <input type="text" id="codiceFiscale" name="codiceFiscale" maxlength="16"
+                           value="<?= htmlspecialchars($oldData['codiceFiscale'] ?? '') ?>">
                     <span id="cfCounter" class="cf-counter">0/16</span>
                     <button type="button" id="btnCalcolaCF">Calcola</button>
                 </div>
@@ -369,7 +377,8 @@ if (isset($_SESSION['flash'])) {
         <div class="form-row">
             <div class="form-group full">
                 <label for="email">Email *</label>
-                <input type="email" id="email" name="email" value="<?= htmlspecialchars($oldData['email'] ?? '') ?>" required>
+                <input type="email" id="email" name="email" value="<?= htmlspecialchars($oldData['email'] ?? '') ?>"
+                       required>
                 <div class="error" id="errEmail">Inserisci una email valida</div>
             </div>
         </div>
@@ -423,14 +432,14 @@ if (isset($_SESSION['flash'])) {
         };
 
         const fieldsConfig = [
-            { id: "nome", err: "errNome" },
-            { id: "cognome", err: "errCognome" },
-            { id: "sesso", err: "errSesso" },
-            { id: "comune", err: "errComune" },
+            {id: "nome", err: "errNome"},
+            {id: "cognome", err: "errCognome"},
+            {id: "sesso", err: "errSesso"},
+            {id: "comune", err: "errComune"},
             {
                 id: "dataNascita",
                 err: "errData",
-                check: function(val) {
+                check: function (val) {
                     if (!val) return false;
                     const d = new Date(val);
                     const min = new Date("1900-01-01");
@@ -441,14 +450,14 @@ if (isset($_SESSION['flash'])) {
             {
                 id: "codiceFiscale",
                 err: "errCF",
-                check: function(val) {
+                check: function (val) {
                     return val !== "" && /^[A-Z0-9]{16}$/i.test(val);
                 }
             },
             {
                 id: "email",
                 err: "errEmail",
-                check: function(val) {
+                check: function (val) {
                     return val !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
                 }
             }
@@ -711,11 +720,11 @@ if (isset($_SESSION['flash'])) {
     }
 
     function getVocCons(str) {
-        return { v: str.replace(/[^AEIOU]/g, ''), c: str.replace(/[^B-DF-HJ-NP-TV-Z]/g, '') };
+        return {v: str.replace(/[^AEIOU]/g, ''), c: str.replace(/[^B-DF-HJ-NP-TV-Z]/g, '')};
     }
 
     function getCodice(str, isNome) {
-        const { v, c } = getVocCons(str);
+        const {v, c} = getVocCons(str);
         if (isNome && c.length >= 4) return c[0] + c[2] + c[3];
         return (c + v + "XXX").substring(0, 3);
     }
@@ -729,10 +738,10 @@ if (isset($_SESSION['flash'])) {
 
     function calcolaCin(cf) {
         const values = {
-            0:1,1:0,2:5,3:7,4:9,5:13,6:15,7:17,8:19,9:21,
-            A:1,B:0,C:5,D:7,E:9,F:13,G:15,H:17,I:19,J:21,
-            K:2,L:4,M:18,N:20,O:11,P:3,Q:6,R:8,S:12,T:14,
-            U:16,V:10,W:22,X:25,Y:24,Z:23
+            0: 1, 1: 0, 2: 5, 3: 7, 4: 9, 5: 13, 6: 15, 7: 17, 8: 19, 9: 21,
+            A: 1, B: 0, C: 5, D: 7, E: 9, F: 13, G: 15, H: 17, I: 19, J: 21,
+            K: 2, L: 4, M: 18, N: 20, O: 11, P: 3, Q: 6, R: 8, S: 12, T: 14,
+            U: 16, V: 10, W: 22, X: 25, Y: 24, Z: 23
         };
         let sum = 0;
         for (let i = 0; i < 15; i++) {

@@ -1,6 +1,6 @@
 <?php
 /**
- * Gestione Inventario (Con Stati Smarrito/Fuori Catalogo)
+ * Gestione Inventario - Pagina Principale
  * File: dashboard/librarian/inventory.php
  */
 
@@ -39,7 +39,8 @@ require_once '../../src/Views/layout/header.php';
 
     <div class="container-fluid py-4">
         <div class="mb-3">
-            <a href="books.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left"></i> Torna al Catalogo</a>
+            <a href="books.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left"></i> Torna al
+                Catalogo</a>
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
@@ -52,45 +53,67 @@ require_once '../../src/Views/layout/header.php';
                     </div>
                 </div>
                 <div class="btn-group">
-                    <a href="print-labels.php?id_libro=<?= $idLibro ?>" target="_blank" class="btn btn-outline-dark"><i class="fas fa-print me-2"></i>Stampa Etichette</a>
+                    <a href="print-labels.php?id_libro=<?= $idLibro ?>" target="_blank" class="btn btn-outline-dark"><i
+                                class="fas fa-print me-2"></i>Stampa Etichette</a>
                     <a href="all-copies.php" class="btn btn-warning"><i class="fas fa-list me-2"></i>Tutte le Copie</a>
-                    <button class="btn btn-success shadow-sm" onclick="openCopyModal('add')"><i class="fas fa-plus me-2"></i>Aggiungi Copia</button>
+                    <button class="btn btn-success shadow-sm" onclick="openCopyModal('add')"><i
+                                class="fas fa-plus me-2"></i>Aggiungi Copia
+                    </button>
                 </div>
             </div>
         </div>
 
-        <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
-        <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+        <?php if ($success): ?>
+            <div class="alert alert-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?>
+            </div><?php endif; ?>
+        <?php if ($error): ?>
+            <div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error) ?>
+            </div><?php endif; ?>
 
         <div class="card shadow border-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
-                    <tr><th class="ps-4">RFID</th><th>Collocazione</th><th>Condizione</th><th>Stato</th><th class="text-end pe-4">Azioni</th></tr>
+                    <tr>
+                        <th class="ps-4">RFID</th>
+                        <th>Collocazione</th>
+                        <th>Condizione</th>
+                        <th>Stato</th>
+                        <th class="text-end pe-4">Azioni</th>
+                    </tr>
                     </thead>
                     <tbody>
-                    <?php if (empty($copies)): ?><tr><td colspan="5" class="text-center p-5 text-muted">Nessuna copia fisica.</td></tr><?php else: ?>
+                    <?php if (empty($copies)): ?>
+                        <tr>
+                            <td colspan="5" class="text-center p-5 text-muted">Nessuna copia fisica.</td>
+                        </tr><?php else: ?>
                         <?php foreach ($copies as $c): ?>
                             <tr class="<?= ($c['stato'] == 'SMARRITO' || $c['stato'] == 'FUORI_CATALOGO') ? 'table-danger text-muted' : '' ?>">
-                                <td class="ps-4 font-monospace fw-bold text-primary"><?= htmlspecialchars($c['codice_rfid']??'N/D') ?></td>
-                                <td><span class="badge bg-white text-dark border"><?= htmlspecialchars($c['collocazione']) ?></span></td>
+                                <td class="ps-4 font-monospace fw-bold text-primary"><?= htmlspecialchars($c['codice_rfid'] ?? 'N/D') ?></td>
+                                <td>
+                                    <span class="badge bg-white text-dark border"><?= htmlspecialchars($c['collocazione']) ?></span>
+                                </td>
                                 <td><?= htmlspecialchars($c['condizione']) ?></td>
                                 <td>
                                     <?php
                                     $bg = 'secondary';
-                                    if($c['stato']=='DISPONIBILE') $bg='success';
-                                    if($c['stato']=='SMARRITO') $bg='danger';
-                                    if($c['stato']=='FUORI_CATALOGO') $bg='dark';
+                                    if ($c['stato'] == 'DISPONIBILE') $bg = 'success';
+                                    if ($c['stato'] == 'SMARRITO') $bg = 'danger';
+                                    if ($c['stato'] == 'FUORI_CATALOGO') $bg = 'dark';
                                     ?>
                                     <span class="badge bg-<?= $bg ?>"><?= $c['stato'] ?></span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-light" onclick='openCopyModal("edit", <?= json_encode($c) ?>)'><i class="fas fa-edit"></i></button>
-                                    <form action="process-inventory.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare fisicamente? Usa lo stato Fuori Catalogo se vuoi tenere lo storico.');">
+                                    <button class="btn btn-sm btn-light"
+                                            onclick='openCopyModal("edit", <?= json_encode($c) ?>)'><i
+                                                class="fas fa-edit"></i></button>
+                                    <form action="process-inventory.php" method="POST" class="d-inline"
+                                          onsubmit="return confirm('Eliminare fisicamente? Usa lo stato Fuori Catalogo se vuoi tenere lo storico.');">
                                         <input type="hidden" name="action" value="delete_copy">
                                         <input type="hidden" name="id_libro" value="<?= $idLibro ?>">
                                         <input type="hidden" name="id_inventario" value="<?= $c['id_inventario'] ?>">
-                                        <button class="btn btn-sm btn-light text-danger"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-sm btn-light text-danger"><i class="fas fa-trash"></i>
+                                        </button>
                                     </form>
                                 </td>
                             </tr>
@@ -110,7 +133,8 @@ require_once '../../src/Views/layout/header.php';
                 </div>
                 <form action="process-inventory.php" method="POST" id="copyForm">
                     <div class="modal-body">
-                        <?php if ($modalError): ?><div class="alert alert-danger"><?= htmlspecialchars($modalError) ?></div><?php endif; ?>
+                        <?php if ($modalError): ?>
+                            <div class="alert alert-danger"><?= htmlspecialchars($modalError) ?></div><?php endif; ?>
                         <input type="hidden" name="action" id="formAction" value="add_copy">
                         <input type="hidden" name="id_libro" value="<?= $idLibro ?>">
                         <input type="hidden" name="id_inventario" id="copyId">
@@ -118,14 +142,18 @@ require_once '../../src/Views/layout/header.php';
                         <div class="mb-3">
                             <label class="form-label">RFID *</label>
                             <div class="input-group">
-                                <input type="text" name="rfid" id="rfid" class="form-control font-monospace" required placeholder="SCAN-123">
+                                <input type="text" name="rfid" id="rfid" class="form-control font-monospace" required
+                                       placeholder="SCAN-123">
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Collocazione *</label>
                             <div class="input-group">
-                                <input type="text" name="collocazione" id="collocazione" class="form-control text-uppercase" required placeholder="Es. A1-01">
-                                <button type="button" class="btn btn-outline-primary" onclick="suggestLocation()" id="btnSuggest"><i class="fas fa-magic"></i> Auto</button>
+                                <input type="text" name="collocazione" id="collocazione"
+                                       class="form-control text-uppercase" required placeholder="Es. A1-01">
+                                <button type="button" class="btn btn-outline-primary" onclick="suggestLocation()"
+                                        id="btnSuggest"><i class="fas fa-magic"></i> Auto
+                                </button>
                             </div>
                         </div>
                         <div class="row">
@@ -159,7 +187,7 @@ require_once '../../src/Views/layout/header.php';
 
     <script>
         let copyModal;
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const modalEl = document.getElementById('copyModal');
             if (modalEl) {
                 copyModal = new bootstrap.Modal(modalEl);
@@ -168,24 +196,28 @@ require_once '../../src/Views/layout/header.php';
         });
 
         function generateRFID() {
-            document.getElementById('rfid').value = 'LIB-' + Date.now().toString().slice(-6) + '-' + Math.floor(Math.random()*100);
+            document.getElementById('rfid').value = 'LIB-' + Date.now().toString().slice(-6) + '-' + Math.floor(Math.random() * 100);
         }
 
         function suggestLocation() {
             const btn = document.getElementById('btnSuggest');
             const input = document.getElementById('collocazione');
             const orig = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled=true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
 
             fetch('ajax-get-location.php')
                 .then(r => r.json())
                 .then(data => {
-                    if(data.success) {
+                    if (data.success) {
                         input.value = data.location;
                     } else alert("Errore: " + data.error);
                 })
                 .catch(e => alert("Errore AJAX."))
-                .finally(() => { btn.innerHTML = orig; btn.disabled=false; });
+                .finally(() => {
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                });
         }
 
         function openCopyModal(mode, data = null, isOldData = false) {

@@ -13,7 +13,6 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Inclusione dell'Header standard
 require_once __DIR__ . '/../../src/Views/layout/header.php';
 
 try {
@@ -37,7 +36,7 @@ try {
             JOIN inventari i ON p.id_inventario = i.id_inventario
             JOIN libri l ON i.id_libro = l.id_libro
             WHERE p.data_restituzione IS NULL
-            ORDER BY p.scadenza_prestito ASC";
+            ORDER BY p.scadenza_prestito";
 
     $stmt = $db->query($sql);
     $prestiti = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -45,7 +44,7 @@ try {
     // Statistiche rapide
     $totaleAttivi = count($prestiti);
     $inRitardo = 0;
-    $rientriOggi = 0; // Nuova variabile contatore
+    $rientriOggi = 0;
     $oggi = new DateTime();
     $oggiString = $oggi->format('Y-m-d');
 
@@ -90,14 +89,12 @@ try {
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Layout Wrapper */
         .dashboard-container {
             max-width: 1440px;
             margin: 0 auto;
             padding: 3rem 2rem;
         }
 
-        /* Modern Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -134,7 +131,6 @@ try {
             transition: all 0.3s ease;
         }
 
-        /* Table & Container */
         .table-main-wrapper {
             background: var(--card-bg);
             border-radius: 28px;
@@ -155,7 +151,6 @@ try {
             gap: 1.5rem;
         }
 
-        /* Enhanced Search Input */
         .search-pill-container {
             position: relative;
             flex-grow: 1;
@@ -195,7 +190,6 @@ try {
             color: var(--primary);
         }
 
-        /* High-End Table Styling */
         .modern-table {
             width: 100%;
             border-collapse: separate;
@@ -232,13 +226,12 @@ try {
             box-shadow: inset 4px 0 0 0 var(--primary);
         }
 
-        /* Book Assets */
         .book-cover-art {
             width: 52px;
             height: 76px;
             border-radius: 10px;
             object-fit: cover;
-            box-shadow: 0 8px 16px -4px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.15);
             border: 2px solid #fff;
             transition: transform 0.3s ease;
         }
@@ -247,7 +240,6 @@ try {
             transform: scale(1.1) rotate(-2deg);
         }
 
-        /* Technical Pills */
         .status-badge-premium {
             padding: 0.5rem 1rem;
             border-radius: 12px;
@@ -259,8 +251,17 @@ try {
             text-transform: uppercase;
         }
 
-        .bg-ok { background: #ecfdf5; color: #065f46; border: 1px solid #d1fae5; }
-        .bg-late { background: #fff1f2; color: #be123c; border: 1px solid #ffe4e6; }
+        .bg-ok {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #d1fae5;
+        }
+
+        .bg-late {
+            background: #fff1f2;
+            color: #be123c;
+            border: 1px solid #ffe4e6;
+        }
 
         .btn-action-primary {
             background: var(--primary);
@@ -283,7 +284,6 @@ try {
             color: white;
         }
 
-        /* BOTTONE RIENTRO DESIGN PREMIUM */
         .btn-action-return {
             background: rgba(16, 185, 129, 0.08);
             color: #065f46;
@@ -332,7 +332,8 @@ try {
             <h1 class="text-4xl font-black tracking-tighter text-slate-900 uppercase">
                 Gestione <span class="text-indigo-600">Circolazione</span>
             </h1>
-            <p class="text-slate-500 font-medium text-lg">Monitoraggio in tempo reale del patrimonio librario in uscita.</p>
+            <p class="text-slate-500 font-medium text-lg">Monitoraggio in tempo reale del patrimonio librario in
+                uscita.</p>
         </div>
 
         <!-- Statistiche -->
@@ -342,7 +343,8 @@ try {
                     <i class="fas fa-book-reader"></i>
                 </div>
                 <div>
-                    <p class="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Prestiti Attivi</p>
+                    <p class="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                        Prestiti Attivi</p>
                     <span class="text-3xl font-black text-slate-800"><?= $totaleAttivi ?></span>
                 </div>
             </div>
@@ -352,7 +354,8 @@ try {
                     <i class="fas fa-clock"></i>
                 </div>
                 <div>
-                    <p class="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Scadenze Superate</p>
+                    <p class="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                        Scadenze Superate</p>
                     <span class="text-3xl font-black <?= $inRitardo > 0 ? 'text-rose-600' : 'text-slate-800' ?>"><?= $inRitardo ?></span>
                 </div>
             </div>
@@ -362,7 +365,8 @@ try {
                     <i class="fas fa-calendar-check"></i>
                 </div>
                 <div>
-                    <p class="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Rientri Previsti Oggi</p>
+                    <p class="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                        Rientri Previsti Oggi</p>
                     <span class="text-3xl font-black text-slate-800"><?= $rientriOggi ?></span>
                 </div>
             </div>
@@ -408,7 +412,11 @@ try {
                         </tr>
                     <?php else: ?>
                         <?php foreach ($prestiti as $p):
-                            $scadenza = new DateTime($p['scadenza_prestito']);
+                            try {
+                                $scadenza = new DateTime($p['scadenza_prestito']);
+                            } catch (DateMalformedStringException $e) {
+                                $scadenza = null;
+                            }
                             $isRitardo = $scadenza < $oggi && $scadenza->format('Y-m-d') !== $oggiString;
                             $cover = $p['immagine_copertina'] ?: '../../public/assets/img/placeholder.png';
                             $scadenzaFormatted = date('d M Y', strtotime($p['scadenza_prestito']));
@@ -416,7 +424,7 @@ try {
                             <tr class="group">
                                 <td>
                                     <div class="flex items-center gap-5">
-                                        <img src="<?= $cover ?>" class="book-cover-art" onerror="this.src='../../public/assets/img/placeholder.png'">
+                                        <img src="<?= $cover ?>" class="book-cover-art" alt="Libro">
                                         <div class="max-w-[280px]">
                                             <p class="font-extrabold text-slate-800 text-sm leading-snug line-clamp-2 uppercase mb-1"><?= htmlspecialchars($p['titolo']) ?></p>
                                             <span class="bg-slate-100 text-slate-500 text-[9px] font-black px-2 py-0.5 rounded uppercase font-mono">

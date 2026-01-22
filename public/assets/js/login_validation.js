@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.toggle.addEventListener("click", () => {
             const isPass = ui.pass.type === "password";
             ui.pass.type = isPass ? "text" : "password";
-            ui.toggle.textContent = isPass ? '👁️' : '🙈';
+            ui.toggle.innerHTML = isPass ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
         });
     }
 

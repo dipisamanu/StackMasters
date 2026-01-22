@@ -2,8 +2,10 @@
 
 namespace Ottaviodipisa\StackMasters\Controllers;
 
+use Exception;
+use JetBrains\PhpStorm\NoReturn;
 use Ottaviodipisa\StackMasters\Models\Fine;
-use Ottaviodipisa\StackMasters\Helpers\RicevutaPagamentoPDF; // CORRETTO: Usa l'helper per le ricevute di pagamento
+use Ottaviodipisa\StackMasters\Helpers\RicevutaPagamentoPDF;
 
 /**
  * Controller per la gestione delle sanzioni, pagamenti e reportistica.
@@ -12,62 +14,61 @@ use Ottaviodipisa\StackMasters\Helpers\RicevutaPagamentoPDF; // CORRETTO: Usa l'
 class FineController
 {
     private Fine $fineModel;
-    private RicevutaPagamentoPDF $pdfHelper; // CORRETTO: Tipo di classe aggiornato
+    private RicevutaPagamentoPDF $pdfHelper;
 
     public function __construct()
     {
         $this->fineModel = new Fine();
-        $this->pdfHelper = new RicevutaPagamentoPDF(); // CORRETTO: Istanzia l'helper giusto
+        $this->pdfHelper = new RicevutaPagamentoPDF();
     }
 
     /**
      * Visualizza il pannello principale di gestione finanziaria.
      * Caricato da: dashboard/admin/finance.php
      */
-    public function index()
+    public function index(): void
     {
         $userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
 
         $data = [
             'user' => $userId ? $this->fineModel->getUserBalance($userId) : null,
-            'fines' => $userId ? $this->fineModel->getPendingDetails($userId) : [], // 'fines' invece di 'pending_details' per coerenza con la vista
+            'fines' => $userId ? $this->fineModel->getPendingDetails($userId) : [],
             'discount' => $userId ? $this->fineModel->getLoyaltyDiscount($userId) : 0,
             'debtors' => $this->fineModel->getTopDebtors()
         ];
 
-        // Inclusione della vista specifica
-        require_once __DIR__ . '/../../dashboard/librarian/finance.php'; // Corretto il percorso a /librarian/
+        require_once __DIR__ . '/../../dashboard/librarian/finance.php';
     }
 
     /**
      * Gestisce la registrazione di un pagamento.
      * Questa azione salda TUTTE le multe pendenti per un utente.
      */
-    public function pay()
+    public function pay(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
 
             if ($userId) {
                 try {
-                    // 1. Recupera i dati dell'utente e il totale da saldare PRIMA del pagamento
+                    // Recupera i dati dell'utente e il totale da saldare PRIMA del pagamento
                     $userData = $this->fineModel->getUserData($userId); // Metodo per avere solo i dati anagrafici
                     $totalToPay = $this->fineModel->getTotalPendingAmount($userId);
 
                     if ($totalToPay <= 0) {
-                        throw new \Exception("Nessun debito da saldare.");
+                        throw new Exception("Nessun debito da saldare.");
                     }
 
-                    // 2. Processa il pagamento (salda tutto)
+                    // Processa il pagamento (salda tutto)
                     $this->fineModel->settleAllFines($userId);
 
-                    // 3. Genera la quietanza PDF con i dati recuperati PRIMA
+                    // Genera la quietanza PDF con i dati recuperati PRIMA
                     $pdfFile = $this->pdfHelper->generateQuietanza($userData, $totalToPay);
 
-                    // 4. Reindirizza con messaggio di successo e link al PDF
+                    // Reindirizza con messaggio di successo e link al PDF
                     header("Location: /StackMasters/dashboard/librarian/finance.php?user_id=$userId&status=success&msg=Pagamento_registrato_con_successo&pdf=$pdfFile");
                     exit();
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     header("Location: /StackMasters/dashboard/librarian/finance.php?user_id=$userId&status=error&msg=" . urlencode($e->getMessage()));
                     exit();
                 }
@@ -82,7 +83,8 @@ class FineController
     /**
      * Registra un addebito manuale (danni, smarrimento).
      */
-    public function charge()
+    #[NoReturn]
+    public function charge(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
@@ -106,7 +108,7 @@ class FineController
      * Entry point per le azioni del controller.
      * Determina quale metodo eseguire in base al parametro 'action'.
      */
-    public static function handleRequest()
+    public static function handleRequest(): void
     {
         $action = $_GET['action'] ?? 'index';
         $controller = new self();
@@ -117,7 +119,6 @@ class FineController
                 break;
             case 'charge':
                 $controller->charge();
-                break;
             case 'index':
             default:
                 $controller->index();

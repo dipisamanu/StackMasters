@@ -5,6 +5,8 @@
  */
 
 
+use JetBrains\PhpStorm\NoReturn;
+
 require_once '../../src/config/database.php';
 require_once '../../src/config/session.php';
 
@@ -64,7 +66,9 @@ try {
 /**
  * Genera tessera in HTML (stampabile/salvabile come PDF)
  */
-function generateHTMLCard($user) {
+#[NoReturn]
+function generateHTMLCard($user): void
+{
     // Genera QR code dell'utente
     $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" .
             urlencode($user['cf']);
@@ -147,10 +151,6 @@ function generateHTMLCard($user) {
                 font-size: 12px;
                 font-weight: bold;
                 line-height: 1.2;
-            }
-
-            .logo-icon {
-                font-size: 20px;
             }
 
             .qr-code {

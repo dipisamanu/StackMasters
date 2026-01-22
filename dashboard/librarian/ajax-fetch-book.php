@@ -13,28 +13,26 @@ ob_start();
 header('Content-Type: application/json');
 
 try {
-    // 1. Inclusione Configurazione e Servizi
     require_once '../../src/config/session.php';
     require_once '../../src/config/database.php';
     require_once '../../src/Services/GoogleBooksService.php';
     require_once '../../src/Services/OpenLibraryService.php';
 
-    // 2. Controllo Permessi
+    // Controllo Permessi
     if (!isset($_SESSION['user_id'])) {
         throw new Exception("Sessione scaduta o non valida.");
     }
 
-    // 3. Recupero Input (ID Inventario o ISBN)
+    // Recupero Input (ID Inventario o ISBN)
     $code = trim($_GET['id'] ?? $_GET['isbn'] ?? '');
     if (empty($code)) {
         throw new Exception("Codice identificativo mancante.");
     }
 
-    // 4. Connessione al DB
     $db = Database::getInstance()->getConnection();
 
-    // Se è un ISBN (lunghezza 10 o 13), cerchiamo il libro generico
-    // Se è un ID Inventario (numerico o stringa breve), cerchiamo la copia specifica
+    // Se è un ISBN/EAN13 cerchiamo il libro generico
+    // Se è un ID Inventario cerchiamo la copia specifica
     if (isset($_GET['isbn']) || strlen($code) >= 10) {
         // Ricerca Libro (Generica)
         $sql = "SELECT 
@@ -53,23 +51,23 @@ try {
                 WHERE l.isbn = :code
                 GROUP BY l.id_libro
                 LIMIT 1";
-        
+
         $stmt = $db->prepare($sql);
         $stmt->execute(['code' => $code]);
         $book = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($book) {
-             // Formatta anno
-             if($book['anno']) $book['anno'] = date('Y', strtotime($book['anno']));
-             
-             // Formatta copertina
-             if ($book['copertina'] && !str_starts_with($book['copertina'], 'http')) {
-                 $book['copertina'] = '../../public/' . $book['copertina'];
-             }
+            // Formatta anno
+            if ($book['anno']) $book['anno'] = date('Y', strtotime($book['anno']));
 
-             ob_clean();
-             echo json_encode(['success' => true, 'data' => $book]);
-             exit;
+            // Formatta copertina
+            if ($book['copertina'] && !str_starts_with($book['copertina'], 'http')) {
+                $book['copertina'] = '../../public/' . ltrim($book['copertina'], '/');
+            }
+
+            ob_clean();
+            echo json_encode(['success' => true, 'data' => $book]);
+            exit;
         } else {
             // Se non trovato nel DB, prova con le API esterne
             $googleBooks = new GoogleBooksService();
@@ -114,12 +112,14 @@ try {
     ob_clean();
 
     if ($book) {
-        // Rinomino per coerenza con la risposta JSON precedente
-        $book['id_inventario'] = $book['id_inventario'];
-        $book['autori'] = $book['autori'];
-        $book['immagine_copertina'] = $book['immagine_copertina'] ?: '../../public/assets/img/placeholder.png';
-        
-        // Aggiungo la condizione alla risposta
+        // Gestione immagine placeholder se mancante
+        if (empty($book['immagine_copertina'])) {
+            $book['immagine_copertina'] = '../../public/assets/img/placeholder.png';
+        } elseif (!str_starts_with($book['immagine_copertina'], 'http')) {
+            // Aggiusta path relativo se necessario
+            $book['immagine_copertina'] = '../../public/' . ltrim($book['immagine_copertina'], '/');
+        }
+
         echo json_encode([
             'success' => true,
             'data' => $book

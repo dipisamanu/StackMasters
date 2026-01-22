@@ -39,6 +39,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recupero Password - Biblioteca ITIS Rossi</title>
     <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -73,6 +74,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         .header .icon {
             font-size: 64px;
             margin-bottom: 15px;
+            color: #bf2121;
         }
 
         .header h1 {
@@ -274,17 +276,17 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 <body>
 <div class="forgot-container">
     <div class="header">
-        <div class="icon">🔐</div>
+        <div class="icon"><i class="fas fa-lock"></i></div>
         <h1>Password Dimenticata?</h1>
         <p>Non preoccuparti! Inserisci la tua email e ti invieremo le istruzioni per reimpostare la password.</p>
     </div>
 
     <?php if (!empty($success)): ?>
         <div class="alert alert-success">
-            ✅ <?= htmlspecialchars($success) ?>
+            <i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?>
         </div>
         <div class="steps">
-            <h3>📬 Cosa fare ora:</h3>
+            <h3><i class="fas fa-envelope-open-text"></i> Cosa fare ora:</h3>
             <ol>
                 <li>Controlla la tua casella email (anche nello spam)</li>
                 <li>Apri l'email di recupero password</li>
@@ -296,12 +298,12 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger">
-                ⚠️ <?= htmlspecialchars($error) ?>
+                <i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
 
         <div class="info-box">
-            <strong>ℹ️ Come funziona:</strong>
+            <strong><i class="fas fa-info-circle"></i> Come funziona:</strong>
             Riceverai un'email con un link sicuro per reimpostare la password. Il link sarà valido per 24 ore.
         </div>
 
@@ -320,19 +322,19 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             </div>
 
             <button type="submit" class="btn" id="submitBtn">
-                <span class="btn-text">📧 Invia Link di Reset</span>
+                <span class="btn-text"><i class="fas fa-paper-plane"></i> Invia Link di Reset</span>
                 <div class="spinner"></div>
             </button>
         </form>
 
         <div class="security-notice">
-            🔒 <strong>Sicurezza:</strong> Se l'email esiste nel nostro sistema, riceverai il link di reset. Per motivi di sicurezza, non confermiamo l'esistenza degli account.
+            <i class="fas fa-shield-alt"></i> <strong>Sicurezza:</strong> Se l'email esiste nel nostro sistema, riceverai il link di reset. Per motivi di sicurezza, non confermiamo l'esistenza degli account.
         </div>
 
     <?php endif; ?>
 
     <div class="back-link">
-        <a href="login.php">← Torna al Login</a>
+        <a href="login.php"><i class="fas fa-arrow-left"></i> Torna al Login</a>
     </div>
 </div>
 

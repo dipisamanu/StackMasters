@@ -5,6 +5,8 @@
  */
 
 // Determina il base URL
+use JetBrains\PhpStorm\NoReturn;
+
 if (!defined('BASE_URL')) {
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -34,9 +36,11 @@ if (session_status() === PHP_SESSION_NONE) {
 /**
  * Classe per gestire le sessioni utente
  */
-class Session {
+class Session
+{
 
-    public static function login($userId, $nomeCompleto, $email, $ruoli) {
+    public static function login($userId, $nomeCompleto, $email, $ruoli): void
+    {
         session_regenerate_id(true); // Prevenzione Session Fixation
         $_SESSION['user_id'] = $userId;
         $_SESSION['nome_completo'] = $nomeCompleto;
@@ -48,7 +52,7 @@ class Session {
         $_SESSION['created'] = time();
 
         // Determina il ruolo principale
-        // 1. Cerca se c'è il ruolo Admin (priorità assoluta per evitare problemi di configurazione)
+        // Cerca se c'è il ruolo Admin (priorità assoluta per evitare problemi di configurazione)
         $isAdmin = false;
         if (!empty($ruoli)) {
             foreach ($ruoli as $r) {
@@ -60,10 +64,10 @@ class Session {
             }
         }
 
-        // 2. Se non è admin, usa la priorità del DB
+        // Se non è admin, usa la priorità del DB
         if (!$isAdmin) {
             if (!empty($ruoli)) {
-                usort($ruoli, function($a, $b) {
+                usort($ruoli, function ($a, $b) {
                     return $a['priorita'] <=> $b['priorita'];
                 });
                 $_SESSION['ruolo_principale'] = $ruoli[0];
@@ -77,7 +81,8 @@ class Session {
     /**
      * Logout utente
      */
-    public static function logout() {
+    public static function logout(): void
+    {
         $_SESSION = [];
 
         if (isset($_COOKIE[session_name()])) {
@@ -90,7 +95,8 @@ class Session {
     /**
      * Verifica se utente è loggato
      */
-    public static function isLoggedIn() {
+    public static function isLoggedIn(): bool
+    {
         if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
             return false;
         }
@@ -108,28 +114,32 @@ class Session {
     /**
      * Ottieni ID utente corrente
      */
-    public static function getUserId() {
+    public static function getUserId()
+    {
         return $_SESSION['user_id'] ?? null;
     }
 
     /**
      * Ottieni nome completo
      */
-    public static function getNomeCompleto() {
+    public static function getNomeCompleto()
+    {
         return $_SESSION['nome_completo'] ?? null;
     }
 
     /**
      * Ottieni email
      */
-    public static function getEmail() {
+    public static function getEmail()
+    {
         return $_SESSION['email'] ?? null;
     }
 
     /**
      * Verifica se utente ha un ruolo specifico
      */
-    public static function hasRole($nomeRuolo) {
+    public static function hasRole($nomeRuolo): bool
+    {
         if (!isset($_SESSION['ruoli'])) return false;
 
         foreach ($_SESSION['ruoli'] as $ruolo) {
@@ -144,35 +154,41 @@ class Session {
     /**
      * Verifica se utente è admin
      */
-    public static function isAdmin() {
+    public static function isAdmin(): bool
+    {
         return self::hasRole('Admin');
     }
 
     /**
      * Verifica se utente è bibliotecario
      */
-    public static function isLibrarian() {
+    public static function isLibrarian(): bool
+    {
         return self::hasRole('Bibliotecario') || self::isAdmin();
     }
 
     /**
      * Ottieni ruolo principale
      */
-    public static function getMainRole() {
+    public static function getMainRole()
+    {
         return $_SESSION['ruolo_principale']['nome'] ?? 'Studente';
     }
 
     /**
      * Ottieni tutti i ruoli
      */
-    public static function getRoles() {
+    public static function getRoles()
+    {
         return $_SESSION['ruoli'] ?? [];
     }
 
     /**
      * Reindirizza alla dashboard appropriata
      */
-    public static function redirectToDashboard() {
+    #[NoReturn]
+    public static function redirectToDashboard(): void
+    {
         $role = self::getMainRole();
 
         switch ($role) {
@@ -194,7 +210,8 @@ class Session {
     /**
      * Richiedi autenticazione (o reindirizza a login)
      */
-    public static function requireLogin() {
+    public static function requireLogin(): void
+    {
         if (!self::isLoggedIn()) {
             $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
             header('Location: ' . BASE_URL . '/public/login.php');
@@ -205,7 +222,8 @@ class Session {
     /**
      * Richiedi ruolo specifico
      */
-    public static function requireRole($nomeRuolo) {
+    public static function requireRole($nomeRuolo): void
+    {
         self::requireLogin();
 
         if (!self::hasRole($nomeRuolo)) {
@@ -219,14 +237,16 @@ class Session {
     /**
      * Messaggi flash (es. "Registrazione completata!")
      */
-    public static function setFlash($type, $message) {
+    public static function setFlash($type, $message): void
+    {
         $_SESSION['flash'] = [
             'type' => $type,
             'message' => $message
         ];
     }
 
-    public static function getFlash() {
+    public static function getFlash()
+    {
         if (isset($_SESSION['flash'])) {
             $flash = $_SESSION['flash'];
             unset($_SESSION['flash']);
@@ -235,14 +255,16 @@ class Session {
         return null;
     }
 
-    public static function hasFlash() {
+    public static function hasFlash(): bool
+    {
         return isset($_SESSION['flash']);
     }
 
     /**
      * Debug info sessione (solo per sviluppo)
      */
-    public static function debugInfo() {
+    public static function debugInfo(): ?array
+    {
         if (!defined('DEBUG_MODE') || DEBUG_MODE !== true) {
             return null;
         }
@@ -264,7 +286,11 @@ class Session {
  * Helper function per CSRF token
  */
 if (!function_exists('generateCSRFToken')) {
-    function generateCSRFToken() {
+    /**
+     * @throws \Random\RandomException
+     */
+    function generateCSRFToken()
+    {
         if (!isset($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
@@ -273,7 +299,8 @@ if (!function_exists('generateCSRFToken')) {
 }
 
 if (!function_exists('verifyCSRFToken')) {
-    function verifyCSRFToken($token) {
+    function verifyCSRFToken($token): bool
+    {
         return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
     }
 }

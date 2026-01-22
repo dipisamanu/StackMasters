@@ -24,7 +24,8 @@ if ($isCli && isset($argv[1])) {
 }
 
 // Funzioni di output
-function printHeader($title) {
+function printHeader($title): void
+{
     global $isCli, $nl;
     if ($isCli) {
         echo "\n\033[1;34m=== $title ===\033[0m$nl";
@@ -33,11 +34,12 @@ function printHeader($title) {
     }
 }
 
-function printStatus($step, $desc, $success, $error = '') {
+function printStatus($step, $desc, $success, $error = ''): void
+{
     global $isCli, $nl;
-    $status = $success ? ($isCli ? "\033[1;32m[OK]\033[0m" : "<span style='color:green; font-weight:bold;'>[OK]</span>") 
-                       : ($isCli ? "\033[1;31m[FALLITO]\033[0m" : "<span style='color:red; font-weight:bold;'>[FALLITO]</span>");
-    
+    $status = $success ? ($isCli ? "\033[1;32m[OK]\033[0m" : "<span style='color:green; font-weight:bold;'>[OK]</span>")
+        : ($isCli ? "\033[1;31m[FALLITO]\033[0m" : "<span style='color:red; font-weight:bold;'>[FALLITO]</span>");
+
     if ($isCli) {
         echo sprintf(" %-50s %s%s", "$step. $desc", $status, $nl);
         if (!$success && $error) echo "\033[0;31m    -> Errore: $error\033[0m$nl";
@@ -57,26 +59,26 @@ echo "Destinatario: <strong>$testEmail</strong>$nl$nl";
 
 try {
     // Helper per ottenere un servizio fresco ogni volta
-    $getService = function() {
+    $getService = function () {
         return getEmailService(true);
     };
 
-    // 1. Test Email Verifica
+    // Test Email Verifica
     $svc1 = $getService();
     $res1 = $svc1->sendVerificationEmail($testEmail, "Mario Rossi", "token_di_prova_123");
     printStatus(1, "Email Verifica Account", $res1, $svc1->getLastError());
 
-    // 2. Test Conferma Prestito
+    // Test Conferma Prestito
     $svc2 = $getService();
     $res2 = $svc2->sendLoanConfirmation($testEmail, "Mario Rossi", "Il Signore degli Anelli", "15/02/2026");
     printStatus(2, "Conferma Prestito", $res2, $svc2->getLastError());
 
-    // 3. Test Prenotazione Disponibile
+    // Test Prenotazione Disponibile
     $svc3 = $getService();
     $res3 = $svc3->sendReservationAvailable($testEmail, "Mario Rossi", "1984", "17/01/2026 18:30");
     printStatus(3, "Prenotazione Disponibile", $res3, $svc3->getLastError());
 
-    // 4. Test Notifica Generica (NotificationManager)
+    // Test Notifica Generica (NotificationManager)
     $db = Database::getInstance()->getConnection();
     $stmt = $db->prepare("SELECT id_utente FROM utenti WHERE email = ? LIMIT 1");
     $stmt->execute([$testEmail]);
@@ -94,10 +96,10 @@ try {
         $notifier = new NotificationManager();
         // Invio normale (senza forceNoEmail) -> Dovrebbe inviare l'email generica
         $res4 = $notifier->send(
-            (int)$userId, 
-            'INFO', 
-            NotificationManager::URGENCY_LOW, 
-            'Test Notifica Generica', 
+            (int)$userId,
+            'INFO',
+            NotificationManager::URGENCY_LOW,
+            'Test Notifica Generica',
             'Questa è una notifica di sistema generica inviata dallo script di debug.',
             null,
             false // forceNoEmail = false, quindi INVIA l'email
