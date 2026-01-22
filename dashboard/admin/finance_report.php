@@ -3,46 +3,54 @@
  * Vista: Report Contabile per la Segreteria (Epic 10.5)
  * File: dashboard/admin/finance_report.php
  */
-session_start();
+require_once '../../src/config/session.php'; // Include the Session class
+require_once '../../src/config/database.php'; // Include the Database class
 
-// --- VINCOLO LOGIN RIMOSSO TEMPORANEAMENTE PER ANTEPRIMA GRAFICA ---
+Session::requireRole('Admin'); // Use the Session class to enforce role
 
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
-    header('Location: /StackMasters/public/login.php');
-    exit;
-}
+$db = Database::getInstance()->getConnection();
 
+// Get start and end dates from GET request, or set defaults
+$startDate = $_GET['start'] ?? date('Y-m-01');
+$endDate = $_GET['end'] ?? date('Y-m-d');
 
-$mainRole = $_SESSION['main_role'] ?? 'Studente';
-if ($mainRole !== 'Admin') {
-    http_response_code(403);
-    die("Accesso negato.");
-}
-
-
-// Dati mock di esempio per visualizzare l'interfaccia se non passati dal controller
-if (!isset($data)) {
-    $data = [
-            'report' => [
-                    ['data' => date('Y-m-d'), 'operazione' => 5, 'totale' => 15.50],
-                    ['data' => date('Y-m-d', strtotime('-1 day')), 'operazione' => 8, 'totale' => 24.00],
-                    ['data' => date('Y-m-d', strtotime('-2 day')), 'operazione' => 3, 'totale' => 7.50]
-            ],
-            'start' => date('Y-m-01'),
-            'end' => date('Y-m-d')
-    ];
-}
-
-$report = $data['report'] ?? [];
-$startDate = $data['start'] ?? date('Y-m-01');
-$endDate = $data['end'] ?? date('Y-m-d');
-$nomeCompleto = ($_SESSION['nome'] ?? 'Admin') . ' ' . ($_SESSION['cognome'] ?? '(Preview)');
-
-// Calcolo del totale complessivo
+$report = [];
 $grandTotal = 0;
-foreach ($report as $row) {
-    $grandTotal += $row['totale'] ?? $row['totale_incassato'] ?? 0;
+
+try {
+    // Query to fetch daily financial data
+    $stmt = $db->prepare("
+        SELECT
+            DATE(data_pagamento) as data,
+            COUNT(id_multa) as operazione,
+            SUM(importo) as totale
+        FROM multe
+        WHERE data_pagamento IS NOT NULL
+          AND DATE(data_pagamento) >= :start_date
+          AND DATE(data_pagamento) <= :end_date
+        GROUP BY DATE(data_pagamento)
+        ORDER BY data ASC
+    ");
+    $stmt->bindParam(':start_date', $startDate);
+    $stmt->bindParam(':end_date', $endDate);
+    $stmt->execute();
+    $report = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Calculate grand total from fetched data
+    foreach ($report as $row) {
+        $grandTotal += $row['totale'];
+    }
+
+} catch (Exception $e) {
+    error_log("Errore nel recupero del report finanziario: " . $e->getMessage());
+    // Fallback to empty report on error
+    $report = [];
+    $grandTotal = 0;
 }
+
+
+$nomeCompleto = Session::getNomeCompleto() ?? 'Amministratore'; // Use Session::getNomeCompleto()
+
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -153,7 +161,7 @@ foreach ($report as $row) {
     <div class="header no-print">
         <h1>📊 Report Incassi Segreteria</h1>
         <div class="user-info">
-            <a href="../librarian/finance.php" class="btn btn-secondary" style="margin-right: 10px;">⬅ Torna a Gestione</a>
+            <a href="index.php" class="btn btn-secondary" style="margin-right: 10px;">⬅ Torna alla Dashboard</a>
             <button onclick="window.print()" class="btn">🖨️ Stampa Report</button>
         </div>
     </div>
@@ -164,11 +172,11 @@ foreach ($report as $row) {
         <form action="" method="GET" class="filter-form">
             <div>
                 <p style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">Da:</p>
-                <input type="date" name="start" value="<?= $startDate ?>">
+                <input type="date" name="start" value="<?= htmlspecialchars($startDate) ?>">
             </div>
             <div>
                 <p style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">A:</p>
-                <input type="date" name="end" value="<?= $endDate ?>">
+                <input type="date" name="end" value="<?= htmlspecialchars($endDate) ?>">
             </div>
             <button type="submit" class="btn" style="height: 42px;">Applica Filtri</button>
         </form>
@@ -183,8 +191,8 @@ foreach ($report as $row) {
             </div>
         </div>
         <div class="stat-box">
-            <div class="label">Transazioni Totali</div>
-            <div class="value"><?= count($report) ?> Giorni</div>
+            <div class="label">Giorni con Transazioni</div>
+            <div class="value"><?= count($report) ?></div>
         </div>
         <div class="stat-box" style="border-bottom: 4px solid #28a745;">
             <div class="label">Totale Incassato</div>
@@ -217,9 +225,9 @@ foreach ($report as $row) {
             <?php else: ?>
                 <?php foreach ($report as $row): ?>
                     <tr>
-                        <td><strong><?= date('d/m/Y', strtotime($row['data'] ?? $row['data_operazione'])) ?></strong></td>
-                        <td style="color: #666;"><?= $row['operazione'] ?? $row['num_transazioni'] ?> pagamenti registrati</td>
-                        <td class="amount-cell">€ <?= number_format($row['totale'] ?? $row['totale_incassato'], 2) ?></td>
+                        <td><strong><?= date('d/m/Y', strtotime($row['data'])) ?></strong></td>
+                        <td style="color: #666;"><?= $row['operazione'] ?> pagamenti registrati</td>
+                        <td class="amount-cell">€ <?= number_format($row['totale'], 2) ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
