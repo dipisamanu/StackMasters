@@ -18,9 +18,6 @@ $mainRole = Session::getMainRole();
 if ($mainRole === 'Admin') {
     header('Location: ../admin/index.php');
     exit;
-} elseif ($mainRole === 'Bibliotecario') {
-    header('Location: ../librarian/index.php');
-    exit;
 }
 
 $db = Database::getInstance()->getConnection();
