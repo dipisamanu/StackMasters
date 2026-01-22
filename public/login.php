@@ -71,9 +71,8 @@ if (isset($_SESSION['login_warning'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Biblioteca ITIS Rossi</title>
-    <link rel="icon" href="/StackMasters/public/assets/img/itisrossi.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Login</title>
+    <link rel="icon" href="/assets/img/itisrossi.png">
     <style>
         * {
             margin: 0;
