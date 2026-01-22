@@ -38,13 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Genera Link
             $host = $_SERVER['HTTP_HOST'];
-            // Il percorso del link di reset punta a /public/, quindi è corretto
             $url = "http://$host/StackMasters/public/reset-password.php?token=$tokenRaw";
 
             $link = $url;
-            $message = "✅ Token generato e salvato nel DB!";
+            $message = "<i class='fas fa-check-circle'></i> Token generato e salvato nel DB!";
         } else {
-            $message = "❌ Email non trovata nel DB.";
+            $message = "<i class='fas fa-times-circle'></i> Email non trovata nel DB.";
         }
 
     } catch (Exception $e) {
@@ -57,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="it">
 <head>
     <title>Debug Reset Link</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: sans-serif; padding: 40px; background: #f4f4f4; }
         .box { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; }
@@ -67,12 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="box">
-    <h2>🛠 Generatore Link Reset (Debug)</h2>
+    <h2><i class="fas fa-tools"></i> Generatore Link Reset (Debug)</h2>
     <p>Simula l'invio della mail e genera un link valido.</p>
 
     <form method="post">
         <input type="email" name="email" placeholder="Email utente..." required value="mario.rossi@example.com">
-        <button type="submit">Genera Link</button>
+        <button type="submit"><i class="fas fa-link"></i> Genera Link</button>
     </form>
 
     <?php if ($message): ?>

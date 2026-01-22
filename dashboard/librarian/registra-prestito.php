@@ -1,10 +1,9 @@
 <?php
 /**
- * registra-prestito.php - ELABORAZIONE SEQUENZIALE FINALE
+ * registra-prestito.php
  * Percorso: dashboard/librarian/registra-prestito.php
  */
 
-// 1. MONITORAGGIO ERRORI
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -15,7 +14,7 @@ echo "
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Finalizzazione Operazioni | StackMasters</title>
+    <title>Finalizzazione Operazioni</title>
     <script src='https://cdn.tailwindcss.com'></script>
     <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>
     <style>
@@ -144,7 +143,7 @@ echo "
 
     <div class='content-area'>";
 
-// 2. LOGICA BACKEND
+// LOGICA BACKEND
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -152,7 +151,7 @@ use Ottaviodipisa\StackMasters\Services\LoanService;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaPrestitoPDF;
 
 $userCode = $_POST['user_barcode'] ?? '';
-$bookIds  = $_POST['book_ids'] ?? [];
+$bookIds = $_POST['book_ids'] ?? [];
 $conditions = $_POST['conditions'] ?? [];
 
 echo "
@@ -190,7 +189,7 @@ try {
 
     if ($saldoMulte && $saldoMulte['totale_multe'] > 0) {
         $importoFormattato = number_format($saldoMulte['totale_multe'], 2, ',', '.');
-        die("<div class='p-10 bg-yellow-100 text-yellow-800 rounded-3xl font-black text-center border-4 border-yellow-200 text-2xl'><i class='fas fa-hand-paper mb-4 text-5xl block'></i> PRESTITO BLOCCATO<p class='text-lg font-medium mt-4'>L'utente ha un saldo multe non pagato di €{$importoFormattato}.<br>È necessario regolarizzare la posizione prima di procedere.</p></div><div class='flex justify-center py-16'><a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'><i class='fas fa-arrow-left'></i> Nuova Scansione Rapida</a></div></div></div></body></html>");
+        die("<div class='p-10 bg-yellow-100 text-yellow-800 rounded-3xl font-black text-center border-4 border-yellow-200 text-2xl'><i class='fas fa-hand-paper mb-4 text-5xl block'></i> PRESTITO BLOCCATO<p class='text-lg font-medium mt-4'>L'utente ha un saldo multe non pagato di €$importoFormattato.<br>È necessario regolarizzare la posizione prima di procedere.</p></div><div class='flex justify-center py-16'><a href='new-loan.php' class='text-slate-400 hover:text-red-600 font-bold text-xl transition-all flex items-center gap-3'><i class='fas fa-arrow-left'></i> Nuova Scansione Rapida</a></div></div></div></body></html>");
     }
 
     echo "<div class='section-label'><i class='fas fa-user-shield'></i> Verifica Soggetto Abilitato</div><div class='bg-slate-900 text-white p-10 rounded-3xl mb-12 flex items-center justify-between border-b-8 border-emerald-500'><div><h2 class='text-4xl font-black mt-2'>" . strtoupper($utente['cognome']) . " " . strtoupper($utente['nome']) . "</h2><p class='text-slate-400 text-lg mt-1'>Codice Fiscale: <span class='font-mono'>" . $utente['cf'] . "</span></p></div><div class='text-right'><i class='fas fa-id-card-alt text-7xl opacity-40'></i></div></div>";
@@ -201,23 +200,21 @@ try {
     foreach ($bookIds as $idInventario) {
         try {
             $condizioneUscita = $conditions[$idInventario] ?? 'BUONO';
-            // FIX: Conversione esplicita in maiuscolo per evitare errore ENUM 'Data truncated'
+            // Conversione esplicita in maiuscolo per evitare errore ENUM 'Data truncated'
             $condizioneUscita = strtoupper($condizioneUscita);
-            
+
             $stmtUpdateCond = $db->prepare("UPDATE inventari SET condizione = ? WHERE id_inventario = ?");
             $stmtUpdateCond->execute([$condizioneUscita, $idInventario]);
 
             $res = $loanService->registraPrestito((int)$utente['id_utente'], (int)$idInventario);
 
-            // CORREZIONE: Aggiunto ISBN alla query
             $stmtL = $db->prepare("SELECT l.titolo, l.isbn FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
             $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
 
-            // Aggiungo ISBN e condizione all'array per il PDF
             $successi[] = [
-                'id_inventario' => $idInventario, 
-                'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 
+                'id_inventario' => $idInventario,
+                'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile',
                 'isbn' => $infoLibro['isbn'] ?? 'N/D',
                 'scadenza' => $res['details']['data_scadenza'],
                 'condizione' => $condizioneUscita

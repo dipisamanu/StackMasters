@@ -11,23 +11,21 @@ Session::requireRole('Bibliotecario');
 
 $bookModel = new BookModel();
 
-// 1. Setup Paginazione e Filtri
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $page = max(1, $page);
-$perPage = 10; // 10 Libri per pagina
+$perPage = 10;
 
 $search = $_GET['q'] ?? '';
 $filterAvailable = isset($_GET['available']) && $_GET['available'] === 'on';
 $filters = $filterAvailable ? ['solo_disponibili' => true] : [];
 
-// 2. Recupero Dati (Uso della nuova funzione ottimizzata)
+// Recupero Dati
 $books = [];
 $totalBooks = 0;
 $totalPages = 0;
 $sysError = '';
 
 try {
-    // Sostituito getAll con paginateWithCount
     $result = $bookModel->paginateWithCount($page, $perPage, $search, $filters);
     $books = $result['data'];
 
@@ -37,7 +35,7 @@ try {
     $sysError = "Errore Sistema: " . $e->getMessage();
 }
 
-// 3. Gestione Flash Messages e Old Data (Invariato)
+// Gestione Flash Messages e Old Data
 $success = $_SESSION['flash_success'] ?? '';
 $error = $_SESSION['flash_error'] ?? '';
 $oldData = $_SESSION['form_data'] ?? [];
@@ -84,7 +82,8 @@ require_once '../../src/Views/layout/header.php';
                 <form method="GET" class="row g-2 align-items-center">
                     <div class="col-md-8">
                         <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <span class="input-group-text bg-white border-end-0"><i
+                                        class="fas fa-search text-muted"></i></span>
                             <input type="text" name="q" class="form-control border-start-0 ps-0"
                                    placeholder="Cerca titolo, autore, ISBN..." value="<?= htmlspecialchars($search) ?>">
                         </div>
@@ -92,13 +91,14 @@ require_once '../../src/Views/layout/header.php';
                     <div class="col-md-3">
                         <div class="form-check form-switch pt-2">
                             <input class="form-check-input" type="checkbox" name="available" id="avail"
-                                    <?= $filterAvailable ? 'checked' : '' ?> onchange="this.form.submit()">
+                                <?= $filterAvailable ? 'checked' : '' ?> onchange="this.form.submit()">
                             <label class="form-check-label" for="avail">Solo disponibili</label>
                         </div>
                     </div>
                     <div class="col-md-1 text-end">
-                        <?php if($search || $filterAvailable): ?>
-                            <a href="books.php" class="btn btn-outline-secondary btn-sm w-100"><i class="fas fa-times"></i></a>
+                        <?php if ($search || $filterAvailable): ?>
+                            <a href="books.php" class="btn btn-outline-secondary btn-sm w-100"><i
+                                        class="fas fa-times"></i></a>
                         <?php else: ?>
                             <button type="submit" class="btn btn-dark btn-sm w-100">Vai</button>
                         <?php endif; ?>
@@ -121,7 +121,9 @@ require_once '../../src/Views/layout/header.php';
                     </thead>
                     <tbody>
                     <?php if (empty($books)): ?>
-                        <tr><td colspan="5" class="text-center p-5 text-muted">Nessun libro trovato.</td></tr>
+                        <tr>
+                            <td colspan="5" class="text-center p-5 text-muted">Nessun libro trovato.</td>
+                        </tr>
                     <?php else: ?>
                         <?php foreach ($books as $b): ?>
                             <tr>
@@ -138,18 +140,25 @@ require_once '../../src/Views/layout/header.php';
                                             }
                                         }
                                         ?>
-                                        <img src="<?= htmlspecialchars($img) ?>" class="rounded me-3 shadow-sm" style="width: 40px; height: 60px; object-fit: cover;" alt="Cover">
+                                        <img src="<?= htmlspecialchars($img) ?>" class="rounded me-3 shadow-sm"
+                                             style="width: 40px; height: 60px; object-fit: cover;" alt="Cover">
                                         <div>
                                             <div class="fw-bold text-dark"><?= htmlspecialchars($b['titolo']) ?></div>
-                                            <div class="small text-muted"><i class="fas fa-user-edit me-1"></i><?= htmlspecialchars($b['autori_nomi'] ?? 'N/D') ?></div>
+                                            <div class="small text-muted"><i
+                                                        class="fas fa-user-edit me-1"></i><?= htmlspecialchars($b['autori_nomi'] ?? 'N/D') ?>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <small class="d-block">Editore: <strong><?= htmlspecialchars($b['editore']) ?></strong></small>
-                                    <small class="d-block">Anno: <strong><?= $b['anno_uscita'] ? date('Y', strtotime($b['anno_uscita'])) : '-' ?></strong></small>
+                                    <small class="d-block">Editore:
+                                        <strong><?= htmlspecialchars($b['editore']) ?></strong></small>
+                                    <small class="d-block">Anno:
+                                        <strong><?= $b['anno_uscita'] ? date('Y', strtotime($b['anno_uscita'])) : '-' ?></strong></small>
                                 </td>
-                                <td><span class="badge bg-light text-dark border font-monospace"><?= htmlspecialchars($b['isbn']) ?></span></td>
+                                <td>
+                                    <span class="badge bg-light text-dark border font-monospace"><?= htmlspecialchars($b['isbn']) ?></span>
+                                </td>
                                 <td class="text-center">
                                     <span class="badge bg-<?= $b['copie_disponibili'] > 0 ? 'success' : 'secondary' ?>">
                                         <?= $b['copie_disponibili'] ?> / <?= $b['copie_totali'] ?>
@@ -157,12 +166,18 @@ require_once '../../src/Views/layout/header.php';
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
-                                        <a href="inventory.php?id_libro=<?= $b['id_libro'] ?>" class="btn btn-light btn-sm text-success" title="Gestisci Copie"><i class="fas fa-boxes"></i></a>
-                                        <button class="btn btn-light btn-sm text-primary" onclick='openModal("edit", <?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>)'><i class="fas fa-edit"></i></button>
-                                        <form action="process-book.php" method="POST" class="d-inline" onsubmit="return confirm('Eliminare questo libro?');">
+                                        <a href="inventory.php?id_libro=<?= $b['id_libro'] ?>"
+                                           class="btn btn-light btn-sm text-success" title="Gestisci Copie"><i
+                                                    class="fas fa-boxes"></i></a>
+                                        <button class="btn btn-light btn-sm text-primary"
+                                                onclick='openModal("edit", <?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>)'>
+                                            <i class="fas fa-edit"></i></button>
+                                        <form action="process-book.php" method="POST" class="d-inline"
+                                              onsubmit="return confirm('Eliminare questo libro?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id_libro" value="<?= $b['id_libro'] ?>">
-                                            <button class="btn btn-light btn-sm text-danger"><i class="fas fa-trash"></i></button>
+                                            <button class="btn btn-light btn-sm text-danger"><i
+                                                        class="fas fa-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -173,34 +188,9 @@ require_once '../../src/Views/layout/header.php';
                 </table>
             </div>
 
-            <?php if ($totalPages > 1): ?>
-                <div class="card-footer bg-white border-top-0 py-3">
-                    <nav>
-                        <ul class="pagination justify-content-center mb-0">
-                            <?php
-                            // Manteniamo i parametri di ricerca nei link
-                            $queryParams = $_GET;
-                            unset($queryParams['page']);
-                            $queryString = http_build_query($queryParams);
-                            ?>
-
-                            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                                <a class="page-link border-0" href="?page=<?= $page - 1 ?>&<?= $queryString ?>"><i class="fas fa-chevron-left"></i></a>
-                            </li>
-
-                            <?php for($i = 1; $i <= $totalPages; $i++): ?>
-                                <li class="page-item <?= $page == $i ? 'active' : '' ?>">
-                                    <a class="page-link border-0" href="?page=<?= $i ?>&<?= $queryString ?>"><?= $i ?></a>
-                                </li>
-                            <?php endfor; ?>
-
-                            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                                <a class="page-link border-0" href="?page=<?= $page + 1 ?>&<?= $queryString ?>"><i class="fas fa-chevron-right"></i></a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-            <?php endif; ?>
+            <?php
+            include '../../src/Views/components/pagination.php';
+            ?>
         </div>
     </div>
 
@@ -228,11 +218,13 @@ require_once '../../src/Views/layout/header.php';
                             <div class="col-md-4 text-center">
                                 <div class="mb-2">
                                     <img id="preview_img" src="../../public/assets/img/placeholder.png"
-                                         class="img-thumbnail shadow-sm" style="max-height: 200px; width: auto;" alt="Anteprima">
+                                         class="img-thumbnail shadow-sm" style="max-height: 200px; width: auto;"
+                                         alt="Anteprima">
                                 </div>
                                 <label class="btn btn-outline-secondary btn-sm w-100">
                                     <i class="fas fa-upload me-1"></i> Carica File
-                                    <input type="file" name="copertina" id="copertina" class="d-none" accept="image/*" onchange="previewFile()">
+                                    <input type="file" name="copertina" id="copertina" class="d-none" accept="image/*"
+                                           onchange="previewFile()">
                                 </label>
                                 <small class="text-muted d-block mt-1" style="font-size: 10px;">JPG, PNG max 2MB</small>
                             </div>
@@ -242,9 +234,12 @@ require_once '../../src/Views/layout/header.php';
                                     <div class="col-md-12">
                                         <label class="form-label fw-bold">ISBN (Ricerca Auto)</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-light"><i class="fas fa-barcode"></i></span>
-                                            <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17" placeholder="Es. 97888...">
-                                            <button type="button" class="btn btn-primary" id="btnFetch" onclick="fetchBookData()">
+                                            <span class="input-group-text bg-light"><i
+                                                        class="fas fa-barcode"></i></span>
+                                            <input type="text" name="isbn" id="isbn" class="form-control" maxlength="17"
+                                                   placeholder="Es. 97888...">
+                                            <button type="button" class="btn btn-primary" id="btnFetch"
+                                                    onclick="fetchBookData()">
                                                 <i class="fas fa-search"></i>
                                             </button>
                                         </div>
@@ -252,11 +247,13 @@ require_once '../../src/Views/layout/header.php';
 
                                     <div class="col-md-12">
                                         <label class="form-label fw-bold">Titolo *</label>
-                                        <input type="text" name="titolo" id="titolo" class="form-control" required maxlength="100">
+                                        <input type="text" name="titolo" id="titolo" class="form-control" required
+                                               maxlength="100">
                                     </div>
                                     <div class="col-md-12">
                                         <label class="form-label fw-bold">Autore *</label>
-                                        <input type="text" name="autore" id="autore" class="form-control" required maxlength="100">
+                                        <input type="text" name="autore" id="autore" class="form-control" required
+                                               maxlength="100">
                                     </div>
                                 </div>
                             </div>
@@ -290,9 +287,9 @@ require_once '../../src/Views/layout/header.php';
 
     <script>
         let bookModal;
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const modalEl = document.getElementById('bookModal');
-            if(modalEl) {
+            if (modalEl) {
                 bookModal = new bootstrap.Modal(modalEl);
                 <?php if (!empty($oldData)): ?>
                 const old = <?= json_encode($oldData) ?>;
@@ -302,7 +299,7 @@ require_once '../../src/Views/layout/header.php';
             }
 
             const isbnInput = document.getElementById('isbn');
-            if(isbnInput) {
+            if (isbnInput) {
                 isbnInput.addEventListener('keydown', (e) => {
                     if (e.key === "Enter") {
                         e.preventDefault();
@@ -379,10 +376,9 @@ require_once '../../src/Views/layout/header.php';
                 });
         }
 
-        // Funzione modificata per gestire isOldData come richiesto
         function openModal(mode, data = null, isOldData = false) {
             const form = document.getElementById('bookForm');
-            if(!isOldData) form.reset();
+            if (!isOldData) form.reset();
 
             // Reset immagine
             document.getElementById('preview_img').src = '../../public/assets/img/placeholder.png';
@@ -397,7 +393,6 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('autore').value = isOldData ? (data.autore || '') : (data.autori_nomi || '');
                 document.getElementById('editore').value = data.editore;
 
-                // Gestione anno più robusta: converto in stringa per evitare errori .length su numeri
                 let anno = data.anno_uscita || data.anno || '';
                 anno = String(anno);
                 if (anno.length > 4) anno = anno.substring(0, 4);
@@ -421,16 +416,15 @@ require_once '../../src/Views/layout/header.php';
                 document.getElementById('modalTitle').innerText = 'Nuovo Libro';
                 document.getElementById('formAction').value = 'create';
 
-                if(isOldData) {
+                if (isOldData) {
                     document.getElementById('titolo').value = data.titolo;
-                    // il resto dei campi si popola automaticamente dal browser se non resettiamo il form,
-                    // oppure possiamo aggiungere qui la logica di ripopolamento manuale per sicurezza
-                    if(data.autore) document.getElementById('autore').value = data.autore;
-                    if(data.isbn) document.getElementById('isbn').value = data.isbn;
-                    if(data.editore) document.getElementById('editore').value = data.editore;
-                    if(data.anno) document.getElementById('anno').value = data.anno;
-                    if(data.pagine) document.getElementById('pagine').value = data.pagine;
-                    if(data.descrizione) document.getElementById('descrizione').value = data.descrizione;
+                    // il resto dei campi si popola automaticamente dal browser se non resettiamo il form
+                    if (data.autore) document.getElementById('autore').value = data.autore;
+                    if (data.isbn) document.getElementById('isbn').value = data.isbn;
+                    if (data.editore) document.getElementById('editore').value = data.editore;
+                    if (data.anno) document.getElementById('anno').value = data.anno;
+                    if (data.pagine) document.getElementById('pagine').value = data.pagine;
+                    if (data.descrizione) document.getElementById('descrizione').value = data.descrizione;
                 }
             }
 

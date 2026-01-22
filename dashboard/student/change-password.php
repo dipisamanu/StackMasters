@@ -16,6 +16,29 @@ $errors = [];
 $success = false;
 
 
+/**
+ * @param mixed $newPassword
+ * @param array $errors
+ * @param mixed $confirmPassword
+ * @return array
+ */
+function checkPassword(mixed $newPassword, array $errors, mixed $confirmPassword): array
+{
+    if (!preg_match('/[A-Z]/', $newPassword)) {
+        $errors[] = "La password deve contenere almeno una lettera maiuscola";
+    }
+    if (!preg_match('/[0-9]/', $newPassword)) {
+        $errors[] = "La password deve contenere almeno un numero";
+    }
+    if (!preg_match('/[\W_]/', $newPassword)) {
+        $errors[] = "La password deve contenere almeno un simbolo speciale";
+    }
+    if ($newPassword !== $confirmPassword) {
+        $errors[] = "Le due password non coincidono";
+    }
+    return $errors;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token CSRF non valido';
@@ -42,18 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (strlen($newPassword) < 8) {
             $errors[] = "La nuova password deve essere di almeno 8 caratteri";
         }
-        if (!preg_match('/[A-Z]/', $newPassword)) {
-            $errors[] = "La password deve contenere almeno una lettera maiuscola";
-        }
-        if (!preg_match('/[0-9]/', $newPassword)) {
-            $errors[] = "La password deve contenere almeno un numero";
-        }
-        if (!preg_match('/[\W_]/', $newPassword)) {
-            $errors[] = "La password deve contenere almeno un simbolo speciale";
-        }
-        if ($newPassword !== $confirmPassword) {
-            $errors[] = "Le due password non coincidono";
-        }
+        $errors = checkPassword($newPassword, $errors, $confirmPassword);
         if ($currentPassword === $newPassword) {
             $errors[] = "La nuova password deve essere diversa da quella attuale";
         }
@@ -65,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtUpdate = $db->prepare("UPDATE utenti SET password = ? WHERE id_utente = ?");
                 $stmtUpdate->execute([$newHash, $userId]);
 
-                // Log
                 try {
                     $db->prepare("
                         INSERT INTO logs_audit (id_utente, azione, dettagli, ip_address)
@@ -115,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: white;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
         h1 {
@@ -259,7 +270,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($success): ?>
             <div class="alert alert-success">
-                ✅ Password cambiata con successo! Per sicurezza, effettua nuovamente il login.
+                <i class="fas fa-check-circle"></i> Password cambiata con successo! Per sicurezza, effettua nuovamente
+                il login.
             </div>
             <div class="actions">
                 <a href="../../public/logout.php" class="btn btn-primary">

@@ -127,7 +127,7 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
         }
 
         .slider-reset:hover {
-            color: #dc3545; /* Rosso */
+            color: #dc3545;
         }
 
         .year-input {
@@ -355,62 +355,18 @@ require_once __DIR__ . '/../src/Views/layout/header.php';
                         <?php endforeach; ?>
                     </div>
 
-                    <?php if ($totalPages > 1): ?>
-                        <?php
-                        $qParams = $_GET;
-                        unset($qParams['page']); // Rimuovo pagina corrente per ricostruire il link
-                        $baseLink = '?' . http_build_query($qParams) . '&page=';
-
-                        $maxVisible = 5;
-                        $start = max(1, $page - floor($maxVisible / 2));
-                        $end = min($totalPages, $start + $maxVisible - 1);
-                        if ($end - $start + 1 < $maxVisible) {
-                            $start = max(1, $end - $maxVisible + 1);
-                        }
-                        ?>
-                        <nav class="mt-5">
-                            <ul class="pagination justify-content-center">
-                                <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                                    <a class="page-link" href="<?= $baseLink . ($page - 1) ?>"><i
-                                                class="fas fa-chevron-left"></i></a>
-                                </li>
-
-                                <?php if ($start > 1): ?>
-                                    <li class="page-item"><a class="page-link" href="<?= $baseLink ?>1">1</a></li>
-                                    <?php if ($start > 2): ?>
-                                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-
-                                <?php for ($i = $start; $i <= $end; $i++): ?>
-                                    <li class="page-item <?= $page == $i ? 'active' : '' ?>">
-                                        <a class="page-link" href="<?= $baseLink . $i ?>"><?= $i ?></a>
-                                    </li>
-                                <?php endfor; ?>
-
-                                <?php if ($end < $totalPages): ?>
-                                    <?php if ($end < $totalPages - 1): ?>
-                                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                                    <?php endif; ?>
-                                    <li class="page-item"><a class="page-link"
-                                                             href="<?= $baseLink . $totalPages ?>"><?= $totalPages ?></a>
-                                    </li>
-                                <?php endif; ?>
-
-                                <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                                    <a class="page-link" href="<?= $baseLink . ($page + 1) ?>"><i
-                                                class="fas fa-chevron-right"></i></a>
-                                </li>
-                            </ul>
-                        </nav>
-                    <?php endif; ?>
+                    <?php
+                    // Inclusione componente paginazione
+                    // Nota: $search è opzionale nel componente, ma qui usiamo $filters['q']
+                    $search = $filters['q'] ?? '';
+                    include __DIR__ . '/../src/Views/components/pagination.php';
+                    ?>
                 <?php endif; ?>
             </div>
         </div>
     </div>
 
     <script>
-        // Selettori DOM
         const rangeMin = document.getElementById('rangeMin');
         const rangeMax = document.getElementById('rangeMax');
         const numMin = document.getElementById('numMin');

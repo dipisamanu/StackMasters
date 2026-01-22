@@ -22,27 +22,45 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrazione Prestito - StackMasters</title>
 
-    <!-- Tailwind & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
 
-        .theme-indigo { color: #4f46e5; }
-        .bg-theme-indigo { background-color: #4f46e5; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
 
-        .book-entry { animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-        input::placeholder { color: #cbd5e1; font-weight: 400; }
-        .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        input::placeholder {
+            color: #cbd5e1;
+            font-weight: 400;
+        }
 
-        /* Custom scrollbar per la coda */
-        #scanned-books-list::-webkit-scrollbar { width: 6px; }
-        #scanned-books-list::-webkit-scrollbar-track { background: transparent; }
-        #scanned-books-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        #scanned-books-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #scanned-books-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #scanned-books-list::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -55,16 +73,20 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
                 <i class="fas fa-sign-out-alt"></i>
             </div>
             <div>
-                <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tight leading-none mb-1">Registrazione Prestito</h1>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Acquisizione rapida volumi in uscita</p>
+                <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tight leading-none mb-1">Registrazione
+                    Prestito</h1>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Acquisizione rapida volumi in
+                    uscita</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
             <div class="text-right hidden md:block border-r pr-4 border-slate-100">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Operatore</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                    Operatore</p>
                 <p class="font-bold text-slate-700 leading-none"><?= htmlspecialchars($nomeCompleto) ?></p>
             </div>
-            <a href="index.php" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
+            <a href="index.php"
+               class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
                 <i class="fas fa-home"></i> Dashboard
             </a>
         </div>
@@ -78,7 +100,7 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
 
             <!-- COLONNA SINISTRA: MODULI INPUT (5/12) -->
             <div class="lg:col-span-5 space-y-6">
-                <!-- 1. IDENTIFICA UTENTE -->
+                <!-- IDENTIFICA UTENTE -->
                 <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
 
@@ -93,11 +115,11 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
                                placeholder="Inserisci o scansiona CF..." required autofocus autocomplete="off">
                     </div>
 
-                    <!-- Il pannello del ruolo appare qui (popolato da scanner.js) -->
+                    <!-- Pannello del ruolo -->
                     <div id="user-info-display" class="mt-4 empty:hidden"></div>
                 </div>
 
-                <!-- 2. SCANSIONE LIBRI -->
+                <!-- SCANSIONE LIBRI -->
                 <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
                         <i class="fas fa-barcode mr-2 text-indigo-500"></i>2. Acquisizione Volumi
@@ -110,7 +132,8 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
                     </div>
                     <div class="mt-4 flex items-center justify-center gap-2">
                         <span class="animate-pulse w-2 h-2 bg-green-500 rounded-full"></span>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Lettore Ottico Pronto</p>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Lettore Ottico
+                            Pronto</p>
                     </div>
                 </div>
             </div>
@@ -123,20 +146,24 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
                             <h3 class="font-black text-slate-800 uppercase text-sm tracking-tight">
                                 <i class="fas fa-shopping-cart mr-2 text-indigo-600"></i>Coda di Uscita
                             </h3>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase">Elementi pronti per la registrazione</p>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase">Elementi pronti per la
+                                registrazione</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <span id="books-count" class="bg-indigo-600 text-white text-xs px-4 py-1.5 rounded-full font-black shadow-lg shadow-indigo-200">0</span>
+                            <span id="books-count"
+                                  class="bg-indigo-600 text-white text-xs px-4 py-1.5 rounded-full font-black shadow-lg shadow-indigo-200">0</span>
                         </div>
                     </div>
 
                     <!-- Lista dinamica dei libri -->
                     <div id="scanned-books-list" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30">
-                        <div id="empty-list-msg" class="h-full flex flex-col items-center justify-center text-slate-300 py-20">
+                        <div id="empty-list-msg"
+                             class="h-full flex flex-col items-center justify-center text-slate-300 py-20">
                             <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-slate-100">
                                 <i class="fas fa-book-open text-3xl opacity-10"></i>
                             </div>
-                            <p class="font-black uppercase text-[11px] tracking-widest text-slate-400 text-center">Nessun volume scansionato</p>
+                            <p class="font-black uppercase text-[11px] tracking-widest text-slate-400 text-center">
+                                Nessun volume scansionato</p>
                         </div>
                     </div>
 
@@ -155,8 +182,10 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
         <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <div class="flex flex-col md:flex-row items-center gap-8">
                 <div class="md:w-1/4">
-                    <h4 class="text-lg font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Policy <span class="text-indigo-600">Circolazione</span></h4>
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-widest">Termini di restituzione basati sul ruolo utente</p>
+                    <h4 class="text-lg font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Policy
+                        <span class="text-indigo-600">Circolazione</span></h4>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-widest">Termini di restituzione
+                        basati sul ruolo utente</p>
                 </div>
                 <div class="md:w-3/4 grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
@@ -170,7 +199,7 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
                         <p class="text-xs font-medium text-emerald-600">Durata: 30 giorni</p>
                     </div>
                     <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Staff/Enti</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Staff</p>
                         <p class="text-sm font-bold text-slate-700">Max 10 volumi</p>
                         <p class="text-xs font-medium text-slate-500">Durata: 45 giorni</p>
                     </div>
@@ -181,7 +210,8 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
 </div>
 
 <!-- Messaggi di Stato (Toasts) -->
-<div id="scan-status" class="fixed bottom-8 right-8 z-50 pointer-events-none opacity-0 transition-all duration-300 transform translate-y-2"></div>
+<div id="scan-status"
+     class="fixed bottom-8 right-8 z-50 pointer-events-none opacity-0 transition-all duration-300 transform translate-y-2"></div>
 
 <!-- Script Scanner -->
 <script src="../../public/assets/js/scanner.js"></script>
@@ -206,7 +236,7 @@ $nomeCompleto = ($_SESSION['nome_completo'] ?? 'Operatore');
         }
     });
 
-    observer.observe(list, { childList: true });
+    observer.observe(list, {childList: true});
 </script>
 
 <?php require_once __DIR__ . '/../../src/Views/layout/footer.php'; ?>

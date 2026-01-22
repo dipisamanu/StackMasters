@@ -40,7 +40,6 @@ class ReservationModel
     {
         if ($this->hasActiveReservation($userId, $bookId)) return false;
 
-        // Rimossa la colonna 'stato' che non esiste nel DB
         $stmt = $this->pdo->prepare("
             INSERT INTO prenotazioni (id_utente, id_libro, data_richiesta) 
             VALUES (:uid, :bid, NOW())
@@ -67,7 +66,6 @@ class ReservationModel
      */
     public function getUserReservations(int $userId): array
     {
-        // Rimossa la condizione su 'stato' e migliorata la logica della posizione
         $sql = "
             SELECT p.*, l.titolo, l.immagine_copertina,
                    (SELECT COUNT(*) 
@@ -79,7 +77,7 @@ class ReservationModel
             JOIN libri l ON p.id_libro = l.id_libro
             WHERE p.id_utente = ? 
               AND (p.copia_libro IS NULL OR p.scadenza_ritiro > NOW())
-            ORDER BY p.copia_libro DESC, p.data_richiesta ASC
+            ORDER BY p.copia_libro DESC, p.data_richiesta
         ";
 
         $stmt = $this->pdo->prepare($sql);

@@ -6,9 +6,9 @@
 
 namespace Ottaviodipisa\StackMasters\utils\MulteNotturne;
 
-// 1. Caricamento Autoload e Ambiente
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+use DateTime;
 use PDO;
 use PDOException;
 use Exception;
@@ -18,12 +18,10 @@ class CalcolaMulteCron
 {
     private PDO $db;
     private string $logFile;
-
-    // Costanti di configurazione
-    private const GIORNI_TOLLERANZA = 3;
-    private const IMPORTO_GIORNALIERO = 0.50;
-    private const SCONTO_UTENTI_AFFIDABILI = 0.10;
-    private const SOGLIA_PRESTITI_AFFIDABILE = 20;
+    private const int GIORNI_TOLLERANZA = 3;
+    private const float IMPORTO_GIORNALIERO = 0.50;
+    private const float SCONTO_UTENTI_AFFIDABILI = 0.10;
+    private const int SOGLIA_PRESTITI_AFFIDABILE = 20;
 
     public function __construct()
     {
@@ -42,11 +40,10 @@ class CalcolaMulteCron
 
     private function connettiDatabase(): void
     {
-        // Recupero parametri da ENV
         $host = $_ENV['DB_HOST'];
         $dbname = $_ENV['DB_NAME'];
         $user = $_ENV['DB_USER'];
-        $pass = $_ENV['DB_PASS'] ;
+        $pass = $_ENV['DB_PASS'];
 
         try {
             $this->db = new PDO(
@@ -117,7 +114,6 @@ class CalcolaMulteCron
 
     private function getPrestitiScaduti(): array
     {
-        // Query ottimizzata con PDO
         $sql = "SELECT p.*, u.nome, u.email, ur.prestiti_tot, l.titolo
                 FROM prestiti p
                 JOIN utenti u ON p.id_utente = u.id_utente
@@ -130,10 +126,13 @@ class CalcolaMulteCron
         return $this->db->query($sql)->fetchAll();
     }
 
+    /**
+     * @throws \DateMalformedStringException
+     */
     private function elaboraSingoloPrestito(array $p): array
     {
-        $oggi = new \DateTime();
-        $scadenza = new \DateTime($p['scadenza_prestito']);
+        $oggi = new DateTime();
+        $scadenza = new DateTime($p['scadenza_prestito']);
         $diff = $oggi->diff($scadenza)->days; //APPLICA LA DIFFERENZA DI GIORNI(MULTA DAL 4°)
 
         if ($diff <= self::GIORNI_TOLLERANZA) {
@@ -173,8 +172,7 @@ class CalcolaMulteCron
     }
 }
 
-// === BOOTSTRAP ESECUZIONE ===
-// Controlla se questo script è il file di entry-point dell'esecuzione.
+// BOOTSTRAP ESECUZIONE
 // Questo permette di includere la classe in altri file (es. test) senza lanciare il cron.
 $entryFile = get_included_files()[0];
 

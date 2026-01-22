@@ -1,6 +1,6 @@
 <?php
 /**
- * test-addebito-manuale.php - Test per l'Aggiunta di Addebiti Manuali con Commento
+ * Test per l'Aggiunta di Addebiti Manuali con Commento
  * Percorso: public/debug/test-addebito-manuale.php
  */
 
@@ -8,7 +8,6 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: text/html; charset=utf-8');
 
-// Inclusione delle dipendenze necessarie
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/Models/Fine.php';
 
@@ -40,13 +39,13 @@ try {
     $db = Database::getInstance()->getConnection();
     $db->beginTransaction();
 
-    // --- 1. SETUP DATI DI TEST ---
+    // SETUP DATI DI TEST
     $testUserId = 999997;
     $db->exec("INSERT INTO utenti (id_utente, cf, nome, cognome, email, password, consenso_privacy) VALUES ($testUserId, 'UTENTETESTAD', 'Anna', 'Addebito', 'addebito@test.com', 'test', 1)");
 
     echo '<div class="test-case"><div class="test-header"><p class="test-title">Test: Inserimento addebito con commento</p></div><div class="test-body">';
 
-    // --- 2. ESECUZIONE LOGICA ---
+    // ESECUZIONE LOGICA
     $fineModel = new Fine();
     $testAmount = 15.00;
     $testReason = 'DANNI';
@@ -54,7 +53,7 @@ try {
 
     $fineModel->addManualCharge($testUserId, $testAmount, $testReason, $testComment);
 
-    // --- 3. VERIFICA RISULTATO ---
+    // VERIFICA RISULTATO
     $stmt = $db->prepare("SELECT * FROM multe WHERE id_utente = ? ORDER BY id_multa DESC LIMIT 1");
     $stmt->execute([$testUserId]);
     $insertedFine = $stmt->fetch();
@@ -76,7 +75,7 @@ try {
     echo "<pre>" . $e->getTraceAsString() . "</pre>";
     echo "</div>";
 } finally {
-    // --- 4. PULIZIA ---
+    // PULIZIA
     if ($db && $db->inTransaction()) {
         $db->rollBack();
         echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'>Transazione annullata. Il database è stato ripristinato.</p>";

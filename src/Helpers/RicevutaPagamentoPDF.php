@@ -29,7 +29,7 @@ class RicevutaPagamentoPDF
         <p style='text-align: center; font-size: 10pt;'>StackMasters Library Management System</p>
         <hr>
         <br><br>
-        <table cellpadding='5'>
+        <table style='padding: 5px;'>
             <tr>
                 <td><b>Utente:</b></td>
                 <td>{$user['nome']} {$user['cognome']} (ID: {$user['id_utente']})</td>

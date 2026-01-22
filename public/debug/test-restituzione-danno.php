@@ -1,6 +1,6 @@
 <?php
 /**
- * test-restituzione-danno.php - Test per la Restituzione con Danno e Generazione PDF
+ * Test per la Restituzione con Danno e Generazione PDF
  * Percorso: public/debug/test-restituzione-danno.php
  */
 
@@ -8,7 +8,6 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: text/html; charset=utf-8');
 
-// Inclusione delle dipendenze necessarie (con percorsi corretti da /debug)
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/Models/Loan.php';
 require_once __DIR__ . '/../../src/Helpers/RicevutaRestituzionePDF.php';
@@ -33,6 +32,7 @@ echo <<<HTML
     .check { margin-bottom: 0.5rem; }
     .pdf-link { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #4f46e5; color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 600; }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <div class="container">
     <h1><i class="fas fa-hammer"></i> Test Suite: Restituzione con Danno</h1>
 HTML;
@@ -44,7 +44,7 @@ try {
     $db = Database::getInstance()->getConnection();
     $db->beginTransaction();
 
-    // --- 1. SETUP DATI DI TEST ---
+    // SETUP DATI DI TEST
     $testUserId = 999995;
     $testBookId = 999995;
     $testInventoryId = 999995;
@@ -65,7 +65,7 @@ try {
 
     echo '<div class="test-case"><div class="test-header"><p class="test-title">Test: Restituzione di libro danneggiato</p></div><div class="test-body">';
 
-    // --- 2. ESECUZIONE LOGICA ---
+    // ESECUZIONE LOGICA
     $loanModel = new Loan();
     $pdfHelper = new RicevutaRestituzionePDF();
 
@@ -75,15 +75,15 @@ try {
     // Chiamata al metodo di restituzione
     $result = $loanModel->registraRestituzione($testInventoryId, $condizioneRientro, $commentoDanno);
 
-    // --- 3. VERIFICA RISULTATI ---
+    // VERIFICA RISULTATI
     $allTestsPassed = true;
 
     // Verifica 1: Multa generata dal metodo
     echo '<div class="check">';
     if (isset($result['multa_totale']) && $result['multa_totale'] == $expectedFine) {
-        echo '<span class="result pass">PASS</span> Multa generata dal metodo: <code>' . $result['multa_totale'] . '€</code> (atteso: <code>' . $expectedFine . '€</code>).';
+        echo '<span class="result pass"><i class="fas fa-check-circle"></i> PASS</span> Multa generata dal metodo: <code>' . $result['multa_totale'] . '€</code> (atteso: <code>' . $expectedFine . '€</code>).';
     } else {
-        echo '<span class="result fail">FAIL</span> Multa generata non corretta: <code>' . ($result['multa_totale'] ?? 'N/D') . '€</code> (atteso: <code>' . $expectedFine . '€</code>).';
+        echo '<span class="result fail"><i class="fas fa-times-circle"></i> FAIL</span> Multa generata non corretta: <code>' . ($result['multa_totale'] ?? 'N/D') . '€</code> (atteso: <code>' . $expectedFine . '€</code>).';
         $allTestsPassed = false;
     }
     echo '</div>';
@@ -95,9 +95,9 @@ try {
 
     echo '<div class="check">';
     if ($dbFine && $dbFine['importo'] == $expectedFine && $dbFine['commento'] === "Stato: DANNEGGIATO (da BUONO). " . $commentoDanno) {
-        echo '<span class="result pass">PASS</span> Multa per danni registrata correttamente nel database.';
+        echo '<span class="result pass"><i class="fas fa-check-circle"></i> PASS</span> Multa per danni registrata correttamente nel database.';
     } else {
-        echo '<span class="result fail">FAIL</span> Multa per danni non registrata o non corretta nel database.';
+        echo '<span class="result fail"><i class="fas fa-times-circle"></i> FAIL</span> Multa per danni non registrata o non corretta nel database.';
         $allTestsPassed = false;
     }
     echo '</div>';
@@ -111,7 +111,7 @@ try {
     $libroData = $db->prepare("SELECT titolo, isbn FROM libri WHERE id_libro = ?");
     $libroData->execute([$testBookId]);
     $libroData = $libroData->fetch(PDO::FETCH_ASSOC);
-    
+
     $datiPDF = [
         'utente' => $utenteData,
         'libri' => [
@@ -132,15 +132,15 @@ try {
 
     echo '<div class="check">';
     if (file_exists($pdfFileToClean)) {
-        echo '<span class="result pass">PASS</span> Il file PDF <code>' . htmlspecialchars($pdfFileName) . '</code> è stato generato.';
+        echo '<span class="result pass"><i class="fas fa-check-circle"></i> PASS</span> Il file PDF <code>' . htmlspecialchars($pdfFileName) . '</code> è stato generato.';
     } else {
-        echo '<span class="result fail">FAIL</span> Il file PDF non è stato trovato.';
+        echo '<span class="result fail"><i class="fas fa-times-circle"></i> FAIL</span> Il file PDF non è stato trovato.';
         $allTestsPassed = false;
     }
     echo '</div>';
 
     if ($allTestsPassed && file_exists($pdfFileToClean)) {
-        echo "<a href='../assets/docs/" . htmlspecialchars($pdfFileName) . "' target='_blank' class='pdf-link'>Visualizza PDF Generato</a>";
+        echo "<a href='../assets/docs/" . htmlspecialchars($pdfFileName) . "' target='_blank' class='pdf-link'><i class='fas fa-file-pdf'></i> Visualizza PDF Generato</a>";
     }
 
     echo '</div></div>';
@@ -151,16 +151,11 @@ try {
     echo "<pre>" . $e->getTraceAsString() . "</pre>";
     echo "</div>";
 } finally {
-    // --- 4. PULIZIA ---
+    // PULIZIA
     if ($db && $db->inTransaction()) {
         $db->rollBack();
-        echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'>✅ Transazione annullata. Il database è stato ripristinato.</p>";
+        echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'><i class='fas fa-check-circle'></i> Transazione annullata. Il database è stato ripristinato.</p>";
     }
-    // Lasciamo il PDF per ispezione manuale, non lo cancelliamo qui.
-    // if ($pdfFileToClean && file_exists($pdfFileToClean)) {
-    //     unlink($pdfFileToClean);
-    //     echo "<p style='text-align:center; color: #16a34a; font-weight: bold;'>✅ File PDF di test cancellato.</p>";
-    // }
 }
 
 echo "</div>";

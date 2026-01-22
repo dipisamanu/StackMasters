@@ -33,7 +33,6 @@ try {
 
 // Recupera multe pendenti dell'utente
 try {
-    // NOTA: La tabella multe usa 'causa' e 'commento', non 'descrizione' e 'id_prestito'
     $stmt = $db->prepare("
         SELECT m.id_multa, m.importo, m.causa, m.commento, m.data_creazione
         FROM multe m
@@ -53,7 +52,7 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fineId = isset($_POST['fine_id']) ? (int)$_POST['fine_id'] : 0;
     $amountPaid = isset($_POST['amount']) ? (float)$_POST['amount'] : 0;
-    $action = isset($_POST['action']) ? $_POST['action'] : '';
+    $action = $_POST['action'] ?? '';
 
     if ($fineId > 0 && $amountPaid > 0) {
         try {

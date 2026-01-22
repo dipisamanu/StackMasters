@@ -126,6 +126,7 @@ class BookModel
 
     /**
      * Aggiorna un libro esistente
+     * @throws Exception
      */
     public function update(int $id, array $data, array $authorIds = []): bool
     {

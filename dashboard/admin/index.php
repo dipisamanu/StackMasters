@@ -12,7 +12,6 @@ Session::requireRole('Admin');
 $db = Database::getInstance()->getConnection();
 $nomeCompleto = Session::getNomeCompleto() ?? 'Amministratore';
 
-// --- 1. RECUPERO KPI ---
 $kpi = [
     'utenti' => 0,
     'libri' => 0,
@@ -25,9 +24,11 @@ try {
     $kpi['libri'] = (int)$db->query('SELECT COUNT(*) FROM libri')->fetchColumn();
     $kpi['prestiti_attivi'] = (int)$db->query("SELECT COUNT(*) FROM prestiti WHERE data_restituzione IS NULL")->fetchColumn();
     $kpi['multe_pendenti'] = (float)$db->query("SELECT SUM(importo) FROM multe WHERE data_pagamento IS NULL")->fetchColumn();
-} catch (Exception $e) { error_log($e->getMessage()); }
+} catch (Exception $e) {
+    error_log($e->getMessage());
+}
 
-// --- 2. DATI GRAFICO TREND PRESTITI (Ultimi 12 mesi) ---
+// DATI GRAFICO TREND PRESTITI (Ultimi 12 mesi)
 $trendLabels = [];
 $trendData = [];
 try {
@@ -39,14 +40,15 @@ try {
         ORDER BY mese
     ");
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     foreach ($rows as $row) {
         $trendLabels[] = date('M Y', strtotime($row['mese'] . '-01'));
         $trendData[] = (int)$row['totale'];
     }
-} catch (Exception $e) { }
+} catch (Exception $e) {
+}
 
-// --- 3. DATI GRAFICO CATEGORIE ---
+// GRAFICO A TORTA CATEGORIE
 $catLabels = [];
 $catData = [];
 try {
@@ -63,9 +65,10 @@ try {
         $catLabels[] = $row['nome'];
         $catData[] = (int)$row['totale'];
     }
-} catch (Exception $e) { }
+} catch (Exception $e) {
+}
 
-// --- 4. ULTIMI PRESTITI (LIMIT 10) ---
+// ULTIMI 10 PRESTITI
 $lastLoans = [];
 try {
     $stmt = $db->query("
@@ -78,7 +81,8 @@ try {
         LIMIT 10
     ");
     $lastLoans = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) { }
+} catch (Exception $e) {
+}
 
 require_once '../../src/Views/layout/header.php';
 ?>
@@ -92,7 +96,6 @@ require_once '../../src/Views/layout/header.php';
             padding-right: 1.5rem;
         }
 
-        /* --- STILE CARDS & UI --- */
         .card-custom {
             border: none;
             border-radius: 12px;
@@ -103,19 +106,6 @@ require_once '../../src/Views/layout/header.php';
 
         .card-kpi {
             border-left: 5px solid;
-        }
-
-        .avatar-circle {
-            width: 40px;
-            height: 40px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            background-color: #e9ecef;
-            color: #495057;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .table-custom th {
@@ -143,26 +133,23 @@ require_once '../../src/Views/layout/header.php';
         }
 
         .icon-box {
-            width: 55px;            /* Larghezza fissa */
-            height: 55px;           /* Altezza fissa */
-            border-radius: 50%;     /* Cerchio perfetto */
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;         /* Impedisce al cerchio di schiacciarsi */
+            flex-shrink: 0;
         }
 
         .icon-box i {
-            font-size: 1.5rem;      /* Dimensione icona uniforme */
+            font-size: 1.5rem;
         }
     </style>
 
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <div class="dashboard-container py-5">
-        
-        <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-5">
             <div>
                 <h1 class="h3 fw-bold text-dark mb-1">Dashboard Analytics</h1>
@@ -170,18 +157,21 @@ require_once '../../src/Views/layout/header.php';
             </div>
             <div class="d-flex gap-2">
                 <a href="users.php" class="btn btn-dark shadow-sm"><i class="fas fa-users-cog me-2"></i>Gestione Utenti</a>
-                <a href="fines.php" class="btn btn-danger shadow-sm"><i class="fas fa-file-invoice-dollar me-2"></i>Gestione Multe</a>
-                <a href="../../public/catalog.php" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-book me-2"></i>Catalogo</a>
+                <a href="fines.php" class="btn btn-danger shadow-sm"><i class="fas fa-file-invoice-dollar me-2"></i>Gestione
+                    Multe</a>
+                <a href="../../public/catalog.php" class="btn btn-outline-secondary shadow-sm"><i
+                            class="fas fa-book me-2"></i>Catalogo</a>
             </div>
         </div>
 
-        <!-- KPI Row -->
+        <!-- KPI -->
         <div class="row g-4 mb-5">
             <div class="col-md-3">
                 <div class="card card-custom card-kpi border-primary h-100 p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Utenti Totali</div>
+                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Utenti Totali
+                            </div>
                             <div class="h2 fw-bold text-dark mb-0 mt-1"><?= $kpi['utenti'] ?></div>
                         </div>
                         <div class="icon-box bg-primary bg-opacity-10 text-primary">
@@ -194,7 +184,8 @@ require_once '../../src/Views/layout/header.php';
                 <div class="card card-custom card-kpi border-success h-100 p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Libri a Catalogo</div>
+                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Libri a Catalogo
+                            </div>
                             <div class="h2 fw-bold text-dark mb-0 mt-1"><?= $kpi['libri'] ?></div>
                         </div>
                         <div class="icon-box bg-success bg-opacity-10 text-success">
@@ -207,7 +198,8 @@ require_once '../../src/Views/layout/header.php';
                 <div class="card card-custom card-kpi border-warning h-100 p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Prestiti Attivi</div>
+                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Prestiti Attivi
+                            </div>
                             <div class="h2 fw-bold text-dark mb-0 mt-1"><?= $kpi['prestiti_attivi'] ?></div>
                         </div>
                         <div class="icon-box bg-warning bg-opacity-10 text-warning">
@@ -220,8 +212,10 @@ require_once '../../src/Views/layout/header.php';
                 <div class="card card-custom card-kpi border-danger h-100 p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Multe Pendenti</div>
-                            <div class="h2 fw-bold text-danger mb-0 mt-1">€ <?= number_format($kpi['multe_pendenti'], 2) ?></div>
+                            <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Multe Pendenti
+                            </div>
+                            <div class="h2 fw-bold text-danger mb-0 mt-1">
+                                € <?= number_format($kpi['multe_pendenti'], 2) ?></div>
                         </div>
                         <div class="icon-box bg-danger bg-opacity-10 text-danger">
                             <i class="fas fa-euro-sign"></i>
@@ -268,30 +262,37 @@ require_once '../../src/Views/layout/header.php';
                     <div class="table-responsive">
                         <table class="table table-hover table-custom align-middle mb-0">
                             <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-4">Data</th>
-                                    <th>Utente</th>
-                                    <th>Libro</th>
-                                    <th class="text-end pe-4">Stato</th>
-                                </tr>
+                            <tr>
+                                <th class="ps-4">Data</th>
+                                <th>Utente</th>
+                                <th>Libro</th>
+                                <th class="text-end pe-4">Stato</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                <?php if(empty($lastLoans)): ?>
-                                    <tr><td colspan="4" class="text-center py-5 text-muted">Nessun dato recente.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach($lastLoans as $loan): ?>
-                                        <tr style="cursor: pointer;" onclick="window.location='user_details.php?id=<?= $loan['id_utente'] ?>'">
-                                            <td class="ps-4 text-muted small"><?= date('d/m/Y H:i', strtotime($loan['data_prestito'])) ?></td>
-                                            <td class="fw-bold text-dark"><?= htmlspecialchars($loan['cognome'] . ' ' . $loan['nome']) ?></td>
-                                            <td>
-                                                <a href="../../public/book.php?id=<?= $loan['id_libro'] ?>" class="text-decoration-none text-dark hover-primary" onclick="event.stopPropagation();">
-                                                    <?= htmlspecialchars($loan['titolo']) ?>
-                                                </a>
-                                            </td>
-                                            <td class="text-end pe-4"><span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Attivo</span></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                            <?php if (empty($lastLoans)): ?>
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">Nessun dato recente.</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($lastLoans as $loan): ?>
+                                    <tr style="cursor: pointer;"
+                                        onclick="window.location='user_details.php?id=<?= $loan['id_utente'] ?>'">
+                                        <td class="ps-4 text-muted small"><?= date('d/m/Y H:i', strtotime($loan['data_prestito'])) ?></td>
+                                        <td class="fw-bold text-dark"><?= htmlspecialchars($loan['cognome'] . ' ' . $loan['nome']) ?></td>
+                                        <td>
+                                            <a href="../../public/book.php?id=<?= $loan['id_libro'] ?>"
+                                               class="text-decoration-none text-dark hover-primary"
+                                               onclick="stopPropagation();">
+                                                <?= htmlspecialchars($loan['titolo']) ?>
+                                            </a>
+                                        </td>
+                                        <td class="text-end pe-4"><span
+                                                    class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Attivo</span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -324,10 +325,10 @@ require_once '../../src/Views/layout/header.php';
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {legend: {display: false}},
                 scales: {
-                    y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
-                    x: { grid: { display: false } }
+                    y: {beginAtZero: true, grid: {borderDash: [2, 4]}},
+                    x: {grid: {display: false}}
                 }
             }
         });
@@ -348,7 +349,7 @@ require_once '../../src/Views/layout/header.php';
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    legend: {position: 'bottom', labels: {boxWidth: 12, font: {size: 11}}}
                 },
                 cutout: '70%'
             }

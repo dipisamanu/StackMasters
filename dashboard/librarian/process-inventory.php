@@ -50,9 +50,9 @@ try {
     }
 
 } catch (Exception $e) {
-    // 1. Salviamo l'errore
+    // Salviamo l'errore
     $_SESSION['flash_error'] = $e->getMessage();
-    // 2. Salviamo i dati inseriti per non farli riscrivere
+    // Salviamo i dati inseriti per non farli riscrivere
     $_SESSION['form_data'] = $_POST;
 }
 

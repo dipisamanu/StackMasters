@@ -9,7 +9,7 @@ $db = getDB();
 $userId = Session::getUserId();
 
 try {
-    // 1. Dati Personali
+    // Dati Personali
     $stmtUser = $db->prepare("
         SELECT 
             id_utente,
@@ -34,7 +34,7 @@ try {
     $stmtUser->execute([$userId]);
     $userData = $stmtUser->fetch(PDO::FETCH_ASSOC);
 
-    // 2. Ruoli
+    // Ruoli
     $stmtRuoli = $db->prepare("
         SELECT r.nome, r.durata_prestito, r.limite_prestiti, ur.prestiti_tot, ur.streak_restituzioni
         FROM utenti_ruoli ur
@@ -44,7 +44,7 @@ try {
     $stmtRuoli->execute([$userId]);
     $ruoli = $stmtRuoli->fetchAll(PDO::FETCH_ASSOC);
 
-    // 3. Badge
+    // Badge
     $stmtBadge = $db->prepare("
         SELECT b.nome, b.descrizione, ub.data_conseguimento
         FROM utenti_badge ub
@@ -54,7 +54,7 @@ try {
     $stmtBadge->execute([$userId]);
     $badges = $stmtBadge->fetchAll(PDO::FETCH_ASSOC);
 
-    // 4. Prestiti
+    // Prestiti
     $stmtPrestiti = $db->prepare("
         SELECT 
             p.id_prestito,
@@ -73,7 +73,7 @@ try {
     $stmtPrestiti->execute([$userId]);
     $prestiti = $stmtPrestiti->fetchAll(PDO::FETCH_ASSOC);
 
-    // 5. Prenotazioni
+    // Prenotazioni
     $stmtPrenotazioni = $db->prepare("
         SELECT 
             pr.id_prenotazione,
@@ -90,7 +90,7 @@ try {
     $stmtPrenotazioni->execute([$userId]);
     $prenotazioni = $stmtPrenotazioni->fetchAll(PDO::FETCH_ASSOC);
 
-    // 6. Multe
+    // Multe
     $stmtMulte = $db->prepare("
         SELECT 
             id_multa,
@@ -107,7 +107,7 @@ try {
     $stmtMulte->execute([$userId]);
     $multe = $stmtMulte->fetchAll(PDO::FETCH_ASSOC);
 
-    // 7. Recensioni
+    // Recensioni
     $stmtRecensioni = $db->prepare("
         SELECT 
             l.titolo as libro,
@@ -123,7 +123,7 @@ try {
     $stmtRecensioni->execute([$userId]);
     $recensioni = $stmtRecensioni->fetchAll(PDO::FETCH_ASSOC);
 
-    // 8. Log Audit (ultimi 100)
+    // Log Audit (ultimi 100)
     $stmtLogs = $db->prepare("
         SELECT 
             azione,
@@ -138,7 +138,7 @@ try {
     $stmtLogs->execute([$userId]);
     $logs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
 
-    // 9. Notifiche
+    // Notifiche
     $stmtNotifiche = $db->prepare("
         SELECT 
             tipo,
@@ -158,41 +158,41 @@ try {
 
     // Costruisci array completo
     $exportData = [
-            'metadata' => [
-                    'export_date' => date('Y-m-d H:i:s'),
-                    'user_id' => $userId,
-                    'gdpr_compliance' => true,
-                    'data_format' => 'JSON',
-                    'version' => '1.0'
-            ],
-            'dati_personali' => $userData,
-            'ruoli' => $ruoli,
-            'badge' => $badges,
-            'prestiti' => [
-                    'totale' => count($prestiti),
-                    'elenco' => $prestiti
-            ],
-            'prenotazioni' => [
-                    'totale' => count($prenotazioni),
-                    'elenco' => $prenotazioni
-            ],
-            'multe' => [
-                    'totale' => count($multe),
-                    'totale_importo' => array_sum(array_column($multe, 'importo')),
-                    'elenco' => $multe
-            ],
-            'recensioni' => [
-                    'totale' => count($recensioni),
-                    'elenco' => $recensioni
-            ],
-            'log_attivita' => [
-                    'totale' => count($logs),
-                    'ultimi_100' => $logs
-            ],
-            'notifiche' => [
-                    'totale' => count($notifiche),
-                    'ultime_50' => $notifiche
-            ]
+        'metadata' => [
+            'export_date' => date('Y-m-d H:i:s'),
+            'user_id' => $userId,
+            'gdpr_compliance' => true,
+            'data_format' => 'JSON',
+            'version' => '1.0'
+        ],
+        'dati_personali' => $userData,
+        'ruoli' => $ruoli,
+        'badge' => $badges,
+        'prestiti' => [
+            'totale' => count($prestiti),
+            'elenco' => $prestiti
+        ],
+        'prenotazioni' => [
+            'totale' => count($prenotazioni),
+            'elenco' => $prenotazioni
+        ],
+        'multe' => [
+            'totale' => count($multe),
+            'totale_importo' => array_sum(array_column($multe, 'importo')),
+            'elenco' => $multe
+        ],
+        'recensioni' => [
+            'totale' => count($recensioni),
+            'elenco' => $recensioni
+        ],
+        'log_attivita' => [
+            'totale' => count($logs),
+            'ultimi_100' => $logs
+        ],
+        'notifiche' => [
+            'totale' => count($notifiche),
+            'ultime_50' => $notifiche
+        ]
     ];
 
     // Log export
@@ -216,8 +216,6 @@ try {
 
 } catch (Exception $e) {
     error_log("Errore export dati: " . $e->getMessage());
-
-    // Mostra pagina di errore
     ?>
     <!DOCTYPE html>
     <html lang="it">
@@ -236,16 +234,26 @@ try {
                 margin: 0;
                 padding: 20px;
             }
+
             .error-box {
                 background: white;
                 padding: 40px;
                 border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                 text-align: center;
                 max-width: 500px;
             }
-            h1 { color: #dc3545; margin-bottom: 20px; }
-            p { color: #666; margin-bottom: 20px; }
+
+            h1 {
+                color: #dc3545;
+                margin-bottom: 20px;
+            }
+
+            p {
+                color: #666;
+                margin-bottom: 20px;
+            }
+
             a {
                 display: inline-block;
                 padding: 12px 24px;
@@ -255,7 +263,10 @@ try {
                 border-radius: 6px;
                 font-weight: 600;
             }
-            a:hover { background: #931b1b; }
+
+            a:hover {
+                background: #931b1b;
+            }
         </style>
     </head>
     <body>

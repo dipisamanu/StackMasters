@@ -32,7 +32,7 @@ try {
     /**
      * Helper interno per processare le query ed isolare gli errori
      */
-    $runCheck = function($sql, $label, $urgency) use ($notify, $pdo) {
+    $runCheck = function ($sql, $label, $urgency) use ($notify, $pdo) {
         echo "\n[INFO] Analisi: $label\n";
 
         $stmt = $pdo->query($sql);
@@ -66,7 +66,7 @@ try {
         echo "[INFO] $label completato. Processati $count record.\n";
     };
 
-    // 1. PREAVVISO (3 giorni)
+    // PREAVVISO (3 giorni)
     $sqlPre = "SELECT P.id_utente, L.titolo, P.scadenza_prestito 
                FROM prestiti P 
                JOIN inventari I ON P.id_inventario = I.id_inventario
@@ -76,7 +76,7 @@ try {
 
     $runCheck($sqlPre, "PREAVVISO", NotificationManager::URGENCY_LOW);
 
-    // 2. RITARDO (1 giorno fa)
+    // RITARDO (1 giorno fa)
     $sqlLate = "SELECT P.id_utente, L.titolo 
                 FROM prestiti P 
                 JOIN inventari I ON P.id_inventario = I.id_inventario
@@ -86,7 +86,7 @@ try {
 
     $runCheck($sqlLate, "RITARDO", NotificationManager::URGENCY_HIGH);
 
-    // 3. GESTIONE PRENOTAZIONI SCADUTE
+    // GESTIONE PRENOTAZIONI SCADUTE
     echo "\n[INFO] Controllo Prenotazioni Scadute\n";
     $loanService = new LoanService();
     $logPrenotazioni = $loanService->gestisciPrenotazioniScadute();

@@ -42,7 +42,7 @@ $stmtLoans = $db->prepare("
     JOIN inventari i ON p.id_inventario = i.id_inventario
     JOIN libri l ON i.id_libro = l.id_libro
     WHERE p.id_utente = ? AND p.data_restituzione IS NULL
-    ORDER BY p.scadenza_prestito ASC
+    ORDER BY p.scadenza_prestito
 ");
 $stmtLoans->execute([$userId]);
 $activeLoans = $stmtLoans->fetchAll(PDO::FETCH_ASSOC);

@@ -21,7 +21,7 @@ class UserModel
      */
     public function login(string $email, string $password): array|string
     {
-        // 1. Cerca utente
+        // Cerca utente
         $sql = "SELECT id_utente, nome, cognome, email, password, email_verificata, 
                        tentativi_login_falliti, blocco_account_fino_al 
                 FROM utenti 
@@ -36,13 +36,13 @@ class UserModel
             return "Credenziali non valide.";
         }
 
-        // 2. Verifica blocco account (Brute Force)
+        // Verifica blocco account (Brute Force)
         if ($user['blocco_account_fino_al'] && strtotime($user['blocco_account_fino_al']) > time()) {
             $minuti = ceil((strtotime($user['blocco_account_fino_al']) - time()) / 60);
             return "Account temporaneamente bloccato. Riprova tra $minuti minuti.";
         }
 
-        // 3. Verifica Password
+        // Verifica Password
         if (!password_verify($password, $user['password'])) {
             // Gestione tentativi falliti
             $attempts = ($user['tentativi_login_falliti'] ?? 0) + 1;
@@ -62,19 +62,19 @@ class UserModel
             }
         }
 
-        // 4. Verifica Email
+        // Verifica Email
         if (!$user['email_verificata']) {
             return "Devi verificare la tua email prima di accedere.";
         }
 
-        // 5. Login OK: Reset tentativi
+        // Login OK: Reset tentativi
         $upd = $this->db->prepare("UPDATE utenti SET tentativi_login_falliti = 0, blocco_account_fino_al = NULL WHERE id_utente = ?");
         $upd->execute([$user['id_utente']]);
 
         // Rimuovi la password per sicurezza
         unset($user['password']);
 
-        // 6. Recupera e Gestisce i Ruoli (Cruciale!)
+        // Recupera e Gestisce i Ruoli (Cruciale!)
         $user['roles'] = $this->getUserRolesAndFixMissing($user['id_utente']);
 
         return $user;
@@ -85,7 +85,6 @@ class UserModel
      */
     private function getUserRolesAndFixMissing(int $userId): array
     {
-        // Query originale
         $sql = "SELECT r.id_ruolo, r.nome, r.priorita, r.durata_prestito, r.limite_prestiti
                 FROM ruoli r
                 INNER JOIN utenti_ruoli ur ON r.id_ruolo = ur.id_ruolo

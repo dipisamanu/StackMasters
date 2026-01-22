@@ -4,12 +4,10 @@
  * Percorso: dashboard/librarian/registra-restituzione.php
  */
 
-// 1. MONITORAGGIO ERRORI (Solo per sviluppo)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Stili CSS Professionali coordinati con il sistema
 echo "
 <!DOCTYPE html>
 <html lang='it'>
@@ -159,18 +157,17 @@ echo "
 
     <div class='content-body'>";
 
-// 2. INCLUSIONE DIPENDENZE
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Ottaviodipisa\StackMasters\Models\Loan;
+use Ottaviodipisa\StackMasters\Services\LoanService;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaRestituzionePDF;
 
 $returnsData = $_POST['returns'] ?? [];
 
 // Riepilogo Parametri
 echo "
-    <div class='section-title'>Parametri di Ricezione</div>
+    <div class='section-title'><i class='fas fa-sliders-h'></i> Parametri di Ricezione</div>
     <div class='session-summary'>
         <div class='summary-item'>
             <label>Stato Protocollo</label>
@@ -183,17 +180,19 @@ echo "
     </div>";
 
 if (empty($returnsData)) {
-    die("<div class='p-6 bg-red-50 text-red-700 rounded-xl font-bold text-center border border-red-100 text-sm uppercase tracking-widest'>Interruzione: Nessun dato pervenuto dal carrello di rientro.</div></div></div></body></html>");
+    die("<div class='p-6 bg-red-50 text-red-700 rounded-xl font-bold text-center border border-red-100 text-sm uppercase tracking-widest'>
+            <i class='fas fa-exclamation-triangle me-2'></i> Interruzione: Nessun dato pervenuto dal carrello di rientro.
+         </div></div></div></body></html>");
 }
 
 try {
     $db = Database::getInstance()->getConnection();
-    $loanModel = new Loan();
+    $loanService = new LoanService();
 
     $successi = [];
     $utenteDatiPDF = null;
 
-    echo "<div class='section-title'>Registro Operazioni Asset</div>";
+    echo "<div class='section-title'><i class='fas fa-clipboard-list'></i> Registro Operazioni Asset</div>";
 
     foreach ($returnsData as $jsonData) {
         $item = json_decode($jsonData, true);
@@ -202,7 +201,7 @@ try {
         $commento = $item['note'];
 
         try {
-            // 5.1 Identificazione Utente (prima della chiusura del prestito)
+            // Identificazione Utente (prima della chiusura del prestito)
             $stmtU = $db->prepare("
                 SELECT u.* FROM utenti u 
                 JOIN prestiti p ON u.id_utente = p.id_utente 
@@ -219,15 +218,14 @@ try {
                 $utenteDatiPDF = $utente;
             }
 
-            // 5.2 Esecuzione Business Logic
-            $res = $loanModel->registraRestituzione($idInventario, $condizione, $commento);
+            // Esecuzione Business Logic (Service)
+            $res = $loanService->registraRestituzione($idInventario, $condizione, $commento);
 
-            // 5.3 Recupero Titolo del volume
+            // Recupero Titolo del volume
             $stmtL = $db->prepare("SELECT l.titolo, l.isbn FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
             $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
 
-            // CORREZIONE: Gestione caso in cui $infoLibro è null o non contiene 'titolo'
             $titolo = isset($infoLibro['titolo']) ? htmlspecialchars($infoLibro['titolo']) : "Titolo non disponibile";
 
             $successi[] = [
@@ -235,18 +233,35 @@ try {
                 'titolo' => $titolo,
                 'isbn' => $infoLibro['isbn'] ?? 'N/D',
                 'condizione' => $condizione,
-                'multa' => $res['multa_generata'] ?? 0,
+                'multa' => $res['multa_totale'] ?? 0, // Nota: LoanService usa 'multa_totale', non 'multa_generata'
                 'condizione_partenza' => $res['condizione_partenza'] ?? 'BUONO'
             ];
 
-            echo "<div class='log-row success'><div class='flex flex-col'><span class='text-[10px] font-extrabold text-slate-400 uppercase tracking-tighter'>Copia #$idInventario</span><span class='font-bold text-slate-700 text-sm'>" . substr($titolo, 0, 45) . "...</span></div><div class='flex items-center gap-3'>" . ((isset($res['multa_generata']) && $res['multa_generata'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "<span class='badge badge-success'>RIENTRATO</span></div></div>";
+            echo "
+            <div class='log-row success'>
+                <div class='flex flex-col'>
+                    <span class='text-[10px] font-extrabold text-slate-400 uppercase tracking-tighter'>Copia #$idInventario</span>
+                    <span class='font-bold text-slate-700 text-sm'>" . substr($titolo, 0, 45) . "...</span>
+                </div>
+                <div class='flex items-center gap-3'>
+                    " . ((isset($res['multa_totale']) && $res['multa_totale'] > 0) ? "<span class='badge badge-warning'><i class='fas fa-euro-sign me-1'></i> SANZIONE</span>" : "") . "
+                    <span class='badge badge-success'><i class='fas fa-check me-1'></i> RIENTRATO</span>
+                </div>
+            </div>";
 
         } catch (Exception $e) {
-            echo "<div class='log-row error'><div class='flex flex-col'><span class='text-[10px] font-extrabold text-red-400 uppercase tracking-tighter'>Copia #$idInventario</span><span class='font-bold text-red-800 text-sm'>" . htmlspecialchars($e->getMessage()) . "</span></div><span class='badge badge-error'>RIFIUTATO</span></div>";
+            echo "
+            <div class='log-row error'>
+                <div class='flex flex-col'>
+                    <span class='text-[10px] font-extrabold text-red-400 uppercase tracking-tighter'>Copia #$idInventario</span>
+                    <span class='font-bold text-red-800 text-sm'>" . htmlspecialchars($e->getMessage()) . "</span>
+                </div>
+                <span class='badge badge-error'><i class='fas fa-times me-1'></i> RIFIUTATO</span>
+            </div>";
         }
     }
 
-    // 6. AREA DOWNLOAD E RICEVUTA
+    // AREA DOWNLOAD E RICEVUTA
     if (!empty($successi)) {
         $datiPDF = [
             'utente' => $utenteDatiPDF,
@@ -255,12 +270,31 @@ try {
         ];
         $pdfFileName = RicevutaRestituzionePDF::genera($datiPDF);
 
-        echo "<div style='margin-top: 40px; padding-top: 30px; border-top: 1px dashed #e2e8f0; text-align: center;'><h2 class='text-xl font-bold text-slate-800 mb-2'>Ciclo di rientro completato</h2><p class='text-slate-500 text-sm mb-6'>Le pendenze degli utenti e lo stato dell'inventario sono stati aggiornati correttamente.</p><a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'><i class='fas fa-file-pdf'></i> SCARICA RICEVUTA PDF</a><div class='mt-6'><a href='returns.php' class='text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest'>Inizia nuovo rientro &rarr;</a></div></div>";
+        echo "
+        <div style='margin-top: 40px; padding-top: 30px; border-top: 1px dashed #e2e8f0; text-align: center;'>
+            <h2 class='text-xl font-bold text-slate-800 mb-2'><i class='fas fa-check-circle text-green-500 me-2'></i> Ciclo di rientro completato</h2>
+            <p class='text-slate-500 text-sm mb-6'>Le pendenze degli utenti e lo stato dell'inventario sono stati aggiornati correttamente.</p>
+            
+            <a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'>
+                <i class='fas fa-file-pdf'></i> SCARICA RICEVUTA PDF
+            </a>
+            
+            <div class='mt-6'>
+                <a href='returns.php' class='text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest'>
+                    <i class='fas fa-redo me-1'></i> Inizia nuovo rientro
+                </a>
+            </div>
+        </div>";
     }
 
 } catch (Exception $e) {
-    echo "<div class='p-6 bg-red-100 text-red-700 rounded-xl font-bold text-center border-2 border-red-200 mt-4'>ERRORE CRITICO DI SISTEMA: " . $e->getMessage() . "</div>";
+    echo "<div class='p-6 bg-red-100 text-red-700 rounded-xl font-bold text-center border-2 border-red-200 mt-4'>
+            <i class='fas fa-bomb me-2'></i> ERRORE CRITICO DI SISTEMA: " . $e->getMessage() . "
+          </div>";
 }
 
-echo "</div></div></body></html>";
+echo "</div>";
+echo "</div>";
+echo "</body></html>";
+
 require_once __DIR__ . '/../../src/Views/layout/footer.php';
