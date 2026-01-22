@@ -33,9 +33,11 @@ Il sistema integra funzionalità avanzate come la scansione di codici a barre, l
 
 ## Tecnologie Utilizzate
 
-*   **Backend**: PHP 8.0+
-    *   Struttura MVC: il Model gestisce dati e logica di business, la View si occupa dell'interfaccia utente, e il Controller intermedia tra i due, gestendo gli input dell'utente e aggiornando Model e View; PDO per database.
-*   **Frontend**: HTML5, JavaScript (Vanilla), Tailwind CSS.
+*   **Backend**: 
+    * PHP 8.0+
+    *   Struttura MVC: il Model gestisce dati e logica, la View si occupa dell'interfaccia utente e il Controller intermedia tra i due, gestendo gli input dell'utente e aggiornando Model e View.
+    * PDO per database.
+*   **Frontend**: HTML, JavaScript, CSS.
 *   **Database**: MySQL / MariaDB.
 *   **Librerie Esterne**:
     *   `phpmailer/phpmailer`: Invio email transazionali.
@@ -51,16 +53,16 @@ Questo progetto include uno script di installazione automatica che configura il 
 ### Requisiti Preliminari
 Assicurati che il tuo ambiente disponga di:
 *   PHP >= 8.0
-*   MySQL o MariaDB
-*   Server Web (Apache/Nginx)
+*   MySQL
+*   Server Web (Apache)
 *   Composer (per installare le dipendenze)
 
 ### Setup dei File
-Clona il repository o estrai i file nella root del tuo server web (es. `htdocs/` o `/var/www/html/`).
+Clona il repository o estrai i file nella root del tuo server web (es. `htdocs/`).
 
 ```bash
-git clone https://github.com/tuo-username/stackmasters.git
-cd stackmasters
+git clone https://github.com/dipisamanu/StackMasters.git
+cd StackMasters
 ```
 
 Installa le dipendenze PHP tramite Composer:
@@ -69,18 +71,9 @@ Installa le dipendenze PHP tramite Composer:
 composer install
 ```
 
-**Permessi di Scrittura:**
-Affinché l'installer funzioni correttamente, assicurati che il server web abbia i permessi di scrittura sulla cartella principale (per generare il file `.env`) e sulle directory di log e documenti.
-
-Esempio su Linux/Mac:
-```bash
-chmod -R 775 public/assets/docs
-chmod -R 775 logs
-chown -R www-data:www-data .
-```
-
 ### Procedura Guidata (Web Installer)
-Non è necessario configurare manualmente il database. Apri il tuo browser e naviga verso il file di installazione:
+Non è necessario configurare manualmente il database. 
+Apri il tuo browser e naviga verso il file di installazione:
 
 `http://localhost/StackMasters/public/install.php`
 
@@ -88,26 +81,21 @@ Non è necessario configurare manualmente il database. Apri il tuo browser e nav
 
 Segui i passaggi a schermo:
 1.  **Check Requisiti**: Il sistema verificherà la versione di PHP e le estensioni.
-2.  **Database & Admin**: Inserisci le credenziali del database (Host, User, Password, Nome DB) e crea il primo account Amministratore.
-3.  **Completamento**: Il sistema importerà le tabelle e genererà il file `.env`.
+2.  **Database**: Genera dal file install.sql il database e crea il primo account Amministratore.
+3.  **Completamento**: Il sistema importerà le tabelle e dei dati tramite i seeder.
 
 ---
 
 ## Configurazione Post-Installazione
-
-### Pulizia
-Per motivi di sicurezza, una volta completata l'installazione, **elimina** il file `public/install.php` e la cartella `setup/`.
-
-Da terminale:
-```bash
-rm public/install.php
-rm -rf setup/
 ```
+#Configurazione Email (SMTP)
+#Per abilitare l'accesso al database e l'invio delle email (recupero password, avvisi scadenza), modifica il file `.env` nella root del progetto:
 
-### Configurazione Email (SMTP)
-Per abilitare l'invio delle email (recupero password, avvisi scadenza), modifica il file `.env` nella root del progetto:
+DB_NAME=biblioteca_db
+DB_USER=
+DB_PASS=
+DB_HOST=
 
-```ini
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=tuo_indirizzo@example.com
@@ -119,12 +107,6 @@ FROM_NAME="Biblioteca StackMasters"
 
 ### Automazione (Cron Jobs)
 Per garantire il funzionamento delle notifiche di scadenza e il calcolo automatico delle multe, configura un'attività pianificata giornaliera (es. alle 08:00).
-
-**Linux (Crontab):**
-Apri il crontab con `crontab -e` e aggiungi:
-```bash
-0 8 * * * php /var/www/html/StackMasters/scripts/cron_scadenze.php >> /var/www/html/StackMasters/logs/cron.log 2>&1
-```
 
 **Windows (Task Scheduler):**
 Crea un task che esegue `php.exe` con argomento:
@@ -168,7 +150,7 @@ Il progetto è strutturato seguendo un pattern MVC personalizzato.
 
 ### Database
 Il sistema utilizza un database relazionale (MySQL) con tabelle principali per:
-*   `utenti` e `ruoli` (RBAC).
+*   `utenti` e `ruoli` (RBAC, Role-Based Access Control).
 *   `libri`, `inventari` (copie fisiche) e `autori`.
 *   `prestiti` e `prenotazioni`.
 *   `multe` e `transazioni`.
