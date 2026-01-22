@@ -171,6 +171,7 @@ require_once '../../src/Views/layout/header.php';
             <div class="d-flex gap-2">
                 <a href="users.php" class="btn btn-dark shadow-sm"><i class="fas fa-users-cog me-2"></i>Gestione Utenti</a>
                 <a href="fines.php" class="btn btn-danger shadow-sm"><i class="fas fa-file-invoice-dollar me-2"></i>Gestione Multe</a>
+                <a href="finance_report.php" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-chart-line me-2"></i>Report Segreteria</a>
                 <a href="../../public/catalog.php" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-book me-2"></i>Catalogo</a>
             </div>
         </div>
