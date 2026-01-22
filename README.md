@@ -1,6 +1,6 @@
-# StackMasters - Library Management System
+# StackMasters - Sistema Gestione Biblioteca ITIS Rossi
 
-StackMasters è una piattaforma web completa per la gestione di biblioteche scolastiche e pubbliche. Progettata per ottimizzare i flussi di lavoro di bibliotecari e amministratori, offre agli studenti un'interfaccia moderna per la consultazione del catalogo e la gestione dei propri prestiti.
+StackMasters è una piattaforma web completa per la gestione di biblioteche scolastiche. Progettata per ottimizzare i flussi di lavoro di bibliotecari e amministratori, offre agli studenti un'interfaccia moderna per la consultazione del catalogo e la gestione dei propri prestiti.
 
 Il sistema integra funzionalità avanzate come la scansione di codici a barre, la generazione automatica di documenti PDF, il calcolo delle sanzioni e l'integrazione con API esterne per l'arricchimento del catalogo.
 
@@ -33,7 +33,8 @@ Il sistema integra funzionalità avanzate come la scansione di codici a barre, l
 
 ## Tecnologie Utilizzate
 
-*   **Backend**: PHP 8.0+ (Struttura MVC Custom, PDO per database, Standard PSR-4).
+*   **Backend**: PHP 8.0+
+    *   Struttura MVC: il Model gestisce dati e logica di business, la View si occupa dell'interfaccia utente, e il Controller intermedia tra i due, gestendo gli input dell'utente e aggiornando Model e View; PDO per database.
 *   **Frontend**: HTML5, JavaScript (Vanilla), Tailwind CSS.
 *   **Database**: MySQL / MariaDB.
 *   **Librerie Esterne**:
