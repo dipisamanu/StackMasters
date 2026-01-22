@@ -18,10 +18,10 @@ class CalcolaMulteCron
 {
     private PDO $db;
     private string $logFile;
-    private const int GIORNI_TOLLERANZA = 3;
-    private const float IMPORTO_GIORNALIERO = 0.50;
-    private const float SCONTO_UTENTI_AFFIDABILI = 0.10;
-    private const int SOGLIA_PRESTITI_AFFIDABILE = 20;
+    private const GIORNI_TOLLERANZA = 3;
+    private const IMPORTO_GIORNALIERO = 0.50;
+    private const SCONTO_UTENTI_AFFIDABILI = 0.10;
+    private const SOGLIA_PRESTITI_AFFIDABILE = 20;
 
     public function __construct()
     {

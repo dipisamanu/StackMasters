@@ -8,7 +8,7 @@ require_once __DIR__ . '/../Helpers/IsbnValidator.php';
 
 class OpenLibraryService
 {
-    private const string API_URL = 'https://openlibrary.org/api/books';
+    private const API_URL = 'https://openlibrary.org/api/books';
 
     public function fetchByIsbn(string $isbn): ?array
     {

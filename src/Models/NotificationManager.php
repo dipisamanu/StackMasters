@@ -16,10 +16,10 @@ class NotificationManager
     private PDO $pdo;
     private ?EmailService $emailService = null;
 
-    const string TYPE_REMINDER = 'REMINDER';
-    const string TYPE_INFO = 'INFO';
-    const string URGENCY_HIGH = 'HIGH';
-    const string URGENCY_LOW = 'LOW';
+    const TYPE_REMINDER = 'REMINDER';
+    const TYPE_INFO = 'INFO';
+    const URGENCY_HIGH = 'HIGH';
+    const URGENCY_LOW = 'LOW';
 
     public function __construct()
     {

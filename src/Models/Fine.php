@@ -12,8 +12,8 @@ class Fine
 {
     private PDO $db;
 
-    private const float MULTA_GIORNALIERA = 0.50;
-    private const int TOLLERANZA_RITARDO_GG = 3;
+    private const MULTA_GIORNALIERA = 0.50;
+    private const TOLLERANZA_RITARDO_GG = 3;
 
     public function __construct()
     {

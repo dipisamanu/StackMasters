@@ -12,11 +12,11 @@ class LoanController
     public PDO $db;
 
     // Configurazione multe
-    private const int GIORNI_TOLLERANZA = 3;
-    private const float IMPORTO_MULTA_GIORNALIERA = 0.50;
+    private const GIORNI_TOLLERANZA = 3;
+    private const IMPORTO_MULTA_GIORNALIERA = 0.50;
 
     // Configurazione prenotazioni
-    private const int ORE_RISERVA_PRENOTAZIONE = 48;
+    private const ORE_RISERVA_PRENOTAZIONE = 48;
 
     public function __construct()
     {
