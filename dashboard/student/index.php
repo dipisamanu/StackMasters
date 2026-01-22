@@ -14,10 +14,9 @@ require_once '../../src/Models/ReservationModel.php';
 Session::requireLogin();
 
 // Controllo Ruoli
-$mainRole = Session::getMainRole();
-if ($mainRole === 'Admin') {
-    header('Location: ../admin/index.php');
-    exit;
+if (!Session::isLoggedIn()) {
+    header('Location: ../../public/index.php');
+    die();
 }
 
 $db = Database::getInstance()->getConnection();
@@ -98,14 +97,14 @@ require_once '../../src/Views/layout/header.php';
             padding: 3rem 0;
             margin-bottom: 2rem;
             border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .stat-card-modern {
             background: white;
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
             border: 1px solid #f0f0f0;
             transition: transform 0.2s;
             height: 100%;
@@ -113,7 +112,7 @@ require_once '../../src/Views/layout/header.php';
 
         .stat-card-modern:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08);
         }
 
         .book-thumb {
@@ -121,7 +120,7 @@ require_once '../../src/Views/layout/header.php';
             height: 75px;
             object-fit: cover;
             border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .status-badge {
@@ -136,9 +135,10 @@ require_once '../../src/Views/layout/header.php';
             border-radius: 50rem;
             padding: 0.5rem 1.2rem;
         }
+
         .nav-pills .nav-link.active {
-            background-color: #2c3e50;
-            color: white;
+            background-color: #2c3e50 !important;
+            color: white !important;
         }
     </style>
 
@@ -270,10 +270,12 @@ require_once '../../src/Views/layout/header.php';
                                             <td class="ps-4">
                                                 <div class="d-flex align-items-center">
                                                     <a href="../../public/book.php?id=<?= $p['id_libro'] ?>">
-                                                        <img src="<?= htmlspecialchars($img) ?>" class="book-thumb me-3" alt="Cover">
+                                                        <img src="<?= htmlspecialchars($img) ?>" class="book-thumb me-3"
+                                                             alt="Cover">
                                                     </a>
                                                     <div>
-                                                        <a href="../../public/book.php?id=<?= $p['id_libro'] ?>" class="fw-bold text-dark text-decoration-none">
+                                                        <a href="../../public/book.php?id=<?= $p['id_libro'] ?>"
+                                                           class="fw-bold text-dark text-decoration-none">
                                                             <?= htmlspecialchars($p['titolo']) ?>
                                                         </a>
                                                         <div class="small text-muted"><?= htmlspecialchars($p['autore']) ?></div>
@@ -283,7 +285,9 @@ require_once '../../src/Views/layout/header.php';
                                             <td class="<?= $dateClass ?>">
                                                 <?= date('d/m/Y', strtotime($p['scadenza_prestito'])) ?>
                                             </td>
-                                            <td><span class="badge <?= $badgeClass ?> status-badge"><?= $statusText ?></span></td>
+                                            <td>
+                                                <span class="badge <?= $badgeClass ?> status-badge"><?= $statusText ?></span>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                     </tbody>
@@ -317,9 +321,11 @@ require_once '../../src/Views/layout/header.php';
                                         <tr>
                                             <td class="ps-4">
                                                 <div class="d-flex align-items-center">
-                                                    <img src="<?= htmlspecialchars($imgPr) ?>" class="book-thumb me-3" alt="Cover">
+                                                    <img src="<?= htmlspecialchars($imgPr) ?>" class="book-thumb me-3"
+                                                         alt="Cover">
                                                     <div>
-                                                        <a href="../../public/book.php?id=<?= $pr['id_libro'] ?>" class="text-decoration-none text-dark fw-bold">
+                                                        <a href="../../public/book.php?id=<?= $pr['id_libro'] ?>"
+                                                           class="text-decoration-none text-dark fw-bold">
                                                             <?= htmlspecialchars($pr['titolo']) ?>
                                                         </a>
                                                         <div class="small text-muted">Prenotazione</div>
@@ -333,12 +339,14 @@ require_once '../../src/Views/layout/header.php';
                                                         <i class="fas fa-check me-1"></i>PRONTO AL RITIRO
                                                     </span>
                                                     <div class="small text-danger mt-1 fw-bold">
-                                                        Scade il <?= date('d/m H:i', strtotime($pr['scadenza_ritiro'])) ?>
+                                                        Scade
+                                                        il <?= date('d/m H:i', strtotime($pr['scadenza_ritiro'])) ?>
                                                     </div>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary status-badge mb-1">In Coda</span>
                                                     <div class="small text-muted fw-bold">
-                                                        <i class="fas fa-users me-1"></i>Posizione: <?= $pr['posizione_reale'] ?>°
+                                                        <i class="fas fa-users me-1"></i>Posizione: <?= $pr['posizione_reale'] ?>
+                                                        °
                                                     </div>
                                                 <?php endif; ?>
                                             </td>
@@ -363,20 +371,23 @@ require_once '../../src/Views/layout/header.php';
                                         <th class="ps-4">Libro</th>
                                         <th>Preso il</th>
                                         <th>Restituito il</th>
-                                        <th></th> </tr>
+                                        <th></th>
+                                    </tr>
                                     </thead>
                                     <tbody>
                                     <?php foreach ($storicoPrestiti as $s): ?>
                                         <tr>
                                             <td class="ps-4">
-                                                <a href="../../public/book.php?id=<?= $s['id_libro'] ?>" class="fw-bold text-dark text-decoration-none">
+                                                <a href="../../public/book.php?id=<?= $s['id_libro'] ?>"
+                                                   class="fw-bold text-dark text-decoration-none">
                                                     <?= htmlspecialchars($s['titolo']) ?>
                                                 </a>
                                             </td>
                                             <td class="text-muted"><?= date('d/m/Y', strtotime($s['data_prestito'])) ?></td>
                                             <td class="text-success fw-bold"><?= date('d/m/Y', strtotime($s['data_restituzione'])) ?></td>
                                             <td class="text-end pe-4">
-                                                <a href="../../public/book.php?id=<?= $s['id_libro'] ?>" class="btn btn-sm btn-outline-primary rounded-pill">
+                                                <a href="../../public/book.php?id=<?= $s['id_libro'] ?>"
+                                                   class="btn btn-sm btn-outline-primary rounded-pill">
                                                     Recensisci
                                                 </a>
                                             </td>

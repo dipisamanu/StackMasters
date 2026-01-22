@@ -15,8 +15,9 @@ $rootUrl = './';
 // Recupero ruolo principale
 $roleData = $_SESSION['ruolo_principale'] ?? $_SESSION['role'] ?? $_SESSION['main_role'] ?? '';
 $currentRole = is_array($roleData) ? ($roleData['nome'] ?? '') : $roleData;
+$isLoggedIn = isset($_SESSION['user_id']);
 
-// Gestione percorsi
+// Gestione percorsi base
 if (str_contains($scriptPath, '/dashboard/')) {
     $basePath = '../../public/assets/';
     $rootUrl = '../../public/';
@@ -26,6 +27,36 @@ if (str_contains($scriptPath, '/dashboard/')) {
 } else {
     $basePath = 'public/assets/';
     $rootUrl = 'public/';
+}
+
+// --- CALCOLO LINK DINAMICI ---
+
+// Link Home (Personale se loggato, Public se ospite)
+if ($isLoggedIn) {
+    // Punta a dashboard/student/index.php
+    if (str_contains($scriptPath, '/dashboard/')) {
+        $homeHref = '../student/index.php';
+    } else {
+        $homeHref = '../dashboard/student/index.php';
+    }
+} else {
+    $homeHref = $rootUrl . 'index.php';
+}
+
+// Link Dashboard Gestionale (Solo per Admin/Bibliotecario)
+$managementHref = '';
+if ($currentRole === 'Admin' || $currentRole === 'Bibliotecario') {
+    $dashPath = match ($currentRole) {
+        'Bibliotecario' => 'dashboard/librarian/index.php',
+        'Admin' => 'dashboard/admin/index.php',
+        default => ''
+    };
+
+    if (str_contains($scriptPath, '/dashboard/')) {
+        $managementHref = '../' . basename(dirname($dashPath)) . '/index.php';
+    } else {
+        $managementHref = '../' . $dashPath;
+    }
 }
 
 // Iniziali Avatar
@@ -202,7 +233,7 @@ if ($userName !== 'Utente') {
 <nav class="navbar navbar-expand-lg sticky-top shadow-sm">
     <div class="container-fluid">
 
-        <a class="navbar-brand d-flex align-items-center gap-2" href="<?= $rootUrl ?>index.php">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="<?= $homeHref ?>">
             <i class="fas fa-book-reader text-primary"></i>
             <span>BiblioSystem</span>
         </a>
@@ -214,9 +245,20 @@ if ($userName !== 'Utente') {
 
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <!-- HOME: Studente/Index se loggato, Public/Index se ospite -->
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= $rootUrl ?>index.php">Home</a>
+                    <a class="nav-link" href="<?= $homeHref ?>">Home</a>
                 </li>
+                
+                <!-- DASHBOARD GESTIONALE: Solo per Admin e Bibliotecari -->
+                <?php if ($managementHref): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-primary fw-bold" href="<?= $managementHref ?>">
+                            <i class="fas fa-tachometer-alt me-1 small"></i>Dashboard
+                        </a>
+                    </li>
+                <?php endif; ?>
+
                 <li class="nav-item">
                     <a class="nav-link" href="<?= $rootUrl ?>catalog.php">
                         <i class="fas fa-search me-1 small"></i>Catalogo
@@ -226,7 +268,7 @@ if ($userName !== 'Utente') {
 
             <div class="d-flex align-items-center gap-3">
 
-                <?php if (isset($_SESSION['user_id'])): ?>
+                <?php if ($isLoggedIn): ?>
 
                     <div class="dropdown">
                         <a class="nav-link hidden-arrow notification-icon-wrapper position-relative" href="#"
@@ -268,6 +310,7 @@ if ($userName !== 'Utente') {
 
                         <ul class="dropdown-menu dropdown-menu-end animate slideIn">
                             <?php
+                            // Link per il menu a tendina (Dashboard specifica del ruolo)
                             $dash = match ($currentRole) {
                                 'Bibliotecario' => 'dashboard/librarian/index.php',
                                 'Admin' => 'dashboard/admin/index.php',
