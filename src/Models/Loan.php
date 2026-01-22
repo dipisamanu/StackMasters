@@ -13,9 +13,9 @@ use PDO;
 class Loan
 {
     private PDO $db;
-    private const float MULTA_GIORNALIERA = 0.50;
-    private const int TOLLERANZA_RITARDO_GG = 3;
-    private const int RITIRO_PRENOTAZIONE_ORE = 48;
+    private const MULTA_GIORNALIERA = 0.50;
+    private const TOLLERANZA_RITARDO_GG = 3;
+    private const RITIRO_PRENOTAZIONE_ORE = 48;
 
     public function __construct()
     {

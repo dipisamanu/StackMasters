@@ -18,9 +18,9 @@ class LoanService
 {
     private PDO $db;
     private NotificationManager $notifier;
-    private const int GIORNI_TOLLERANZA = 3;
-    private const float IMPORTO_MULTA_GIORNALIERA = 0.50;
-    private const int ORE_RISERVA_PRENOTAZIONE = 48;
+    private const GIORNI_TOLLERANZA = 3;
+    private const IMPORTO_MULTA_GIORNALIERA = 0.50;
+    private const ORE_RISERVA_PRENOTAZIONE = 48;
 
     /**
      * @throws Exception
