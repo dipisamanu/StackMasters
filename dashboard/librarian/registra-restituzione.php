@@ -163,11 +163,12 @@ echo "
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Ottaviodipisa\StackMasters\Services\LoanService;
+use Ottaviodipisa\StackMasters\Models\Loan;
 use Ottaviodipisa\StackMasters\Helpers\RicevutaRestituzionePDF;
 
 $returnsData = $_POST['returns'] ?? [];
 
+// Riepilogo Parametri
 echo "
     <div class='section-title'>Parametri di Ricezione</div>
     <div class='session-summary'>
@@ -187,7 +188,7 @@ if (empty($returnsData)) {
 
 try {
     $db = Database::getInstance()->getConnection();
-    $loanService = new LoanService();
+    $loanModel = new Loan();
 
     $successi = [];
     $utenteDatiPDF = null;
@@ -201,7 +202,12 @@ try {
         $commento = $item['note'];
 
         try {
-            $stmtU = $db->prepare("SELECT u.* FROM utenti u JOIN prestiti p ON u.id_utente = p.id_utente WHERE p.id_inventario = ? AND p.data_restituzione IS NULL");
+            // 5.1 Identificazione Utente (prima della chiusura del prestito)
+            $stmtU = $db->prepare("
+                SELECT u.* FROM utenti u 
+                JOIN prestiti p ON u.id_utente = p.id_utente 
+                WHERE p.id_inventario = ? AND p.data_restituzione IS NULL
+            ");
             $stmtU->execute([$idInventario]);
             $utente = $stmtU->fetch(PDO::FETCH_ASSOC);
 
@@ -213,41 +219,40 @@ try {
                 $utenteDatiPDF = $utente;
             }
 
-            // 5.2 Esecuzione Business Logic (Service)
-            $res = $loanService->registraRestituzione($idInventario, $condizione, $commento);
+            // 5.2 Esecuzione Business Logic
+            $res = $loanModel->registraRestituzione($idInventario, $condizione, $commento);
 
-            // CORREZIONE: Aggiunto ISBN alla query
+            // 5.3 Recupero Titolo del volume
             $stmtL = $db->prepare("SELECT l.titolo, l.isbn FROM libri l JOIN inventari i ON l.id_libro = i.id_libro WHERE i.id_inventario = ?");
             $stmtL->execute([$idInventario]);
             $infoLibro = $stmtL->fetch(PDO::FETCH_ASSOC);
 
+            // CORREZIONE: Gestione caso in cui $infoLibro è null o non contiene 'titolo'
+            $titolo = isset($infoLibro['titolo']) ? htmlspecialchars($infoLibro['titolo']) : "Titolo non disponibile";
+
             $successi[] = [
                 'id_inventario' => $idInventario,
-                'titolo' => $infoLibro['titolo'] ?: "Asset #$idInventario",
+                'titolo' => $titolo,
                 'isbn' => $infoLibro['isbn'] ?? 'N/D',
                 'condizione' => $condizione,
-                'multa' => $res['multa_totale'] ?? 0
+                'multa' => $res['multa_generata'] ?? 0,
+                'condizione_partenza' => $res['condizione_partenza'] ?? 'BUONO'
             ];
 
-            echo "
-            <div class='log-row success'>
-                <div class='flex flex-col'>
-                    <span class='text-[10px] font-extrabold text-slate-400 uppercase tracking-tighter'>Copia #$idInventario</span>
-                    <span class='font-bold text-slate-700 text-sm'>" . htmlspecialchars(substr($titolo, 0, 45)) . "...</span>
-                </div>
-                <div class='flex items-center gap-3'>
-                    " . ((isset($res['multa_totale']) && $res['multa_totale'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "
-                    <span class='badge badge-success'>RIENTRATO</span>
-                </div>
-            </div>";
+            echo "<div class='log-row success'><div class='flex flex-col'><span class='text-[10px] font-extrabold text-slate-400 uppercase tracking-tighter'>Copia #$idInventario</span><span class='font-bold text-slate-700 text-sm'>" . substr($titolo, 0, 45) . "...</span></div><div class='flex items-center gap-3'>" . ((isset($res['multa_generata']) && $res['multa_generata'] > 0) ? "<span class='badge badge-warning'>SANZIONE GENERATA</span>" : "") . "<span class='badge badge-success'>RIENTRATO</span></div></div>";
 
         } catch (Exception $e) {
             echo "<div class='log-row error'><div class='flex flex-col'><span class='text-[10px] font-extrabold text-red-400 uppercase tracking-tighter'>Copia #$idInventario</span><span class='font-bold text-red-800 text-sm'>" . htmlspecialchars($e->getMessage()) . "</span></div><span class='badge badge-error'>RIFIUTATO</span></div>";
         }
     }
 
+    // 6. AREA DOWNLOAD E RICEVUTA
     if (!empty($successi)) {
-        $datiPDF = ['utente' => $utenteDatiPDF, 'libri' => $successi, 'data_operazione' => date('d/m/Y H:i')];
+        $datiPDF = [
+            'utente' => $utenteDatiPDF,
+            'libri' => $successi,
+            'data_operazione' => date('d/m/Y H:i')
+        ];
         $pdfFileName = RicevutaRestituzionePDF::genera($datiPDF);
 
         echo "<div style='margin-top: 40px; padding-top: 30px; border-top: 1px dashed #e2e8f0; text-align: center;'><h2 class='text-xl font-bold text-slate-800 mb-2'>Ciclo di rientro completato</h2><p class='text-slate-500 text-sm mb-6'>Le pendenze degli utenti e lo stato dell'inventario sono stati aggiornati correttamente.</p><a href='../../public/assets/docs/$pdfFileName' target='_blank' class='btn-download'><i class='fas fa-file-pdf'></i> SCARICA RICEVUTA PDF</a><div class='mt-6'><a href='returns.php' class='text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest'>Inizia nuovo rientro &rarr;</a></div></div>";
