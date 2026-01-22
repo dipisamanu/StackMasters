@@ -44,7 +44,11 @@ class LoanService
      */
     public function registraPrestito(int $utenteId, int $inventarioId): array
     {
-        $this->db->beginTransaction();
+        // Controlla se una transazione è già attiva (es. dal test)
+        $isTransactionManagedExternally = $this->db->inTransaction();
+        if (!$isTransactionManagedExternally) {
+            $this->db->beginTransaction();
+        }
 
         try {
             // 1. RECUPERA DATI UTENTE E LIBRO
@@ -97,7 +101,9 @@ class LoanService
             $this->logAzione($utenteId, 'MODIFICA_PRESTITO', "Prestito #$prestitoId registrato - Libro: {$copia['titolo']}");
 
             // 11. COMMIT TRANSAZIONE
-            $this->db->commit();
+            if (!$isTransactionManagedExternally) {
+                $this->db->commit();
+            }
 
             // Notifica Email Diretta (Stilizzata)
             $this->inviaEmailConferma($utente, $copia, $dataScadenza, $prestitoId);
@@ -129,7 +135,7 @@ class LoanService
             ];
 
         } catch (Exception $e) {
-            if ($this->db->inTransaction()) {
+            if ($this->db->inTransaction() && !$isTransactionManagedExternally) {
                 $this->db->rollBack();
             }
             throw $e;
@@ -142,7 +148,11 @@ class LoanService
      */
     public function registraRestituzione(int $inventarioId, string $condizione = 'BUONO', ?string $commentoDanno = null): array
     {
-        $this->db->beginTransaction();
+        // Controlla se una transazione è già attiva (es. dal test)
+        $isTransactionManagedExternally = $this->db->inTransaction();
+        if (!$isTransactionManagedExternally) {
+            $this->db->beginTransaction();
+        }
 
         try {
             $prestito = $this->getPrestitoAttivo($inventarioId);
@@ -179,6 +189,10 @@ class LoanService
             if ($livelloRientro > $livelloPartenza) {
                 $valoreLibro = (float)($prestito['valore_copertina'] ?? 10.00);
                 $penaleStato = 0.0;
+
+                if ($valoreLibro <= 0) {
+                    throw new Exception("Danno rilevato ({$condizione}), ma impossibile calcolare la penale: il valore di copertina del libro non è impostato.");
+                }
 
                 switch (strtoupper($condizione)) {
                     case 'USURATO':
@@ -254,7 +268,10 @@ class LoanService
             $this->verificaSbloccaUtente($prestito['id_utente']);
             $this->logAzione($prestito['id_utente'], 'MODIFICA_PRESTITO', "Restituzione prestito #{$prestito['id_prestito']} - Multa: €$multaTotale");
 
-            $this->db->commit();
+            // COMMIT TRANSAZIONE
+            if (!$isTransactionManagedExternally) {
+                $this->db->commit();
+            }
 
             // Notifiche Post-Commit per chi restituisce (Multe)
             // Qui lasciamo l'email automatica perché non abbiamo un template specifico per le multe
@@ -282,7 +299,9 @@ class LoanService
             ];
 
         } catch (Exception $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction() && !$isTransactionManagedExternally) {
+                $this->db->rollBack();
+            }
             throw $e;
         }
     }
@@ -495,12 +514,15 @@ class LoanService
     }
 
     /**
-     * @throws DateMalformedStringException
+     * Calcola i giorni di ritardo usando i timestamp per massima compatibilità.
+     * @param string $scadenza
+     * @return int
      */
-    private function calcolaGiorniRitardo(string $scadenza): int {
-        $diff = new DateTime()->diff(new DateTime($scadenza));
-        return (new DateTime() > new DateTime($scadenza)) ? $diff->days : 0;
-    }
+    private function calcolaGiorniRitardo($scadenza) {
+    $diff = (new DateTime())->diff(new DateTime($scadenza));
+    return (new DateTime() > new DateTime($scadenza)) ? $diff->days : 0;
+}
+
 
     private function calcolaMulta(int $gg): float {
         return ($gg > self::GIORNI_TOLLERANZA) ? round(($gg - self::GIORNI_TOLLERANZA) * self::IMPORTO_MULTA_GIORNALIERA, 2) : 0.0;

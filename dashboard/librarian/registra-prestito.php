@@ -219,7 +219,7 @@ try {
                 'id_inventario' => $idInventario, 
                 'titolo' => $infoLibro['titolo'] ?? 'Titolo non disponibile', 
                 'isbn' => $infoLibro['isbn'] ?? 'N/D',
-                'scadenza' => $res['data_scadenza'], 
+                'scadenza' => $res['details']['data_scadenza'],
                 'condizione' => $condizioneUscita
             ];
 
