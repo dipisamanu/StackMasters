@@ -6,12 +6,10 @@
 
 require_once '../src/config/session.php';
 
-// Se l'utente è già loggato, via alla dashboard corretta
+// Se l'utente è già loggato, va SEMPRE alla dashboard studente (Home Personale)
+// per vedere i propri prestiti, prenotazioni, ecc.
 if (Session::isLoggedIn()) {
-    $role = Session::getMainRole();
-    if ($role === 'Admin') header('Location: ../dashboard/admin/');
-    elseif ($role === 'Bibliotecario') header('Location: ../dashboard/librarian/');
-    else header('Location: ../dashboard/student/');
+    header('Location: ../dashboard/student/index.php');
     exit;
 }
 

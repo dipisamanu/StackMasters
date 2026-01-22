@@ -72,7 +72,7 @@ try {
 $lastLoans = [];
 try {
     $stmt = $db->query("
-        SELECT p.id_prestito, p.data_prestito, u.id_utente, u.nome, u.cognome, l.id_libro, l.titolo
+        SELECT p.id_prestito, p.data_prestito, p.data_restituzione, p.scadenza_prestito, u.id_utente, u.nome, u.cognome, l.id_libro, l.titolo
         FROM prestiti p
         JOIN utenti u ON p.id_utente = u.id_utente
         JOIN inventari i ON p.id_inventario = i.id_inventario
@@ -275,7 +275,10 @@ require_once '../../src/Views/layout/header.php';
                                     <td colspan="4" class="text-center py-5 text-muted">Nessun dato recente.</td>
                                 </tr>
                             <?php else: ?>
-                                <?php foreach ($lastLoans as $loan): ?>
+                                <?php foreach ($lastLoans as $loan): 
+                                    $isReturned = !empty($loan['data_restituzione']);
+                                    $isOverdue = !$isReturned && (strtotime($loan['scadenza_prestito']) < time());
+                                ?>
                                     <tr style="cursor: pointer;"
                                         onclick="window.location='user_details.php?id=<?= $loan['id_utente'] ?>'">
                                         <td class="ps-4 text-muted small"><?= date('d/m/Y H:i', strtotime($loan['data_prestito'])) ?></td>
@@ -283,12 +286,18 @@ require_once '../../src/Views/layout/header.php';
                                         <td>
                                             <a href="../../public/book.php?id=<?= $loan['id_libro'] ?>"
                                                class="text-decoration-none text-dark hover-primary"
-                                               onclick="stopPropagation();">
+                                               onclick="event.stopPropagation();">
                                                 <?= htmlspecialchars($loan['titolo']) ?>
                                             </a>
                                         </td>
-                                        <td class="text-end pe-4"><span
-                                                    class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Attivo</span>
+                                        <td class="text-end pe-4">
+                                            <?php if ($isReturned): ?>
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">Restituito</span>
+                                            <?php elseif ($isOverdue): ?>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Scaduto</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Attivo</span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
