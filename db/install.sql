@@ -53,7 +53,7 @@ CREATE TABLE rfid
 (
     id_rfid              INT AUTO_INCREMENT PRIMARY KEY,
     rfid                 VARCHAR(128) UNIQUE      NOT NULL,
-    tipo                 ENUM ('UTENTE', 'LIBRO') NOT NULL,
+    tipo                 ENUM ('UTENTE', 'LIBRO') NOT NULL, -- TODO: Rimuovere implementazione RFID errata utente
     ultimo_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 

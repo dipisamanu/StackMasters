@@ -3,15 +3,22 @@
  * Vista: Report Contabile per la Segreteria (Epic 10.5)
  * File: dashboard/admin/finance_report.php
  */
+
+require_once '../../src/config/session.php';
+require_once '../../src/config/database.php';
+
 session_start();
 
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
+ini_set("display_errors", 1);
+ini_set("display_startup_errors", 1);
+error_reporting(E_ALL);
+
+if (!Session::isLoggedIn()) {
     header('Location: /StackMasters/public/login.php');
     exit;
 }
 
-$mainRole = $_SESSION['main_role'] ?? 'Studente';
-if ($mainRole !== 'Admin') {
+if (!Session::isAdmin()) {
     http_response_code(403);
     die("Accesso negato.");
 }
