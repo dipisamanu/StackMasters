@@ -14,7 +14,7 @@ $userId = Session::getUserId();
 $nomeCompleto = Session::getNomeCompleto() ?? 'Amministratore';
 $flash = Session::getFlash();
 
-// --- 1. GESTIONE AGGIORNAMENTO RUOLO (POST) ---
+// gestione aggiornamento ruolo
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_role') {
     $targetUser = (int)($_POST['user_id'] ?? 0);
     $targetRole = (int)($_POST['role_id'] ?? 0);
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     exit;
 }
 
-// --- 2. LOGICA DI RICERCA E PAGINAZIONE ---
+// logica di ricerca
 $page = max(1, (int)($_GET['page'] ?? 1));
 $limit = 30;
 $offset = ($page - 1) * $limit;
