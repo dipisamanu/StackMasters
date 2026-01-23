@@ -1,69 +1,41 @@
 <?php
 /**
- * Pagina Login
+ * Pagina Login "Clean & Centered"
  * File: public/login.php
  */
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+require_once __DIR__ . '/../src/config/session.php';
 
-require_once '../src/config/session.php';
-require_once '../src/config/database.php';
-
-// Se l'utente è già loggato, reindirizza alla dashboard
+// Redirect se già loggato
 if (Session::isLoggedIn()) {
-    Session::redirectToDashboard();
+    $role = Session::getMainRole();
+    if ($role === 'Admin') header('Location: ../dashboard/admin/');
+    elseif ($role === 'Bibliotecario') header('Location: ../dashboard/librarian/');
+    else header('Location: ../dashboard/student/');
     exit;
 }
 
-// GESTIONE POPUP
-$popupType = '';
-$popupTitle = '';
-$popupMessage = '';
+// Recupero messaggi
+$flash = $_SESSION['flash'] ?? null;
+$loginError = $_SESSION['login_error'] ?? null;
+unset($_SESSION['flash'], $_SESSION['login_error']);
 
-// Controlla i messaggi Flash (es. dalla Registrazione)
-if (Session::hasFlash()) {
-    $flash = Session::getFlash();
+// Personalizzazione Messaggi Flash
+$flashTitle = '';
+$flashIcon = '';
+if ($flash) {
     if ($flash['type'] === 'success') {
-        $popupType = 'success';
-        $popupTitle = 'Verifica Email';
-        $popupMessage = $flash['message'];
-    } elseif ($flash['type'] === 'error') {
-        $popupType = 'error';
-        $popupTitle = 'Errore';
-        $popupMessage = $flash['message'];
-    }
-}
-
-// Controlla errori di Login (da process-login.php)
-if (isset($_SESSION['login_error'])) {
-    $errorMsg = $_SESSION['login_error'];
-    unset($_SESSION['login_error']);
-
-    // Se il messaggio contiene "bloccato", mostra popup specifico
-    if (stripos($errorMsg, 'bloccato') !== false) {
-        $popupType = 'blocked';
-        $popupTitle = 'Account Bloccato';
+        $flashIcon = 'fa-check-circle';
+        if (stripos($flash['message'], 'registrazione') !== false || stripos($flash['message'], 'account creato') !== false) {
+            $flashTitle = 'Registrazione Completata!';
+            $flash['message'] = 'Il tuo account è stato creato con successo. Ti abbiamo inviato un\'email di conferma: clicca sul link al suo interno per attivare il profilo e iniziare a navigare.';
+        } else {
+            $flashTitle = 'Operazione Riuscita';
+        }
     } else {
-        $popupType = 'error';
-        $popupTitle = 'Errore di Accesso';
+        $flashIcon = 'fa-exclamation-circle';
+        $flashTitle = 'Attenzione';
     }
-    $popupMessage = $errorMsg;
-}
-
-// Controlli Legacy/Fallback
-if (isset($_SESSION['login_success'])) {
-    $popupType = 'success';
-    $popupTitle = 'Successo';
-    $popupMessage = $_SESSION['login_success'];
-    unset($_SESSION['login_success']);
-}
-if (isset($_SESSION['login_warning'])) {
-    $popupType = 'warning';
-    $popupTitle = 'Attenzione';
-    $popupMessage = $_SESSION['login_warning'];
-    unset($_SESSION['login_warning']);
 }
 ?>
 <!DOCTYPE html>
@@ -71,427 +43,210 @@ if (isset($_SESSION['login_warning'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="icon" href="/assets/img/itisrossi.png">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <title>Accedi - BiblioSystem</title>
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet">
+
+    <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #9f3232 0%, #b57070 100%);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f0f2f5;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             padding: 20px;
         }
 
-        .login-container {
+        .login-card {
             background: white;
-            padding: 40px;
+            border: none;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
             width: 100%;
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo h1 {
-            color: #bf2121;
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-
-        .logo p {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 15px;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #bf2121;
-            box-shadow: 0 0 0 3px rgba(191, 33, 33, 0.1);
-        }
-
-        .password-wrapper {
+            max-width: 480px;
+            padding: 2.5rem;
             position: relative;
+            overflow: hidden;
         }
 
-        .password-wrapper input {
-            padding-right: 45px;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #666;
-            cursor: pointer;
-            font-size: 20px;
-            padding: 5px;
-        }
-
-        .remember-forgot {
+        .brand-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+            border-radius: 50%;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            font-size: 14px;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 1.8rem;
         }
 
-        .remember-forgot a {
-            color: #bf2121;
-            text-decoration: none;
-            font-weight: 600;
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 1px solid #dee2e6;
+            background-color: #f8fafc;
+            font-size: 0.95rem;
         }
 
-        .remember-forgot a:hover {
-            text-decoration: underline;
+        .form-control:focus {
+            background-color: white;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
         }
 
-        .btn {
-            width: 100%;
-            padding: 15px;
-            background: #bf2121;
-            color: white;
+        .btn-login {
+            background-color: #0d6efd;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 12px;
+            border-radius: 10px;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            background: #931b1b;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(191, 33, 33, 0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .divider {
-            text-align: center;
-            margin: 25px 0;
-            color: #999;
-            font-size: 14px;
-            position: relative;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            width: 40%;
-            height: 1px;
-            background: #ddd;
-        }
-
-        .divider::before {
-            left: 0;
-        }
-
-        .divider::after {
-            right: 0;
-        }
-
-        .register-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .register-link a {
-            color: #bf2121;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* --- STILI DEL MODAL (POPUP) --- */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.3s;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 30px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            animation: slideInModal 0.3s;
-            position: relative;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0
-            }
-            to {
-                opacity: 1
-            }
-        }
-
-        @keyframes slideInModal {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .close-modal {
-            color: #aaa;
-            position: absolute;
-            right: 15px;
-            top: 10px;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 1;
-        }
-
-        .close-modal:hover {
-            color: #333;
-        }
-
-        .modal-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-
-        .modal-title {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .modal-message {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-
-        .modal-btn {
-            padding: 10px 30px;
-            border-radius: 25px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
+            letter-spacing: 0.5px;
             transition: all 0.2s;
-            font-size: 16px;
+            margin-top: 1rem;
         }
 
-        /* Stili specifici per tipo */
-        .type-success .modal-icon {
-            color: #28a745;
+        .btn-login:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
         }
 
-        .type-success .modal-btn {
-            background: #28a745;
-            color: white;
+        .input-group-text {
+            background-color: #f8fafc;
+            border: 1px solid #dee2e6;
+            border-left: none;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            cursor: pointer;
+            color: #6c757d;
         }
 
-        .type-success .modal-btn:hover {
-            background: #218838;
+        .input-group-text:hover {
+            color: #0d6efd;
         }
 
-        .type-error .modal-icon {
-            color: #dc3545;
+        .input-group:focus-within .form-control {
+            border-color: #0d6efd;
+            border-right: none;
         }
 
-        .type-error .modal-btn {
-            background: #dc3545;
-            color: white;
+        .input-group:focus-within .input-group-text {
+            border-color: #0d6efd;
+            background-color: white;
         }
 
-        .type-error .modal-btn:hover {
-            background: #c82333;
+        a.link-primary {
+            text-decoration: none;
+            font-weight: 600;
         }
 
-        .type-blocked .modal-icon {
-            color: #ffc107;
+        a.link-primary:hover {
+            text-decoration: underline;
         }
-
-        .type-blocked .modal-btn {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .type-blocked .modal-btn:hover {
-            background: #e0a800;
-        }
-
-        .type-warning .modal-icon {
-            color: #ffc107;
-        }
-
-        .type-warning .modal-btn {
-            background: #ffc107;
-            color: #333;
-        }
-
     </style>
 </head>
 <body>
 
-<!-- MODAL -->
-<div id="infoModal" class="modal">
-    <div class="modal-content" id="modalContent">
-        <span class="close-modal">&times;</span>
-        <div class="modal-icon" id="modalIcon"></div>
-        <div class="modal-title" id="modalTitle"></div>
-        <div class="modal-message" id="modalMessage"></div>
-        <button class="modal-btn" id="modalBtn">OK</button>
-    </div>
-</div>
-
-<div class="login-container">
-    <div class="logo">
-        <h1>Biblioteca ITIS Rossi</h1>
-        <p>Sistema Gestionale</p>
+<div class="login-card animate-fade-up">
+    <div class="text-center mb-4">
+        <div class="brand-icon">
+            <i class="fas fa-book-open"></i>
+        </div>
+        <h3 class="fw-bold text-dark mb-1">Bentornato</h3>
+        <p class="text-muted small">Inserisci le tue credenziali per accedere</p>
     </div>
 
-    <form action="process-login.php" method="POST" id="loginForm">
+    <?php if ($flash): ?>
+        <div class="alert alert-<?= $flash['type'] === 'error' ? 'danger' : 'success' ?> border-0 shadow-sm rounded-3 mb-4"
+             role="alert">
+            <div class="d-flex">
+                <div class="me-3">
+                    <i class="fas <?= $flashIcon ?> fs-4 mt-1"></i>
+                </div>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1"><?= htmlspecialchars($flashTitle) ?></h6>
+                    <p class="mb-0 small opacity-75"><?= htmlspecialchars($flash['message']) ?></p>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required autofocus>
+    <?php if ($loginError): ?>
+        <div class="alert alert-danger border-0 shadow-sm rounded-3 d-flex align-items-center mb-4" role="alert">
+            <i class="fas fa-exclamation-triangle me-3 fs-5"></i>
+            <div>
+                <strong class="d-block small">Errore di Accesso</strong>
+                <div class="small"><?= htmlspecialchars($loginError) ?></div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <form action="process-login.php" method="POST">
+
+        <div class="mb-3">
+            <label for="email" class="form-label small fw-bold text-muted text-uppercase">Email</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="nome@esempio.it" required
+                   autofocus>
         </div>
 
-        <div class="form-group">
-            <label for="password">Password</label>
-            <div class="password-wrapper">
-                <input type="password" id="password" name="password" required>
-                <button type="button" class="toggle-password" id="togglePassword"><i class="fas fa-eye"></i></button>
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <label for="password" class="form-label small fw-bold text-muted text-uppercase m-0">Password</label>
+                <a href="forgot-password.php" class="small link-primary">Recupera?</a>
+            </div>
+            <div class="input-group">
+                <input type="password" class="form-control border-end-0" id="password" name="password"
+                       placeholder="Password" required>
+                <span class="input-group-text" onclick="togglePassword()">
+                        <i class="far fa-eye" id="toggleIcon"></i>
+                    </span>
             </div>
         </div>
 
-        <div class="remember-forgot">
-            <a href="forgot-password.php">Password dimenticata?</a>
+        <div class="d-grid">
+            <button type="submit" class="btn btn-login text-white shadow-sm">
+                ACCEDI <i class="fas fa-arrow-right ms-2"></i>
+            </button>
         </div>
 
-        <button type="submit" class="btn">Accedi</button>
+        <div class="text-center mt-4 pt-3 border-top">
+            <p class="text-muted small mb-0">
+                Non hai un account? <a href="register.php" class="link-primary ms-1">Registrati gratis</a>
+            </p>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="index.php" class="text-secondary small text-decoration-none">
+                <i class="fas fa-arrow-left me-1"></i> Torna alla Home
+            </a>
+        </div>
     </form>
-
-    <div class="divider">oppure</div>
-
-    <div class="register-link">
-        Non hai un account? <a href="register.php">Registrati ora</a>
-    </div>
 </div>
 
 <script>
-    // Logica del Modal
-    document.addEventListener('DOMContentLoaded', function () {
-        const modal = document.getElementById("infoModal");
-        const closeBtn = document.querySelector(".close-modal");
-        const okBtn = document.getElementById("modalBtn");
-        const modalContent = document.getElementById("modalContent");
-        const modalIcon = document.getElementById("modalIcon");
-        const modalTitle = document.getElementById("modalTitle");
-        const modalMessage = document.getElementById("modalMessage");
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleIcon = document.getElementById('toggleIcon');
 
-        // Variabili PHP passate a JS
-        const pType = <?= json_encode($popupType) ?>;
-        const pTitle = <?= json_encode($popupTitle) ?>;
-        const pMessage = <?= json_encode($popupMessage) ?>;
-
-        if (pType) {
-            modalTitle.textContent = pTitle;
-            modalMessage.textContent = pMessage;
-
-            // Imposta lo stile in base al tipo
-            modalContent.className = 'modal-content type-' + pType;
-
-            if (pType === 'success') {
-                if (pTitle.toLowerCase().includes('verifica')) {
-                    modalIcon.innerHTML = '<i class="fas fa-envelope"></i>';
-                } else {
-                    modalIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-                }
-            } else if (pType === 'error') {
-                modalIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
-            } else if (pType === 'blocked') {
-                modalIcon.innerHTML = '<i class="fas fa-lock"></i>';
-            } else if (pType === 'warning') {
-                modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-            }
-
-            modal.style.display = "block";
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
         }
-
-        function closeModal() {
-            modal.style.display = "none";
-        }
-
-        closeBtn.onclick = closeModal;
-        okBtn.onclick = closeModal;
-
-        window.onclick = function (event) {
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-    });
+    }
 </script>
-<script src="assets/js/login_validation.js"></script>
+
 </body>
 </html>

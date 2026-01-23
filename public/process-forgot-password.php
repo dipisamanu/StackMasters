@@ -8,10 +8,10 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0); // In produzione 0, debug 1
 ini_set('log_errors', 1);
 
-session_start();
-
-require_once '../src/config/database.php';
-require_once '../src/config/email.php';
+// Usa Session::setFlash invece di session_start manuale
+require_once __DIR__ . '/../src/config/session.php';
+require_once __DIR__ . '/../src/config/database.php';
+require_once __DIR__ . '/../src/config/email.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: forgot-password.php');
@@ -24,7 +24,7 @@ try {
 
     // Validazione Input
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $_SESSION['forgot_error'] = 'Inserisci un indirizzo email valido';
+        Session::setFlash('error', 'Inserisci un indirizzo email valido.');
         header('Location: forgot-password.php');
         exit;
     }
@@ -38,20 +38,17 @@ try {
     if (!$user) {
         // Simula attesa per prevenire timing attacks
         sleep(1);
-        $_SESSION['forgot_success'] = 'Se l\'email esiste nel sistema, riceverai le istruzioni per il reset.';
+        Session::setFlash('success', 'Se l\'email esiste nel sistema, riceverai le istruzioni per il reset.');
         header('Location: forgot-password.php');
         exit;
     }
 
     // Controllo verifica account
     if (!$user['email_verificata']) {
-        $_SESSION['forgot_error'] = 'Account non ancora verificato. Controlla la tua email.';
+        Session::setFlash('error', 'Account non ancora verificato. Controlla la tua email per il link di attivazione.');
         header('Location: forgot-password.php');
         exit;
     }
-
-    // Rate Limiting (Opzionale, mantenuto dal tuo codice originale)
-    // (Logica rate limiting omessa per brevità, puoi lasciarla se vuoi)
 
     // Generazione Token
     $token = bin2hex(random_bytes(16)); // Token per l'URL
@@ -70,26 +67,30 @@ try {
     $subject = "Reset Password - Biblioteca ITIS Rossi";
     $nomeCompleto = htmlspecialchars($user['nome'] . ' ' . $user['cognome']);
 
-    // Template HTML (Semplificato per integrazione con EmailService)
+    // Template HTML Moderno
     $message = "
-    <h2>🔐 Reset Password</h2>
-    <p>Ciao <strong>$nomeCompleto</strong>,</p>
-    <p>Hai richiesto di reimpostare la tua password.</p>
-    <p><a href='$resetLink' style='background:#bf2121; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;'>Reimposta Password</a></p>
-    <p>Oppure copia questo link: $resetLink</p>
-    <p><small>Il link scade tra 24 ore.</small></p>
+    <!DOCTYPE html>
+    <html>
+    <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;'>
+        <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+            <h2 style='color: #bf2121; text-align: center;'>🔐 Reset Password</h2>
+            <p>Ciao <strong>$nomeCompleto</strong>,</p>
+            <p>Abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account.</p>
+            <p style='text-align: center; margin: 30px 0;'>
+                <a href='$resetLink' style='background-color: #bf2121; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Reimposta Password</a>
+            </p>
+            <p>Se non hai richiesto tu il reset, ignora questa email. Il tuo account è al sicuro.</p>
+            <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
+            <p style='font-size: 12px; color: #666; text-align: center;'>Link alternativo: <br> <a href='$resetLink' style='color: #666;'>$resetLink</a></p>
+        </div>
+    </body>
+    </html>
     ";
 
     // INVIO TRAMITE EMAILSERVICE (PHPMailer)
     try {
-        // Istanzia il servizio email
-        $emailService = new EmailService(false); // false = no debug output a schermo
-
-        $sent = $emailService->send(
-            $user['email'],
-            $subject,
-            $message
-        );
+        $emailService = new EmailService(false);
+        $sent = $emailService->send($user['email'], $subject, $message);
 
         if ($sent) {
             error_log("Email reset inviata a: " . $user['email']);
@@ -102,13 +103,13 @@ try {
         error_log("Errore invio EmailService: " . $e->getMessage());
     }
 
-    $_SESSION['forgot_success'] = 'Se l\'email esiste nel sistema, riceverai le istruzioni per il reset.';
+    Session::setFlash('success', 'Se l\'email esiste nel sistema, riceverai le istruzioni per il reset.');
     header('Location: forgot-password.php');
     exit;
 
 } catch (Exception $e) {
     error_log("Errore Generale Reset Password: " . $e->getMessage());
-    $_SESSION['forgot_error'] = 'Si è verificato un errore. Riprova più tardi.';
+    Session::setFlash('error', 'Si è verificato un errore imprevisto. Riprova più tardi.');
     header('Location: forgot-password.php');
     exit;
 }
