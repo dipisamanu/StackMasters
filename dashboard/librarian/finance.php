@@ -237,12 +237,19 @@ $nomeCompleto = ($_SESSION['nome'] ?? 'Admin') . ' ' . ($_SESSION['cognome'] ?? 
                         <!-- Modulo Pagamento -->
                         <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
                             <h3>Registra Pagamento</h3>
-                            <p style="font-size: 13px; color: #777; margin-bottom: 15px;">Il saldo estingue tutte le
-                                pendenze e genera una ricevuta liberatoria PDF.</p>
+                            <p style="font-size: 13px; color: #777; margin-bottom: 15px;">Il saldo estingue le pendenze (anche parzialmente) e genera una ricevuta liberatoria PDF.</p>
                             <form action="../../src/Controllers/FineController.php?action=pay" method="POST">
                                 <input type="hidden" name="user_id" value="<?= $user['id_utente'] ?>">
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-size: 12px; font-weight: bold; color: #666;">Importo da Versare (€)</label>
+                                    <input type="number" step="0.01" name="payment_amount" class="form-control" 
+                                           placeholder="Importo €" 
+                                           value="<?= number_format($user['debito_totale'], 2, '.', '') ?>" 
+                                           max="<?= number_format($user['debito_totale'], 2, '.', '') ?>"
+                                           required>
+                                </div>
                                 <button type="submit" class="btn btn-green" style="width: 100%; padding: 15px;">
-                                    <i class="fas fa-file-invoice-dollar"></i> Paga e Genera PDF
+                                    <i class="fas fa-file-invoice-dollar"></i> Registra Pagamento
                                 </button>
                             </form>
                         </div>

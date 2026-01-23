@@ -131,7 +131,9 @@ CREATE TABLE libri_generi
 
 CREATE TABLE utenti_ruoli
 (
-    id_utente           INT,
+    id_utente
+
+        INT,
     id_ruolo            INT,
     prestiti_tot        INT          DEFAULT 0,
     streak_restituzioni INT UNSIGNED DEFAULT 0,

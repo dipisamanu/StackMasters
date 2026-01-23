@@ -109,13 +109,38 @@ class Fine
             $paid = [];
 
             foreach ($pending as $f) {
-                if ($rem < $f['importo']) break; // Supporta solo saldi totali per singola multa visto lo schema attuale
+                if ($rem <= 0) break;
 
-                $this->db->prepare("UPDATE multe SET data_pagamento = NOW() WHERE id_multa = :id")
-                    ->execute(['id' => $f['id_multa']]);
+                $importoMulta = (float)$f['importo'];
 
-                $rem -= $f['importo'];
-                $paid[] = ['id' => $f['id_multa'], 'versato' => $f['importo']];
+                if ($rem >= $importoMulta) {
+                    // Pagamento totale della multa
+                    $this->db->prepare("UPDATE multe SET data_pagamento = NOW() WHERE id_multa = :id")
+                        ->execute(['id' => $f['id_multa']]);
+                    
+                    $rem -= $importoMulta;
+                    $paid[] = ['id' => $f['id_multa'], 'versato' => $importoMulta];
+                } else {
+                    // Pagamento parziale
+                    // 1. Riduciamo l'importo della multa originale (che rimane non pagata)
+                    $nuovoImporto = $importoMulta - $rem;
+                    $this->db->prepare("UPDATE multe SET importo = :imp WHERE id_multa = :id")
+                        ->execute(['imp' => $nuovoImporto, 'id' => $f['id_multa']]);
+
+                    // 2. Creiamo una nuova entry per la parte pagata (così appare nei report)
+                    $this->db->prepare("INSERT INTO multe (id_utente, importo, causa, commento, data_creazione, data_pagamento) 
+                                        VALUES (:uid, :imp, :causa, :comm, :creata, NOW())")
+                        ->execute([
+                            'uid' => $userId,
+                            'imp' => $rem,
+                            'causa' => $f['causa'],
+                            'comm' => $f['commento'] . " (Pagamento Parziale)",
+                            'creata' => $f['data_creazione']
+                        ]);
+
+                    $paid[] = ['id' => $f['id_multa'], 'versato' => $rem, 'parziale' => true];
+                    $rem = 0;
+                }
             }
 
             if (!$isTransactionManagedExternally) {

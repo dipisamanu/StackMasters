@@ -42,28 +42,36 @@ class FineController
 
     /**
      * Gestisce la registrazione di un pagamento.
-     * Questa azione salda TUTTE le multe pendenti per un utente.
+     * Questa azione salda le multe pendenti per un utente (anche parzialmente).
      */
     public function pay(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+            $paymentAmount = filter_input(INPUT_POST, 'payment_amount', FILTER_VALIDATE_FLOAT);
 
             if ($userId) {
                 try {
                     // Recupera i dati dell'utente e il totale da saldare PRIMA del pagamento
                     $userData = $this->fineModel->getUserData($userId); // Metodo per avere solo i dati anagrafici
-                    $totalToPay = $this->fineModel->getTotalPendingAmount($userId);
+                    $totalPending = $this->fineModel->getTotalPendingAmount($userId);
 
-                    if ($totalToPay <= 0) {
+                    if ($totalPending <= 0) {
                         throw new Exception("Nessun debito da saldare.");
                     }
 
-                    // Processa il pagamento (salda tutto)
-                    $this->fineModel->settleAllFines($userId);
+                    // Se non è specificato un importo, si assume il saldo totale (comportamento legacy/fallback)
+                    $amountToPay = ($paymentAmount && $paymentAmount > 0) ? $paymentAmount : $totalPending;
 
-                    // Genera la quietanza PDF con i dati recuperati PRIMA
-                    $pdfFile = $this->pdfHelper->generateQuietanza($userData, $totalToPay);
+                    if ($amountToPay > $totalPending) {
+                        $amountToPay = $totalPending; // Non si può pagare più del dovuto
+                    }
+
+                    // Processa il pagamento
+                    $result = $this->fineModel->processPayment($userId, $amountToPay);
+
+                    // Genera la quietanza PDF con l'importo effettivamente pagato
+                    $pdfFile = $this->pdfHelper->generateQuietanza($userData, $result['total']);
 
                     // Reindirizza con messaggio di successo e link al PDF
                     header("Location: /StackMasters/dashboard/librarian/finance.php?user_id=$userId&status=success&msg=Pagamento_registrato_con_successo&pdf=$pdfFile");
