@@ -27,14 +27,12 @@ try {
     $stmt = $db->prepare("
         SELECT 
             u.*,
-            r.nome as ruolo_principale,
-            COALESCE(rf.rfid, 'Non assegnato') as rfid_code
+            r.nome as ruolo_principale
         FROM utenti u
         LEFT JOIN utenti_ruoli ur ON u.id_utente = ur.id_utente AND ur.id_ruolo = (
             SELECT id_ruolo FROM utenti_ruoli WHERE id_utente = u.id_utente ORDER BY id_ruolo LIMIT 1
         )
         LEFT JOIN ruoli r ON ur.id_ruolo = r.id_ruolo
-        LEFT JOIN rfid rf ON u.id_rfid = rf.id_rfid
         WHERE u.id_utente = ?
         LIMIT 1
     ");
@@ -215,10 +213,6 @@ require_once '../../src/Views/layout/header.php';
                                 <span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i> Non Verificata</span>
                             <?php endif; ?>
                         </span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">RFID</span>
-                            <span class="info-value font-monospace text-muted"><?= htmlspecialchars($user['rfid_code']) ?></span>
                         </div>
                         <?php if (!$isAdmin): ?>
                             <div class="info-row">
