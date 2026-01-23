@@ -75,7 +75,7 @@ composer install
 Non è necessario configurare manualmente il database. 
 Apri il tuo browser e naviga verso il file di installazione:
 
-`http://localhost/StackMasters/public/install.php`
+`http://localhost/StackMasters/setup/install.php`
 
 *(Sostituisci localhost/StackMasters con il percorso effettivo del tuo server)*
 
