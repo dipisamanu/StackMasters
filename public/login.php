@@ -200,7 +200,7 @@ if ($flash) {
         <div class="mb-4">
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <label for="password" class="form-label small fw-bold text-muted text-uppercase m-0">Password</label>
-                <a href="forgot-password.php" class="small link-primary">Recupera?</a>
+                <a href="forgot-password.php" class="small link-primary" tabindex="-1">Password dimenticata?</a>
             </div>
             <div class="input-group">
                 <input type="password" class="form-control border-end-0" id="password" name="password"
