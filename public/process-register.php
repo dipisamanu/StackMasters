@@ -43,7 +43,7 @@ $confermaPassword = $_POST['confermaPassword'] ?? '';
 if (empty($nome) || empty($cognome)) $errors[] = "Nome e Cognome sono obbligatori.";
 if (empty($dataNascita)) $errors[] = "Data di nascita obbligatoria.";
 if (!in_array($sesso, ['M', 'F'])) $errors[] = "Sesso non valido.";
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Email non valida.";
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Inserisci un indirizzo email valido.";
 if (empty($codiceFiscale)) {
     $errors[] = "Il Codice Fiscale è obbligatorio.";
 } elseif (strlen($codiceFiscale) !== 16) {
@@ -51,10 +51,10 @@ if (empty($codiceFiscale)) {
 }
 
 // Validazione Password Robusta
-if (strlen($password) < 8) $errors[] = "Password troppo corta (min 8 caratteri).";
-if (!preg_match('/[A-Z]/', $password)) $errors[] = "La password deve contenere una maiuscola.";
-if (!preg_match('/[0-9]/', $password)) $errors[] = "La password deve contenere un numero.";
-if ($password !== $confermaPassword) $errors[] = "Le password non coincidono.";
+if (strlen($password) < 8) $errors[] = "La password deve contenere almeno 8 caratteri.";
+if (!preg_match('/[A-Z]/', $password)) $errors[] = "La password deve contenere almeno una lettera maiuscola.";
+if (!preg_match('/[0-9]/', $password)) $errors[] = "La password deve contenere almeno un numero.";
+if ($password !== $confermaPassword) $errors[] = "Le password inserite non coincidono.";
 
 // Controllo Duplicati nel DB
 if (empty($errors)) {
@@ -62,10 +62,10 @@ if (empty($errors)) {
         $stmt = $db->prepare("SELECT id_utente FROM utenti WHERE email = ? OR cf = ?");
         $stmt->execute([$email, $codiceFiscale]);
         if ($stmt->fetch()) {
-            $errors[] = "Esiste già un account con questa Email o Codice Fiscale.";
+            $errors[] = "Esiste già un account registrato con questa Email o Codice Fiscale.";
         }
     } catch (PDOException $e) {
-        $errors[] = "Errore di sistema durante la verifica dati.";
+        $errors[] = "Errore di sistema durante la verifica dei dati.";
         error_log("DB Error: " . $e->getMessage());
     }
 }
@@ -116,7 +116,7 @@ try {
     $db->commit();
 
     // Successo
-    Session::setFlash('success', "Account creato con successo! Ora puoi accedere.");
+    Session::setFlash('success', "Account creato con successo! Controlla la tua email per attivarlo.");
     header('Location: login.php');
     exit;
 

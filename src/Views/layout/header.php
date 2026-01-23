@@ -31,19 +31,24 @@ if (str_contains($scriptPath, '/dashboard/')) {
 
 // --- CALCOLO LINK DINAMICI ---
 
-// Link Home (Personale se loggato, Public se ospite)
+// 1. Link Home (Home Applicativa se loggato, Landing Page se ospite)
 if ($isLoggedIn) {
-    // Punta a dashboard/student/index.php
-    if (str_contains($scriptPath, '/dashboard/')) {
-        $homeHref = '../student/index.php';
-    } else {
-        $homeHref = '../dashboard/student/index.php';
-    }
+    $homeHref = $rootUrl . 'home.php';
 } else {
     $homeHref = $rootUrl . 'index.php';
 }
 
-// Link Dashboard Gestionale (Solo per Admin/Bibliotecario)
+// 2. Link Area Personale (Per tutti i loggati)
+$personalAreaHref = '';
+if ($isLoggedIn) {
+    if (str_contains($scriptPath, '/dashboard/')) {
+        $personalAreaHref = '../student/index.php';
+    } else {
+        $personalAreaHref = '../dashboard/student/index.php';
+    }
+}
+
+// 3. Link Dashboard Gestionale (Solo per Admin/Bibliotecario)
 $managementHref = '';
 if ($currentRole === 'Admin' || $currentRole === 'Bibliotecario') {
     $dashPath = match ($currentRole) {
@@ -245,18 +250,26 @@ if ($userName !== 'Utente') {
 
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <!-- HOME: Studente/Index se loggato, Public/Index se ospite -->
                 <li class="nav-item">
                     <a class="nav-link" href="<?= $homeHref ?>">Home</a>
                 </li>
                 
-                <!-- DASHBOARD GESTIONALE: Solo per Admin e Bibliotecari -->
-                <?php if ($managementHref): ?>
+                <?php if ($isLoggedIn): ?>
+                    <!-- AREA PERSONALE (Per tutti) -->
                     <li class="nav-item">
-                        <a class="nav-link text-primary fw-bold" href="<?= $managementHref ?>">
-                            <i class="fas fa-tachometer-alt me-1 small"></i>Dashboard
+                        <a class="nav-link" href="<?= $personalAreaHref ?>">
+                            <i class="fas fa-user-circle me-1 small"></i>Area Personale
                         </a>
                     </li>
+
+                    <!-- DASHBOARD GESTIONALE (Solo Admin/Bibliotecari) -->
+                    <?php if ($managementHref): ?>
+                        <li class="nav-item">
+                            <a class="nav-link text-primary fw-bold" href="<?= $managementHref ?>">
+                                <i class="fas fa-tachometer-alt me-1 small"></i>Dashboard
+                            </a>
+                        </li>
+                    <?php endif; ?>
                 <?php endif; ?>
 
                 <li class="nav-item">
@@ -310,26 +323,18 @@ if ($userName !== 'Utente') {
 
                         <ul class="dropdown-menu dropdown-menu-end animate slideIn">
                             <?php
-                            // Link per il menu a tendina (Dashboard specifica del ruolo)
-                            $dash = match ($currentRole) {
-                                'Bibliotecario' => 'dashboard/librarian/index.php',
-                                'Admin' => 'dashboard/admin/index.php',
-                                default => 'dashboard/student/index.php'
-                            };
+                            // Link per il menu a tendina
                             $profileLink = match ($currentRole) {
                                 'Admin' => 'dashboard/admin/profile.php',
                                 default => 'dashboard/student/profile.php'
                             };
 
                             if ($rootUrl == './') {
-                                $finalDash = '../' . $dash;
                                 $finalProfile = '../' . $profileLink;
                             } else {
-                                $finalDash = '../../public/' . $dash;
                                 $finalProfile = '../../public/' . $profileLink;
                             }
                             if (str_contains($scriptPath, '/dashboard/')) {
-                                $finalDash = '../' . basename(dirname($dash)) . '/index.php';
                                 $finalProfile = 'profile.php';
                             }
                             ?>
@@ -339,9 +344,13 @@ if ($userName !== 'Utente') {
                                 <div class="small text-muted"><?= htmlspecialchars($currentRole) ?></div>
                             </li>
 
-                            <li><a class="dropdown-item" href="<?= $finalDash ?>"><i
-                                            class="fas fa-tachometer-alt me-2 text-primary opacity-75"></i>Dashboard</a>
-                            </li>
+                            <!-- Link Dashboard nel menu a tendina (Ridondante ma richiesto) -->
+                            <?php if ($managementHref): ?>
+                                <li><a class="dropdown-item" href="<?= $managementHref ?>"><i
+                                                class="fas fa-tachometer-alt me-2 text-primary opacity-75"></i>Dashboard</a>
+                                </li>
+                            <?php endif; ?>
+
                             <li><a class="dropdown-item" href="<?= $finalProfile ?>"><i
                                             class="fas fa-user-cog me-2 text-secondary opacity-75"></i>Profilo</a></li>
                             <li>

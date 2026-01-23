@@ -21,19 +21,19 @@ $confirm = $_POST['confirm_password'] ?? '';
 
 // Validazione base
 if (empty($token) || empty($password) || empty($confirm)) {
-    $_SESSION['reset_error'] = 'Compila tutti i campi.';
+    Session::setFlash('error', 'Tutti i campi sono obbligatori.');
     header("Location: reset-password.php?token=$token");
     exit;
 }
 
 if ($password !== $confirm) {
-    $_SESSION['reset_error'] = 'Le password non coincidono.';
+    Session::setFlash('error', 'Le password inserite non coincidono.');
     header("Location: reset-password.php?token=$token");
     exit;
 }
 
 if (strlen($password) < 8) {
-    $_SESSION['reset_error'] = 'La password deve essere di almeno 8 caratteri.';
+    Session::setFlash('error', 'La password deve contenere almeno 8 caratteri.');
     header("Location: reset-password.php?token=$token");
     exit;
 }
@@ -42,7 +42,6 @@ try {
     $db = getDB();
 
     // Calcola Hash del Token per confronto DB
-    // Nel forgot-password il token viene salvato come md5($random_bytes)
     $tokenHash = md5($token);
 
     // Verifica Token valido e non scaduto
@@ -57,7 +56,7 @@ try {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
-        $_SESSION['reset_error'] = 'Link non valido o scaduto. Richiedi un nuovo reset.';
+        Session::setFlash('error', 'Il link di reset non è valido o è scaduto. Richiedine uno nuovo.');
         header('Location: forgot-password.php');
         exit;
     }
@@ -78,13 +77,13 @@ try {
     $update->execute([$newPasswordHash, $user['id_utente']]);
 
     // Successo -> Login
-    $_SESSION['login_success'] = 'Password aggiornata con successo! Ora puoi accedere.';
+    Session::setFlash('success', 'Password aggiornata con successo! Ora puoi accedere con le nuove credenziali.');
     header('Location: login.php');
     exit;
 
 } catch (Exception $e) {
     error_log("Errore Reset Password: " . $e->getMessage());
-    $_SESSION['reset_error'] = 'Errore di sistema. Riprova.';
+    Session::setFlash('error', 'Si è verificato un errore di sistema. Riprova più tardi.');
     header("Location: reset-password.php?token=$token");
     exit;
 }

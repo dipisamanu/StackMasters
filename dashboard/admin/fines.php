@@ -14,9 +14,10 @@ $db = Database::getInstance()->getConnection();
 // FILTRI E ORDINAMENTO
 $sortOrder = isset($_GET['sort']) && $_GET['sort'] === 'asc' ? 'ASC' : 'DESC';
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
+$filterDate = $_GET['date_filter'] ?? '';
 
 $query = "
-    SELECT u.id_utente, u.nome, u.cognome, u.email, u.cf, SUM(m.importo) as totale_multe
+    SELECT u.id_utente, u.nome, u.cognome, u.email, u.cf, SUM(m.importo) as totale_multe, MAX(m.data_creazione) as ultima_multa
     FROM utenti u
     JOIN multe m ON u.id_utente = m.id_utente
     WHERE m.data_pagamento IS NULL
@@ -37,7 +38,16 @@ if (!empty($search)) {
     }
 }
 
-$query .= " GROUP BY u.id_utente ORDER BY totale_multe $sortOrder";
+$query .= " GROUP BY u.id_utente";
+
+// Ordinamento personalizzato
+if ($filterDate === 'recent') {
+    $query .= " ORDER BY ultima_multa DESC";
+} elseif ($filterDate === 'oldest') {
+    $query .= " ORDER BY ultima_multa ASC";
+} else {
+    $query .= " ORDER BY totale_multe $sortOrder";
+}
 
 try {
     $stmt = $db->prepare($query);
@@ -129,17 +139,25 @@ require_once '../../src/Views/layout/header.php';
                     <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill"><?= count($usersWithFines) ?></span>
                 </div>
 
-                <form method="GET" class="d-flex gap-2 w-100 w-md-auto" style="max-width: 600px;">
-                    <div class="input-group">
+                <form method="GET" class="d-flex gap-2 w-100 w-md-auto" style="max-width: 900px;">
+                    <div class="input-group" style="flex-grow: 1;">
                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-search"></i></span>
                         <input type="text" name="q" class="form-control border-start-0 bg-light" placeholder="Cerca utente..." value="<?= htmlspecialchars($search) ?>">
                     </div>
-                    <select class="form-select" name="sort" style="max-width: 200px;">
-                        <option value="desc" <?= $sortOrder === 'DESC' ? 'selected' : '' ?>>Importo Decrescente</option>
-                        <option value="asc" <?= $sortOrder === 'ASC' ? 'selected' : '' ?>>Importo Crescente</option>
+                    
+                    <select class="form-select" name="sort" style="width: 180px; flex-shrink: 0;">
+                        <option value="desc" <?= $sortOrder === 'DESC' && empty($filterDate) ? 'selected' : '' ?>>Importo Decrescente</option>
+                        <option value="asc" <?= $sortOrder === 'ASC' && empty($filterDate) ? 'selected' : '' ?>>Importo Crescente</option>
                     </select>
+
+                    <select class="form-select" name="date_filter" style="width: 150px; flex-shrink: 0;">
+                        <option value="" <?= empty($filterDate) ? 'selected' : '' ?>>Data...</option>
+                        <option value="recent" <?= $filterDate === 'recent' ? 'selected' : '' ?>>Più Recenti</option>
+                        <option value="oldest" <?= $filterDate === 'oldest' ? 'selected' : '' ?>>Più Datate</option>
+                    </select>
+
                     <button class="btn btn-primary px-4" type="submit">Filtra</button>
-                    <?php if($search): ?>
+                    <?php if($search || $filterDate): ?>
                         <a href="fines.php" class="btn btn-light border" title="Reset filtri"><i class="fas fa-times"></i></a>
                     <?php endif; ?>
                 </form>
@@ -149,16 +167,17 @@ require_once '../../src/Views/layout/header.php';
                 <table class="table table-hover table-custom align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="ps-4" style="width: 40%;">Utente</th>
-                            <th style="width: 25%;">Contatti</th>
+                            <th class="ps-4" style="width: 35%;">Utente</th>
+                            <th style="width: 20%;">Contatti</th>
+                            <th style="width: 15%;">Ultima Multa</th>
                             <th class="text-end" style="width: 15%;">Totale Multe</th>
-                            <th class="text-end pe-4" style="width: 20%;">Azioni</th>
+                            <th class="text-end pe-4" style="width: 15%;">Azioni</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($usersWithFines)): ?>
                             <tr>
-                                <td colspan="4" class="text-center py-5 text-muted">
+                                <td colspan="5" class="text-center py-5 text-muted">
                                     <i class="fas fa-check-circle fa-2x mb-3 text-success opacity-50"></i><br>
                                     Nessuna multa pendente trovata.
                                 </td>
@@ -190,6 +209,9 @@ require_once '../../src/Views/layout/header.php';
                                             <span class="text-muted small" style="font-family: monospace;"><?= htmlspecialchars($user['cf']) ?></span>
                                         </div>
                                         <?php endif; ?>
+                                    </td>
+                                    <td class="text-muted small">
+                                        <?= date('d/m/Y', strtotime($user['ultima_multa'])) ?>
                                     </td>
                                     <td class="text-end fw-bold text-danger fs-5">€ <?= number_format($user['totale_multe'], 2) ?></td>
                                     <td class="text-end pe-4">

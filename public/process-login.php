@@ -20,7 +20,7 @@ $email = $_POST['email'] ?? '';
 $password = $_POST['password'] ?? '';
 
 if (empty($email) || empty($password)) {
-    $_SESSION['login_error'] = 'Email e password sono obbligatorie';
+    $_SESSION['login_error'] = 'Inserisci email e password per accedere.';
     header('Location: login.php');
     exit;
 }
@@ -35,7 +35,7 @@ try {
 
     if (is_string($result)) {
         // È un errore (es. password errata, account bloccato)
-        $_SESSION['login_error'] = $result;
+        $_SESSION['login_error'] = $result; // Il messaggio dal model è già specifico
         header('Location: login.php');
         exit;
     }
@@ -50,28 +50,13 @@ try {
     $nomeCompleto = $user['nome'] . ' ' . $user['cognome'];
     Session::login($user['id_utente'], $nomeCompleto, $user['email'], $user['roles']);
 
-    // Reindirizzamento in base al ruolo (Logica originale mantenuta)
-    // Usa Session::getMainRole() che ora è stato popolato correttamente
-    $mainRole = Session::getMainRole();
-
-    switch ($mainRole) {
-        case 'Admin':
-            header('Location: ' . BASE_URL . '/dashboard/admin/index.php');
-            break;
-        case 'Bibliotecario':
-            header('Location: ' . BASE_URL . '/dashboard/librarian/index.php');
-            break;
-        case 'Docente':
-        case 'Studente':
-        default:
-            header('Location: ' . BASE_URL . '/dashboard/student/index.php');
-            break;
-    }
-    error_log("va tutto");
+    // Reindirizza TUTTI alla home page applicativa
+    header('Location: ' . BASE_URL . '/public/home.php');
     exit;
+
 } catch (Exception $e) {
     error_log("ERRORE LOGIN: " . $e->getMessage());
-    $_SESSION['login_error'] = 'Errore di sistema. Riprova più tardi.';
+    $_SESSION['login_error'] = 'Si è verificato un errore di sistema. Riprova più tardi.';
     header('Location: login.php');
     exit;
 }

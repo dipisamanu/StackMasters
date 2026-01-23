@@ -97,7 +97,7 @@ require_once '../../src/Views/layout/header.php';
             padding: 3rem 0;
             margin-bottom: 2rem;
             border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .stat-card-modern {
