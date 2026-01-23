@@ -596,7 +596,7 @@ class LoanService
     {
         require_once __DIR__ . '/../config/email.php';
         try {
-            $emailService = getEmailService(true);
+            $emailService = getEmailService(false);
             $emailService->sendLoanConfirmation(
                 $utente['email'],
                 $utente['nome'],
@@ -612,7 +612,7 @@ class LoanService
     {
         require_once __DIR__ . '/../config/email.php';
         try {
-            $emailService = getEmailService(true);
+            $emailService = getEmailService(false);
             $emailService->sendReservationAvailable(
                 $prenotazione['email'],
                 $prenotazione['nome'],
