@@ -3,6 +3,16 @@
  * Vista: Report Contabile per la Segreteria (Epic 10.5)
  * File: dashboard/admin/finance_report.php
  */
+
+ini_set("display_errors", 1);
+ini_set("display_startup_errors", 1);
+error_reporting(E_ALL);
+
+if (!Session::isLoggedIn()) {
+    header('Location: /StackMasters/public/login.php');
+    exit;
+}
+
 require_once '../../src/config/session.php'; // Include the Session class
 require_once '../../src/config/database.php'; // Include the Database class
 
