@@ -70,20 +70,10 @@ foreach ($books as $book) {
                 card.dataset.col = j;
 
                 const cardInner = document.createElement('div');
-
-                const cardFront = document.createElement('div');
-                cardFront.classList.add('card-front');
-
-                const cardBack = document.createElement('div');
-                cardBack.classList.add('card-back');
                 const img = document.createElement('img');
                 img.src = book.cover_image;
                 img.alt = book.title;
-                cardBack.appendChild(img);
-
-                cardInner.appendChild(cardFront);
-                cardInner.appendChild(cardBack);
-                card.appendChild(cardInner);
+                card.appendChild(img);
 
                 // card.addEventListener('click', handleCardClick);
                 cell.appendChild(card);
