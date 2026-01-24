@@ -150,6 +150,9 @@ require_once '../../src/Views/layout/header.php';
                     <p class="mb-0 opacity-75">Ecco il riepilogo della tua attività di lettura.</p>
                 </div>
                 <div class="d-flex gap-2">
+                    <a href="../student/game.php" class="btn btn-light rounded-pill fw-bold text-dark shadow-sm">
+                        <i class="fa-solid fa-gamepad"></i>  Gioca!
+                    </a>
                     <a href="../../public/catalog.php" class="btn btn-light rounded-pill fw-bold text-dark shadow-sm">
                         <i class="fas fa-search me-2"></i>Nuovo Libro
                     </a>
