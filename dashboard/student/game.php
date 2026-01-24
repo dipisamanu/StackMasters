@@ -16,6 +16,7 @@ $db = Database::getInstance()->getConnection();
 $userId = $_SESSION['user_id'];
 
 require_once '../../src/Views/layout/header.php';
+require_once '../../scripts/selezione_libri_gioco.php'
 ?>
 
 <!doctype html>
@@ -42,7 +43,6 @@ require_once '../../src/Views/layout/header.php';
 
     createBooksMatrix();
     printMatrix();
-
 
 
     function createBooksMatrix() {
