@@ -69,7 +69,6 @@ foreach ($books as $book) {
                 card.dataset.row = i;
                 card.dataset.col = j;
 
-                const cardInner = document.createElement('div');
                 const img = document.createElement('img');
                 img.src = book.cover_image;
                 img.alt = book.title;
@@ -80,40 +79,6 @@ foreach ($books as $book) {
                 row.appendChild(cell);
             }
             gameBoard.appendChild(row);
-        }
-    }
-
-    function handleCardClick(event) {
-        if (!canFlip) return;
-        const clickedCard = event.currentTarget;
-
-        if (clickedCard.classList.contains('flipped') || clickedCard.classList.contains('matched')) return;
-
-        clickedCard.classList.add('flipped');
-        flippedCards.push(clickedCard);
-
-        if (flippedCards.length === 2) {
-            canFlip = false;
-            const [card1, card2] = flippedCards;
-
-            if (card1.dataset.id === card2.dataset.id) {
-                card1.classList.add('matched');
-                card2.classList.add('matched');
-                matchedPairs++;
-                flippedCards = [];
-                canFlip = true;
-
-                if (matchedPairs === (boardW * boardH) / 2) {
-                    setTimeout(() => alert('Hai vinto!'), 500);
-                }
-            } else {
-                setTimeout(() => {
-                    card1.classList.remove('flipped');
-                    card2.classList.remove('flipped');
-                    flippedCards = [];
-                    canFlip = true;
-                }, 1000);
-            }
         }
     }
 
