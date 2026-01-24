@@ -28,7 +28,8 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet">
 
     <style>
         body {
@@ -43,7 +44,7 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
         .card-register {
             border: none;
             border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
             overflow: hidden;
             background: white;
             width: 100%;
@@ -64,18 +65,22 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
         .register-sidebar::before {
             content: '';
             position: absolute;
-            top: -50px; right: -50px;
-            width: 300px; height: 300px;
-            background: rgba(255,255,255,0.1);
+            top: -50px;
+            right: -50px;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
         }
 
         .register-sidebar::after {
             content: '';
             position: absolute;
-            bottom: -50px; left: -50px;
-            width: 200px; height: 200px;
-            background: rgba(255,255,255,0.1);
+            bottom: -50px;
+            left: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
         }
 
@@ -138,8 +143,15 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
             align-items: center;
         }
 
-        .password-requirements span.valid { color: #198754; font-weight: 600; }
-        .password-requirements span i { font-size: 0.65rem; margin-right: 4px; }
+        .password-requirements span.valid {
+            color: #198754;
+            font-weight: 600;
+        }
+
+        .password-requirements span i {
+            font-size: 0.65rem;
+            margin-right: 4px;
+        }
 
         #btnCalcolaCF {
             border-top-right-radius: 10px;
@@ -168,14 +180,16 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                     </div>
                     <p class="opacity-75 fs-5">La tua biblioteca digitale, a portata di click.</p>
                     <hr class="border-light opacity-25 my-4">
-                    <p class="small opacity-75">Unisciti a noi per accedere a migliaia di risorse, prenotare libri e gestire i tuoi prestiti online.</p>
+                    <p class="small opacity-75">Unisciti a noi per accedere a migliaia di risorse, prenotare libri e
+                        gestire i tuoi prestiti online.</p>
                 </div>
             </div>
 
             <div class="col-lg-8 bg-white p-4 p-md-5">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3 class="fw-bold text-dark m-0">Crea Account</h3>
-                    <a href="index.php" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="fas fa-arrow-left me-1"></i> Home</a>
+                    <a href="index.php" class="btn btn-outline-secondary btn-sm rounded-pill"><i
+                                class="fas fa-arrow-left me-1"></i> Home</a>
                 </div>
 
                 <?php if ($flash): ?>
@@ -188,7 +202,8 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                 <?php if (!empty($errors)): ?>
                     <div class="alert alert-danger shadow-sm border-0 rounded-3 mb-4">
                         <ul class="mb-0 small ps-3">
-                            <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
+                            <?php foreach ($errors as $e): ?>
+                                <li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
                         </ul>
                     </div>
                 <?php endif; ?>
@@ -199,14 +214,16 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="nome" name="nome" placeholder="Mario" value="<?= htmlspecialchars($oldData['nome'] ?? '') ?>" required>
+                                <input type="text" class="form-control" id="nome" name="nome" placeholder="Mario"
+                                       value="<?= htmlspecialchars($oldData['nome'] ?? '') ?>" required>
                                 <label for="nome">Nome</label>
                                 <div class="invalid-feedback">Inserisci il nome.</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="cognome" name="cognome" placeholder="Rossi" value="<?= htmlspecialchars($oldData['cognome'] ?? '') ?>" required>
+                                <input type="text" class="form-control" id="cognome" name="cognome" placeholder="Rossi"
+                                       value="<?= htmlspecialchars($oldData['cognome'] ?? '') ?>" required>
                                 <label for="cognome">Cognome</label>
                                 <div class="invalid-feedback">Inserisci il cognome.</div>
                             </div>
@@ -216,7 +233,9 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="date" class="form-control" id="dataNascita" name="dataNascita" min="1920-01-01" max="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($oldData['dataNascita'] ?? '') ?>" required>
+                                <input type="date" class="form-control" id="dataNascita" name="dataNascita"
+                                       min="1920-01-01" max="<?= date('Y-m-d') ?>"
+                                       value="<?= htmlspecialchars($oldData['dataNascita'] ?? '') ?>" required>
                                 <label for="dataNascita">Data di Nascita</label>
                                 <div class="invalid-feedback">Data non valida.</div>
                             </div>
@@ -224,9 +243,15 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                         <div class="col-md-6">
                             <div class="form-floating">
                                 <select class="form-select" id="sesso" name="sesso" required>
-                                    <option value="" disabled <?= !isset($oldData['sesso']) ? 'selected' : '' ?>>Seleziona</option>
-                                    <option value="M" <?= ($oldData['sesso'] ?? '') === 'M' ? 'selected' : '' ?>>Maschio</option>
-                                    <option value="F" <?= ($oldData['sesso'] ?? '') === 'F' ? 'selected' : '' ?>>Femmina</option>
+                                    <option value="" disabled <?= !isset($oldData['sesso']) ? 'selected' : '' ?>>
+                                        Seleziona
+                                    </option>
+                                    <option value="M" <?= ($oldData['sesso'] ?? '') === 'M' ? 'selected' : '' ?>>
+                                        Maschio
+                                    </option>
+                                    <option value="F" <?= ($oldData['sesso'] ?? '') === 'F' ? 'selected' : '' ?>>
+                                        Femmina
+                                    </option>
                                 </select>
                                 <label for="sesso">Sesso</label>
                                 <div class="invalid-feedback">Seleziona il sesso.</div>
@@ -237,7 +262,8 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                     <div class="row g-3 mb-3">
                         <div class="col-md-5">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="comune" name="comune" placeholder="Roma" value="<?= htmlspecialchars($oldData['comune'] ?? '') ?>" required>
+                                <input type="text" class="form-control" id="comune" name="comune" placeholder="Roma"
+                                       value="<?= htmlspecialchars($oldData['comune'] ?? '') ?>" required>
                                 <label for="comune">Comune di Nascita</label>
                                 <div class="invalid-feedback" id="errComune">Inserisci il comune.</div>
                             </div>
@@ -245,19 +271,25 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                         <div class="col-md-7">
                             <div class="input-group has-validation">
                                 <div class="form-floating flex-grow-1">
-                                    <input type="text" class="form-control rounded-0 rounded-start" id="codiceFiscale" name="codiceFiscale" placeholder="CF" maxlength="16" value="<?= htmlspecialchars($oldData['codiceFiscale'] ?? '') ?>" style="border-right:0;" required>
+                                    <input type="text" class="form-control rounded-0 rounded-start" id="codiceFiscale"
+                                           name="codiceFiscale" placeholder="CF" maxlength="16"
+                                           value="<?= htmlspecialchars($oldData['codiceFiscale'] ?? '') ?>"
+                                           style="border-right:0;" required>
                                     <label for="codiceFiscale">Codice Fiscale</label>
                                     <div class="invalid-feedback" id="errCF">Inserisci il codice fiscale.</div>
                                 </div>
-                                <button class="btn btn-light border" type="button" id="btnCalcolaCF" style="min-width: 80px;">
-                                    <i class="fas fa-magic text-primary"></i> <span class="d-none d-sm-inline">Calcola</span>
+                                <button class="btn btn-light border" type="button" id="btnCalcolaCF"
+                                        style="min-width: 80px;">
+                                    <i class="fas fa-magic text-primary"></i> <span
+                                            class="d-none d-sm-inline">Calcola</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-floating mb-3">
-                        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" value="<?= htmlspecialchars($oldData['email'] ?? '') ?>" required>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com"
+                               value="<?= htmlspecialchars($oldData['email'] ?? '') ?>" required>
                         <label for="email">Indirizzo Email</label>
                         <div class="invalid-feedback">Inserisci un'email valida.</div>
                     </div>
@@ -266,11 +298,13 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                         <div class="col-md-6">
                             <div class="input-group has-validation">
                                 <div class="form-floating flex-grow-1">
-                                    <input type="password" class="form-control border-end-0 rounded-0 rounded-start" id="password" name="password" placeholder="Password" required>
+                                    <input type="password" class="form-control border-end-0 rounded-0 rounded-start"
+                                           id="password" name="password" placeholder="Password" required>
                                     <label for="password">Password</label>
                                     <div class="invalid-feedback">Password richiesta.</div>
                                 </div>
-                                <span class="input-group-text bg-white border-start-0" style="cursor: pointer;" onclick="togglePass('password', this)">
+                                <span class="input-group-text bg-white border-start-0" style="cursor: pointer;"
+                                      onclick="togglePass('password', this)">
                                     <i class="far fa-eye text-muted"></i>
                                 </span>
                             </div>
@@ -284,11 +318,14 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                         <div class="col-md-6">
                             <div class="input-group has-validation">
                                 <div class="form-floating flex-grow-1">
-                                    <input type="password" class="form-control border-end-0 rounded-0 rounded-start" id="confermaPassword" name="confermaPassword" placeholder="Conferma" required>
+                                    <input type="password" class="form-control border-end-0 rounded-0 rounded-start"
+                                           id="confermaPassword" name="confermaPassword" placeholder="Conferma"
+                                           required>
                                     <label for="confermaPassword">Conferma Password</label>
                                     <div class="invalid-feedback">Le password non coincidono.</div>
                                 </div>
-                                <span class="input-group-text bg-white border-start-0" style="cursor: pointer;" onclick="togglePass('confermaPassword', this)">
+                                <span class="input-group-text bg-white border-start-0" style="cursor: pointer;"
+                                      onclick="togglePass('confermaPassword', this)">
                                     <i class="far fa-eye text-muted"></i>
                                 </span>
                             </div>
@@ -300,7 +337,8 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                     </button>
 
                     <p class="text-center text-muted mb-0">
-                        Hai già un account? <a href="login.php" class="text-primary fw-bold text-decoration-none">Accedi qui</a>
+                        Hai già un account? <a href="login.php" class="text-primary fw-bold text-decoration-none">Accedi
+                            qui</a>
                     </p>
                 </form>
             </div>
@@ -333,7 +371,7 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
         let comuniDB = [];
 
         // Validazione Password Live
-        passInput.addEventListener("input", function() {
+        passInput.addEventListener("input", function () {
             const val = this.value;
             const reqs = {
                 'req-len': val.length >= 8,
@@ -356,7 +394,7 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
                 }
             }
 
-            if(confirmInput.value) checkMatch();
+            if (confirmInput.value) checkMatch();
         });
 
         confirmInput.addEventListener("input", checkMatch);
@@ -376,11 +414,13 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
         // Caricamento Comuni JSON
         fetch('/StackMasters/public/assets/data/comuni.json')
             .then(r => r.json())
-            .then(data => { comuniDB = data; })
+            .then(data => {
+                comuniDB = data;
+            })
             .catch(err => console.error("Errore comuni:", err));
 
         // Calcolo Codice Fiscale
-        document.getElementById('btnCalcolaCF').addEventListener('click', function() {
+        document.getElementById('btnCalcolaCF').addEventListener('click', function () {
             const inputs = {
                 nome: document.getElementById('nome').value.trim().toUpperCase(),
                 cognome: document.getElementById('cognome').value.trim().toUpperCase(),
@@ -414,15 +454,20 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
             cfInput.classList.add('is-valid'); // Feedback verde
         });
 
-        // Funzioni Helper CF Minimizzate
+        // Funzioni Helper CF
         function calcolaCF(nome, cognome, data, sesso, codCat) {
+            // Funzioni di pulizia stringhe (solo maiuscole per sicurezza)
+            nome = nome.toUpperCase();
+            cognome = cognome.toUpperCase();
+            codCat = codCat.toUpperCase();
+
             const voc = str => str.replace(/[^AEIOU]/g, '');
             const cons = str => str.replace(/[^B-DF-HJ-NP-TV-Z]/g, '');
 
             const getCod = (str, isNome) => {
                 const c = cons(str), v = voc(str);
                 const t = c + v + 'XXX';
-                if (isNome && c.length >= 4) return c[0] + c[2] + c[3];
+                if (isNome && c.length >= 4) return c[0] + c[2] + c[3]; // Regola speciale per il nome
                 return t.substring(0, 3);
             };
 
@@ -430,23 +475,44 @@ unset($_SESSION['register_errors'], $_SESSION['register_data'], $_SESSION['flash
             const mesi = 'ABCDEHLMPRST';
             const gg = parseInt(D) + (sesso === 'F' ? 40 : 0);
 
+            // Costruzione primi 15 caratteri
             let tempCF = getCod(cognome, false) + getCod(nome, true) +
-                Y.substring(2) + mesi[parseInt(M)-1] + (gg < 10 ? '0'+gg : gg) + codCat;
+                Y.substring(2) + mesi[parseInt(M) - 1] + (gg < 10 ? '0' + gg : gg) + codCat;
 
             // Calcolo CIN
-            const pari = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const dispari = {0:1,1:0,2:5,3:7,4:9,5:13,6:15,7:17,8:19,9:21,A:1,B:0,C:5,D:7,E:9,F:13,G:15,H:17,I:19,J:21,K:2,L:4,M:18,N:20,O:11,P:3,Q:6,R:8,S:12,T:14,U:16,V:10,W:22,X:25,Y:24,Z:23};
             let s = 0;
-            for(let i=0; i<15; i++) {
-                let char = tempCF[i];
-                if((i+1)%2 === 0) s += pari.indexOf(char); // Pari (0-based index su stringa è dispari)
-                else s += dispari[(!isNaN(char) ? parseInt(char) : char)];
+
+            const setDispari = {
+                '0': 1, '1': 0, '2': 5, '3': 7, '4': 9, '5': 13, '6': 15, '7': 17, '8': 19, '9': 21,
+                'A': 1, 'B': 0, 'C': 5, 'D': 7, 'E': 9, 'F': 13, 'G': 15, 'H': 17, 'I': 19, 'J': 21,
+                'K': 2, 'L': 4, 'M': 18, 'N': 20, 'O': 11, 'P': 3, 'Q': 6, 'R': 8, 'S': 12, 'T': 14,
+                'U': 16, 'V': 10, 'W': 22, 'X': 25, 'Y': 24, 'Z': 23
+            };
+
+            for (let i = 0; i < 15; i++) {
+                const char = tempCF[i];
+
+                // Se (i+1) è dispari (ovvero indice array 0, 2, 4...)
+                if ((i + 1) % 2 !== 0) {
+                    s += setDispari[char];
+                } else {
+                    // Se (i+1) è pari (ovvero indice array 1, 3, 5...)
+                    // Regola: 0-9 valgono il numero stesso, A-Z valgono 0-25
+                    if (char >= '0' && char <= '9') {
+                        s += parseInt(char);
+                    } else {
+                        // 'A' è ASCII 65. 65 - 65 = 0. 'B' è 66. 66 - 65 = 1.
+                        s += char.charCodeAt(0) - 65;
+                    }
+                }
             }
-            return tempCF + String.fromCharCode(65 + (s % 26));
+
+            const checkDigit = String.fromCharCode(65 + (s % 26));
+            return tempCF + checkDigit;
         }
 
         // Validazione Form al Submit
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             if (!form.checkValidity()) {
                 e.preventDefault();
                 e.stopPropagation();
