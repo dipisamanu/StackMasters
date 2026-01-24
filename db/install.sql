@@ -278,6 +278,14 @@ CREATE TABLE IF NOT EXISTS cache_correlazioni
 );
 
 
+create table partite
+(
+    id int primary key auto_increment not null,
+    id_utente int not null,
+    mosse int unsigned,
+    foreign key (id_utente) references utenti (id_utente)
+);
+
 -- ===========================
 -- STORED PROCEDURES
 -- ===========================
