@@ -28,7 +28,16 @@ require_once '../../src/Views/layout/header.php';
     <title>Gioco Memory</title>
 </head>
 <body>
-
+    <table id="gameBoard" style="text-align: center">
+        <tr>
+            <td>Alfreds Futterkiste</td>
+            <td>Maria Anders</td>
+        </tr>
+        <tr>
+            <td>Centro comercial Moctezuma</td>
+            <td>Francisco Chang</td>
+        </tr>
+    </table>
 </body>
 </html>
 
@@ -36,7 +45,6 @@ require_once '../../src/Views/layout/header.php';
     const gameBoard = document.getElementById("gameBoard");
 
     const books = [];
-
 
 
 </script>
